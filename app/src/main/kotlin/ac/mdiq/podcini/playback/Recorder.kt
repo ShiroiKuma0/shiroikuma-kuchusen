@@ -99,7 +99,14 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
     override fun addTransferListener(transferListener: TransferListener) {
         cacheDataSource.addTransferListener(transferListener)
     }
+
     override fun getResponseHeaders(): Map<String, List<String>> {
         return cacheDataSource.responseHeaders
+    }
+}
+
+class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+    override fun createDataSource(): DataSource {
+        return SegmentSavingDataSource(upstreamFactory.createDataSource())
     }
 }
