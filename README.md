@@ -10,7 +10,7 @@ An open source extensible media instrument, attuned to Puccini ![Puccini](./imag
 <!-- [<img src="./images/external/getItIzzyOnDroid.png" alt="IzzyOnDroid" height="50">](https://apt.izzysoft.de/fdroid/index/apk/ac.mdiq.podcini.A) -->
 <!-- [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="50">](https://f-droid.org/packages/ac.mdiq.podcini.A/) -->
 
-### A fork of [Podcini.X](<https://github.com/XilinJia/Podcini>) as of May 29 2026, this project inherits all functionalities of Podcini.X.
+### A fork of [Podcini.X](<https://github.com/XilinJia/Podcini.X>) as of May 29 2026, this project inherits all functionalities of Podcini.X.
 
 ### A major milestone is this project can handle sources provided by external apps.
 One such app is [UT.urn](<https://github.com/XilinJia/UT.urn>)
