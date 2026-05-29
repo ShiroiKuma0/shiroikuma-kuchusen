@@ -47,6 +47,9 @@ If you intend to sync through a server, NextCloud server has been tested, but no
 ### [Warning: Your Android device will become a locked-down platform soon](https://keepandroidopen.org/)
 
 ## Usage and notable features description 
+
+To use an external server app, you need to first install the app. Then in Podcini.A -> Settings->Network and Storage, enable "Use external app".
+ 
 <details> <summary>Click to expand</summary>
 
 ### Quick start
