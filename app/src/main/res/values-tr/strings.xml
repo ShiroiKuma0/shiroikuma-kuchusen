@@ -1,0 +1,862 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="MissingTranslation">
+
+    <!-- Activity and fragment titles -->
+    <string name="feed_update_receiver_name">Abonelikleri güncelle</string>
+    <string name="feeds">Beslemeler</string>
+
+    <string name="statistics_label">İstatistikler</string>
+    <string name="add_feed_label">Podcast ekle</string>
+    <string name="online_episodes_label">Çevrimiçi bölümler</string>
+    <string name="feed">Besleme</string>
+    <string name="facets">Yönler</string>
+    <string name="episodes_label">Bölümler</string>
+
+
+    <string name="settings_label">Ayarlar</string>
+    <string name="downloads_label">İndirmeler</string>
+    <string name="logs_label">Günlükler</string>
+
+    <string name="subscriptions_label">Abonelikler</string>
+
+    <string name="cancel_download_label">İndirmeyi iptal et</string>
+    <string name="playback_history_label">Oynatma geçmişi</string>
+
+    <string name="overview">Genel Bakış</string>
+    <string name="months_statistics_label">Aylar</string>
+
+    <string name="notification_pref_fragment">Bildirimler</string>
+    <string name="current_episode">Mevcut</string>
+    <string name="current_podcast">Podcast</string>
+
+
+    <!-- Google Assistant -->
+    <string name="app_action_not_found">\"%1$s\" bulunamadı</string>
+
+    <!-- SwipeActions -->
+    <string name="swipeactions_label">Kaydırma işlemleri</string>
+    <string name="swipe_right">Sağa kaydır</string>
+    <string name="swipe_left">Sola kaydır</string>
+
+    <string name="subscription">Abonelik</string>
+
+    <!-- Statistics fragment -->
+    <string name="statistics_speed_not_counted">Not: Oynatma hızı hiçbir zaman dikkate alınmaz.</string>
+    <string name="statistics_start_month">Başlangıç ayı</string>
+    <string name="statistics_end_month">Bitiş ayı</string>
+    <string name="statistics_month_year">Biçim: AA/YYYY</string>
+    <string name="statistics_today">Bugün</string>
+    <string name="statistics_filter_all_time">Tüm zamanlar</string>
+    <string name="statistics_reset_data">İstatistik verilerini sıfırla</string>
+    <string name="statistics_reset_data_msg">Bu işlem, tüm bölümlerin oynatma süresi geçmişini silecektir. Devam etmek istediğinizden emin misiniz\?</string>
+
+    <string name="web_content_not_available">Web içeriği mevcut değil</string>
+    <string name="language_not_supported_by_tts">Dil, TTS tarafından desteklenmiyor</string>
+    <string name="tts_init_failed">TTS başlatılamadı</string>
+    <string name="episode_has_no_content">Bölümde içerik yok</string>
+
+    <string name="unrestricted_background_permission_text">Bölüm listesini arka planda başarılı bir şekilde oynatabilmek için Podcini\'nin Kısıtlanmamış Arka Plan Etkinliği İzni\'ne ihtiyacı vardır. Bazı markalarda bunun için özelleştirilmiş ayarlar bulunur, lütfen bunları uygun şekilde ayarladığınızdan emin olun.</string>
+
+    <string name="notification_check_permission">İzni kontrol et</string>
+    <string name="notification_permission_text">Android 13\'ten itibaren, normal yenileme ve oynatma için üst düzey bildirim gereklidir. Alt kategorilerin bildirimlerini isteğinize göre devre dışı bırakabilirsiniz.</string>
+
+    <!-- Download Statistics fragment -->
+    <string name="total_size_downloaded_podcasts">Cihazda bulunan bölümlerin toplam boyutu</string>
+
+    <!-- Main activity -->
+
+    <!-- Bug report activity -->
+    <string name="log_file_share_exception">Uyumlu bir uygulama bulunamadı</string>
+    <string name="export_logs_menu_title">Ayrıntılı günlükleri dışa aktar</string>
+    <string name="confirm_export_log_dialog_message">Ayrıntılı günlükler, abonelik listeniz gibi hassas bilgileri içerebilir</string>
+
+    <!-- Webview actions -->
+    <string name="open_in_browser_label">Tarayıcıda aç</string>
+    <string name="copy_url_label">URL\'yi kopyala</string>
+    <string name="share_url_label">URL\'yi paylaş</string>
+    <string name="go_to_position_label">Bu konuma git</string>
+
+    <!-- Playback history -->
+    <string name="clear_history_label">Geçmişi temizle</string>
+    <string name="clear_playback_history_msg">Bu işlem, tüm oynatma geçmişini temizleyecektir. Devam etmek istediğinizden emin misiniz\?</string>
+    <string name="remove_history_label">Geçmişten kaldır</string>
+    <string name="removed_history_label">Geçmişten kaldırıldı</string>
+
+    <!-- Other -->
+    <string name="confirm_label">Onayla</string>
+    <string name="cancel_label">İptal</string>
+    <string name="yes">Evet</string>
+    <string name="no">Hayır</string>
+    <string name="reset">Sıfırla</string>
+    <string name="global_default">Küresel varsayılan</string>
+
+    <string name="support_funding_label">Destek</string>
+    <string name="support_podcast">Bu podcast\'i destekle</string>
+    <string name="error_label">Hata</string>
+    <string name="error_msg_prefix">Bir hata oluştu:</string>
+    <string name="refresh_label">Yenile</string>
+    <string name="fetch_size">Getirme boyutu</string>
+    <string name="clear_cache">Önbellekten temizle</string>
+    <string name="new_synth_label">Yeni sentetik besleme</string>
+    <string name="toggle_grid_list">Izgara/liste geçişi</string>
+    <string name="refreshing_label">Yenileniyor</string>
+    <string name="clear_new_label">Yeni\'yi temizle</string>
+    <string name="reconcile_label">Uzlaştır</string>
+    <string name="chapters_label">Bölümler</string>
+    <string name="clips">Klipler</string>
+    <string name="ask_remove_clip">Klipi kaldırmak istiyor musunuz: %1$s ?</string>
+    <string name="marks">İşaretler</string>
+    <string name="ask_remove_mark">İşareti kaldırmak istiyor musunuz: %1$s ?</string>
+    <string name="play_mark_msg">Bölüm oynatıldığında işaret aranabilir.</string>
+
+    <string name="chapter_duration0">Süre: </string>
+
+    <string name="description_label">Açıklama</string>
+
+    <string name="episodes_suffix">\u0020bölüm</string>
+    <string name="close_label">Kapat</string>
+    <string name="retry_label">Tekrar dene</string>
+
+    <string name="auto_colon">Otomatik: </string>
+
+    <string name="enqueue">Kuyruğa ekle</string>
+    <string name="download">İndir</string>
+    <string name="auto_enqueue_sum">Otomatik kuyruğa eklemeyi etkinleştirmek, uygun bölümleri (otomatik) yenileme sırasında ilgili kuyruğa ekler.</string>
+    <string name="auto_enqueue_sum1">Otomatik kuyruğa ekleme, ilgili kuyruğun Hiçbiri olarak ayarlanmamış olmasını gerektirir.</string>
+    <string name="auto_download_sum">Otomatik indirmeyi etkinleştirmek, uygun bölümleri indirir ve (otomatik) yenileme sırasında ilgili kuyruğa ekler (kuyruk Hiçbiri olarak ayarlanmamışsa).</string>
+
+    <string name="auto_download_label">Otomatik indirmelere dahil et</string>
+    <string name="auto_delete_episode">Bölümü otomatik sil</string>
+    <string name="auto_delete_sum">Oynatıldı olarak işaretlendikten sonra sil</string>
+    <string name="feed_volume_adapdation">Ses uyarlaması</string>
+    <string name="feed_volume_adaptation_summary">Bu podcast\'in bölümleri için ses seviyesini artır veya azalt: %1$s</string>
+    <string name="feed_volume_reduction_off">Uyarlama yok</string>
+    <string name="feed_volume_reduction_light">Hafif azaltma</string>
+    <string name="feed_volume_reduction_heavy">Ağır azaltma</string>
+    <string name="feed_volume_boost_light">Hafif artırma</string>
+    <string name="feed_volume_boost_medium">Orta artırma</string>
+    <string name="feed_volume_boost_heavy">Ağır artırma</string>
+    <string name="feed_auto_download_always">Her zaman</string>
+    <string name="feed_auto_download_never">Asla</string>
+
+    <string name="video_mode_label">Video modu</string>
+
+
+    <string name="video_mode_audio_only">Yalnızca ses</string>
+
+    <string name="feed_automation_policy">Otomasyon politikası</string>
+    <string name="feed_auto_dleq_new">Yalnızca yeni öğeler</string>
+    <string name="replace">Değiştir</string>
+    <string name="feed_auto_dleq_newer">En yeni oynatılmamış</string>
+    <string name="feed_auto_dleq_older">En eski oynatılmamış</string>
+    <string name="feed_auto_dleq_discretion">Takdir yetkisi</string>
+
+    <string name="feed_auto_dleq_filter_sort">Mevcut filtre ve sıralama</string>
+
+    <string name="add_to_queue">Kuyruğa ekle…</string>
+    <string name="remove_from_other_queues">Diğer kuyruklardan kaldır</string>
+
+    <string name="create_synthetic_first_note">Önce bazı sentetik beslemeler oluşturmanız gerekiyor</string>
+    <string name="remove_from_current_feed">Mevcut beslemeden kaldır</string>
+
+    <string name="episode_cleanup_limit_by">Şuna göre sınırla</string>
+    <string name="episode_cleanup_never">Asla</string>
+    <string name="episode_cleanup_except_favorite">Favorilere eklenmediğinde</string>
+    <string name="episode_cleanup_not_in_queue">Kuyrukta olmadığında</string>
+
+    <!-- Actions on feeds -->
+    <string name="max_episodes_cache">İzin verilen maksimum bölüm sayısı</string>
+    <string name="new_namee">Yeni isim</string>
+    <string name="feed_settings_label">Podcast ayarları</string>
+    <string name="rename_feed_label">Podcast\'i yeniden adlandır</string>
+    <string name="remove_feed_label">Podcast\'i kaldır</string>
+    <string name="share_label">Paylaş</string>
+    <string name="share_file_label">Dosyayı paylaş</string>
+    <string name="share_notes_label">Notları paylaş</string>
+    <string name="ignore_episodes_confirmation_msg">Bölümleri yok saymak istediğinizi lütfen onaylayın.</string>
+    <string name="erase_episodes_confirmation_msg">Bölümleri silmek istediğinizi lütfen onaylayın.</string>
+    <string name="feed_delete_confirmation_msg">\"%1$s\" podcast\'ini, TÜM bölümlerini (indirilen bölümler dahil) ve istatistiklerini silmek istediğinizi lütfen onaylayın.</string>
+    <string name="feed_delete_confirmation_msg_batch">Seçilen podcast\'leri, TÜM bölümlerini (indirilen bölümler dahil) ve istatistiklerini kaldırmak istediğinizi lütfen onaylayın.</string>
+    <string name="feed_delete_confirmation_local_msg">\"%1$s\" podcast\'ini ve istatistiklerini kaldırmak istediğinizi lütfen onaylayın. Yerel kaynak klasöründeki dosyalar silinmeyecektir.</string>
+
+    <string name="not_erase_message">Yalnızca sentetik beslemelerden gelen bölümler silinebilir.</string>
+    <string name="reason_to_delete_msg">Gelecekteki referans için buraya bir neden kaydedebilirsiniz:</string>
+    <string name="load_complete_feed">Tam podcast\'i yenile</string>
+
+    <string name="progressing_label">İşleniyor</string>
+
+    <string name="open_podcast">Podcast\'i aç</string>
+    <string name="open">Aç</string>
+
+    <plurals name="updated_feeds_batch_label">
+        <item quantity="one">%d abonelik güncellendi.</item>
+        <item quantity="other">%d abonelik güncellendi.</item>
+    </plurals>
+    <string name="edit_tags">Etiketleri düzenle</string>
+
+    <string name="confirm_delete_logs_label">Günlükleri silmeyi burada onaylayın</string>
+    <string name="confirm_delete_logs_message">Bu işlem, burada görülen tüm günlükleri veritabanından silecektir ve geri alınamaz. Emin misiniz?</string>
+
+    <string name="confirm_mobile_feed_refresh_dialog_message">Ayarlarda mobil veri bağlantısı üzerinden podcast yenileme devre dışı bırakılmış.\n\nYine de yenilemek istiyor musunuz\?</string>
+    <string name="confirm_mobile_feed_refresh_dialog_message_vpn">VPN uygulamanız mobil ağ gibi davranıyor (ölçülü bağlantı). Ayarlarda mobil veri bağlantısı üzerinden podcast yenileme devre dışı bırakılmış.\n\nYine de yenilemek istiyor musunuz\? Bu sorunun çözülmesini istiyorsanız, VPN uygulamanızın yaratıcılarıyla iletişime geçin.</string>
+
+    <!-- actions on feeditems -->
+    <string name="download_label">İndir</string>
+    <string name="TTS_label">Konuş</string>
+    <string name="play_label">Oynat</string>
+    <string name="pause_label">Duraklat</string>
+    <string name="stream_label">Akış</string>
+    <string name="erase_episodes_label">Bölümleri sil</string>
+    <string name="reserve_episodes_label">Bölümleri ayır</string>
+    <string name="null_label">Boş</string>
+    <string name="delete_label">Sil</string>
+    <string name="delete_failed_simple">Dosya silinemedi.</string>
+
+    <string name="delete_local_failed">Dosya silinemedi. Podcast bilgi ekranından yerel klasörü yeniden bağlamayı deneyin.</string>
+    <string name="delete_episode_label">Bölüm medyasını sil</string>
+
+    <string name="no_action_label">Eylem yok</string>
+
+
+    <string name="cancelled_on_label">İptal edildi</string>
+
+    <string name="choose_tab">Kanalda bir sekme seçin</string>
+
+    <string name="set_play_state_label">Oynatma durumunu ayarla</string>
+
+    <string name="combo_action">Kombinasyon eylemi</string>
+    <string name="shelve_label">Sentetik olarak rafa kaldır</string>
+    <string name="add_to_active_queue">Aktif kuyruğa ekle</string>
+    <string name="add_to_associated_queue">İlgili kuyruğa ekle</string>
+
+
+    <string name="media_type">Medya türü</string>
+    <string name="unknown">Bilinmeyen</string>
+    <string name="audio">Ses</string>
+    <string name="video">Video</string>
+    <string name="audio_app">Ses uygulaması</string>
+    <string name="rating_label">Değerlendirme</string>
+    <string name="unrated">Değerlendirilmemiş</string>
+    <string name="trash">Çöp</string>
+    <string name="bad">Kötü</string>
+    <string name="OK">Tamam</string>
+    <string name="good">İyi</string>
+    <string name="Super">Süper</string>
+    <string name="search_selected">Seçileni ara</string>
+    <string name="select_text_to_search">Aramak için herhangi bir metni seçin</string>
+    <string name="set_rating_label">Değerlendirme ayarla</string>
+    <string name="playstate">Oynatma durumu</string>
+    <string name="unspecified">Belirtilmemiş</string>
+    <string name="building">Oluşturuluyor</string>
+    <string name="new_label">Yeni</string>
+    <string name="unplayed">Oynatılmamış</string>
+    <string name="later">Sonra</string>
+    <string name="soon">Yakında</string>
+    <string name="in_queue">Kuyrukta</string>
+    <string name="progressing">Devam ediyor</string>
+    <string name="total">Toplam</string>
+    <string name="skipped">Atlandı</string>
+    <string name="played">Oynatıldı</string>
+    <string name="passed">Geçti</string>
+    <string name="again">Tekrar</string>
+    <string name="forever">Sonsuza kadar</string>
+    <string name="ignored">Yok sayıldı</string>
+
+    <string name="visit_website_label">Web sitesini ziyaret et</string>
+
+    <string name="delete_local_feed_warning_body">Uyarı: Yerel bölümleri siliyorsunuz. Bu işlem, cihaz depolama alanınızdaki medya dosyalarını silecektir. Podcini üzerinden tekrar indirilemez. Devam etmek istiyor musunuz?</string>
+    <string name="delete_repeat_warning_msg">Tekrar için ayarlanmış bölümleri gerçekten silmek istiyor musunuz?</string>
+
+    <string name="share_existing">mevcut</string>
+
+    <!-- Download messages and labels -->
+    <string name="download_successful">başarılı</string>
+    <string name="download_pending">İndirme bekliyor</string>
+    <string name="download_running">İndirme çalışıyor</string>
+    <string name="download_error_details">Ayrıntılar</string>
+    <string name="download_log_details_message">%1$s \n\nTeknik neden: \n%2$s \n\nDosya URL\'si:\n%3$s</string>
+    <string name="download_error_retrying">\"%1$s\" indirmesi başarısız oldu. Daha sonra tekrar denenecek.</string>
+    <string name="download_error_not_retrying">\"%1$s\" indirmesi başarısız oldu.</string>
+    <string name="download_error_tap_for_details">Ayrıntıları görmek için dokunun.</string>
+    <string name="download_error_device_not_found">Depolama cihazı bulunamadı</string>
+    <string name="download_error_insufficient_space">Cihazınızda yeterli alan kalmadı.</string>
+    <string name="download_error_http_data_error">HTTP veri hatası</string>
+    <string name="download_error_error_unknown">Bilinmeyen hata</string>
+    <string name="download_error_parser_exception">Podcast sunucusu bozuk bir podcast beslemesi gönderdi.</string>
+    <string name="download_error_unsupported_type">Desteklenmeyen besleme türü</string>
+    <string name="download_error_unsupported_type_html">Podcast sunucusu bir podcast yerine bir web sitesi gönderdi.</string>
+    <string name="download_error_not_found">Podcast sunucusu dosyanın nerede olduğunu bilmiyor. Silinmiş olabilir.</string>
+    <string name="download_error_connection_error">Bağlantı hatası</string>
+    <string name="download_error_no_connection">Ağ bağlantısı yok</string>
+    <string name="download_error_unknown_host">Sunucu bulunamıyor. Adresin doğru yazıldığından ve çalışan bir ağ bağlantınız olduğundan emin olun.</string>
+    <string name="download_error_unauthorized">Kimlik doğrulama hatası. Kullanıcı adı ve şifrenin doğru olduğundan emin olun.</string>
+    <string name="download_error_file_type">Dosya türü hatası</string>
+    <string name="download_error_forbidden">Podcast sunucusu yanıt vermeyi reddediyor.</string>
+    <string name="download_canceled_msg">İndirme iptal edildi</string>
+    <string name="download_error_wrong_size">İndirme tamamlanmadan sunucu bağlantısı kesildi</string>
+    <string name="download_error_blocked">İndirme, cihazınızdaki başka bir uygulama (VPN veya reklam engelleyici gibi) tarafından engellendi.</string>
+    <string name="download_error_certificate">Güvenli bir bağlantı kurulamadı. Bu, cihazınızdaki başka bir uygulamanın (VPN veya reklam engelleyici gibi) indirmeyi engellediği veya sunucu sertifikalarında bir sorun olduğu anlamına gelebilir.</string>
+    <string name="download_report_title">İndirmeler hata(lar) ile tamamlandı</string>
+    <string name="download_error_io_error">G/Ç hatası</string>
+    <string name="download_error_request_error">İstek hatası</string>
+    <string name="download_error_db_access">Veritabanı erişim hatası</string>
+    <plurals name="downloads_left">
+        <item quantity="one">%d indirme kaldı</item>
+        <item quantity="other">%d indirme kaldı</item>
+    </plurals>
+    <string name="download_notification_title_feeds">Podcast\'ler yenileniyor</string>
+    <string name="download_notification_title_episodes">Bölümler indiriliyor</string>
+    <string name="download_log_title_unknown">Bilinmeyen başlık</string>
+    <string name="download_type_feed">Besleme</string>
+    <string name="download_type_media">Medya dosyası</string>
+    <string name="null_value_podcast_error">Gösterilebilecek bir podcast sağlanmadı.</string>
+    <string name="no_feed_url_podcast_found_by_search">Önerilen podcast\'te RSS bağlantısı yoktu, Podcini eşleşebilecek bir podcast buldu</string>
+
+    <string name="confirm_mobile_download_dialog_title">Mobil indirmeyi onayla</string>
+    <string name="confirm_mobile_download_dialog_message">Ayarlarda mobil veri bağlantısı üzerinden indirme devre dışı bırakılmış. Podcini, Wi-Fi mevcut olduğunda bölümü otomatik olarak daha sonra indirebilir.</string>
+    <string name="confirm_mobile_download_dialog_message_vpn">VPN uygulamanız mobil ağ gibi davranıyor (ölçülü bağlantı). Ayarlarda mobil veri bağlantısı üzerinden indirme devre dışı bırakılmış. Bu sorunun çözülmesini istiyorsanız, VPN uygulamanızın yaratıcılarıyla iletişime geçin.</string>
+    <string name="confirm_mobile_download_dialog_download_later">Daha sonra indir</string>
+    <string name="confirm_mobile_download_dialog_allow_this_time">Yine de indir</string>
+    <string name="confirm_mobile_streaming_notification_title">Mobil akışı onayla</string>
+    <string name="confirm_mobile_streaming_notification_message">Ayarlarda mobil veri bağlantısı üzerinden akış devre dışı bırakılmış. Yine de akış yapmak için dokunun.</string>
+    <string name="confirm_mobile_streaming_button_always">Her zaman</string>
+    <string name="confirm_mobile_streaming_button_once">Bir kez</string>
+
+    <!-- Mediaplayer messages -->
+
+    <string name="no_media_playing_label">Oynatılan medya yok</string>
+    <string name="unknown_media_key">Podcini - Bilinmeyen medya tuşu: %1$d</string>
+    <string name="error_file_not_found">Dosya bulunamadı</string>
+
+    <!-- Queue operations -->
+    <string name="lock_queue">Kuyruğu kilitle</string>
+    <string name="queue_locked">Kuyruk kilitli</string>
+    <string name="queue_unlocked">Kuyruk kilidi açıldı</string>
+
+    <string name="checkbox_do_not_show_again">Tekrar gösterme</string>
+    <string name="clear_queue_label">Kuyruğu temizle</string>
+    <string name="clear_bin_label">Çöp kutusunu temizle</string>
+    <string name="bin_limit">Çöp kutusu sınırı</string>
+    <string name="undo">Geri al</string>
+
+    <string name="sort">Sırala</string>
+    <string name="rename">Yeniden adlandır</string>
+    <string name="add_queue">Kuyruk ekle</string>
+    <string name="publish_date">Yayın tarihi</string>
+    <string name="download_date">İndirme tarihi</string>
+    <string name="total_duration">Toplam süre</string>
+    <string name="average_duration">Ortalama süre</string>
+    <string name="min_duration">Minimum süre</string>
+    <string name="max_duration">Maksimum süre</string>
+
+    <string name="view_count">Görüntüleme sayısı</string>
+    <string name="date">Tarih</string>
+    <string name="time">Saat</string>
+    <string name="count">Sayı</string>
+    <string name="last_comment_date">Son yorum tarihi</string>
+    <string name="last_played_date">Son oynatma tarihi</string>
+    <string name="completed_date">Tamamlanma tarihi</string>
+    <string name="duration">Süre</string>
+    <string name="spent">Harcanan</string>
+    <string name="started">Başlatılan</string>
+    <string name="daily_average">Günlük ortalama</string>
+    <string name="episode_title">Bölüm başlığı</string>
+    <string name="feed_title">Podcast başlığı</string>
+    <string name="show_criteria">Gösterim kriterleri</string>
+    <string name="title">Başlık</string>
+    <string name="author">Yazar</string>
+    <string name="random">Rastgele</string>
+    <string name="smart_shuffle">Akıllı karıştırma</string>
+    <string name="size">Boyut</string>
+    <string name="clear_queue_confirmation_msg">Kuyruktaki TÜM bölümleri temizlemek istediğinizi lütfen onaylayın</string>
+
+    <!-- Variable Speed -->
+
+    <!-- Empty list labels -->
+    <string name="no_shownotes_label">Bu bölümde gösterim notları yok.</string>
+
+
+    <!-- Preferences -->
+    <string name="project_pref">Proje</string>
+    <string name="synchronization_pref">Senkronizasyon</string>
+    <string name="synchronization_sum">Diğer cihazlarla senkronize et</string>
+    <string name="pref_backup_on_google_title">OPML\'nin otomatik yedeklenmesi</string>
+    <string name="pref_backup_on_google_sum">OPML dosyalarını Google\'a otomatik olarak yedekle. Etkinleştirildiğinde, Podcini kaldırılıp yeniden yüklendikten sonra abonelikler geri yüklenebilir. Bu ayarı değiştirmek Podcini\'yi yeniden başlatır.</string>
+    <string name="automation">Otomasyon</string>
+    <string name="download_pref_details">Ayrıntılar</string>
+    <string name="import_export_pref">İçe/Dışa Aktar</string>
+    <string name="pref_auto_backup_title">Otomatik yedekleme</string>
+    <string name="pref_auto_backup_sum">Veritabanını ve tercihleri belirli bir aralıkta seçilen bir klasöre otomatik olarak yedekle.</string>
+    <string name="pref_auto_backup_interval">Yedekleme aralığı</string>
+    <string name="pref_auto_backup_folder">Bir yedekleme klasörü belirt</string>
+    <string name="pref_auto_backup_folder_sum">Belirtilmedi.</string>
+    <string name="pref_auto_backup_limit">Saklanacak yedek sayısı</string>
+
+    <string name="appearance">Görünüm</string>
+    <string name="external_elements">Harici öğeler</string>
+    <string name="create_YT_syndicates">YouTube sendikaları oluştur</string>
+    <string name="add_to_feed">Beslemeye ekle</string>
+    <string name="interruptions">Kesintiler</string>
+    <string name="playback_control">Oynatma kontrolü</string>
+    <string name="reassign_hardware_buttons">Donanım düğmelerini yeniden atama</string>
+    <string name="pref_episode_cleanup_title">Bölüm temizleme</string>
+    <string name="pref_episode_cleanup_summary">Otomatik indirme yeni bölümler için yer açması gerektiğinde kaldırılmaya uygun bölümler</string>
+    <string name="pref_pauseOnDisconnect_sum">Kulaklık veya Bluetooth bağlantısı kesildiğinde oynatmayı duraklat</string>
+    <string name="pref_unpauseOnHeadsetReconnect_sum">Kulaklıklar yeniden bağlandığında oynatmayı devam ettir</string>
+    <string name="pref_unpauseOnBluetoothReconnect_sum">Bluetooth yeniden bağlandığında oynatmayı devam ettir</string>
+    <string name="pref_hardware_forward_button_title">İleri düğmesi</string>
+    <string name="pref_hardware_forward_button_summary">İleri düğmesi davranışını özelleştir</string>
+    <string name="pref_hardware_previous_button_title">Geri düğmesi</string>
+    <string name="pref_hardware_previous_button_summary">Geri düğmesi davranışını özelleştir</string>
+    <string name="button_action_fast_forward">Hızlı ileri</string>
+    <string name="button_action_rewind">Geri sar</string>
+    <string name="button_action_skip_episode">Bölümü atla</string>
+    <string name="button_action_restart_episode">Bölümü yeniden başlat</string>
+    <string name="pref_followQueue_sum">Oynatma tamamlandığında bir sonraki kuyruk öğesine geç</string>
+    <string name="pref_custom_media_dir_title">Özel medya klasörü kullan</string>
+    <string name="pref_custom_media_dir_sum">İndirilen medya için özel bir klasör seçin. Her zaman sıfırlayabilirsiniz. Yeniden başlatma gereklidir.</string>
+    <string name="pref_custom_media_dir_sum1">Özel medya klasörü ayarlandı. Değiştirmek ister misiniz?</string>
+    <string name="pref_custom_media_dir_sum2">Özel medya klasörü ayarlandı. Varsayılana sıfırlamak ister misiniz?</string>
+
+    <string name="pref_auto_delete_sum">Oynatma tamamlandığında bölümü sil</string>
+    <string name="auto_delete">Otomatik sil</string>
+    <string name="pref_auto_local_delete_title">Yerel klasörlerden otomatik sil</string>
+    <string name="pref_auto_local_delete_sum">Otomatik silme işlevine yerel klasörleri dahil et</string>
+    <string name="pref_auto_local_delete_dialog_body">Yerel klasörler için bunun, bölümleri Podcini\'den kaldıracağını ve cihaz depolama alanınızdaki medya dosyalarını sileceğini unutmayın. Bunlar Podcini üzerinden tekrar indirilemez. Otomatik silmeyi etkinleştirmek istiyor musunuz\?</string>
+    <string name="pref_mark_played_removes_from_queue_title">Oynatıldı olarak işaretleme kuyruktan kaldırır</string>
+    <string name="pref_mark_played_removes_from_queue_sum">Bölümler oynatıldı olarak işaretlendiğinde tüm kuyruklardan kaldırılır</string>
+
+    <string name="pref_skip_keeps_episodes_sum">Atlanan bölümleri sakla</string>
+    <string name="pref_skip_keeps_episodes_title">Atlanan bölümleri tut</string>
+
+    <string name="pref_keeps_important_episodes_sum">Süper, Tekrar veya Sonsuza Kadar olarak işaretlenen bölümleri sakla.</string>
+    <string name="pref_keeps_important_episodes_title">Önemli bölümleri tut</string>
+    <string name="playback_pref">Oynatma</string>
+    <string name="playback_pref_sum">Kulaklık kontrolleri, Atlamalar, Kuyruk</string>
+
+    <string name="downloads_pref_sum">Güncelleme aralığı, Mobil veri, Otomatik indirme, Otomatik silme</string>
+    <string name="feed_refresh_title">Podcast\'leri yenile</string>
+
+    <string name="feed_refresh_start">Başlat</string>
+    <string name="feed_refresh_start_sum">Periyodik yenileme aralığı için başlangıç saatini (0-23) ve dakikayı (0-59) ayarlayın (Android tarafından tam zaman temperlenebilir). Alanları boş bırakmak, aralığın şimdi başlaması anlamına gelir.</string>
+    <string name="feed_next_refresh_time">Bir sonraki yenileme zamanı yaklaşık:</string>
+    <string name="before">önce</string>
+
+    <string name="pref_followQueue_title">Sürekli oynatma</string>
+    <string name="pref_pauseOnHeadsetDisconnect_title">Kulaklık veya Bluetooth bağlantısı kesildiğinde</string>
+    <string name="pref_unpauseOnHeadsetReconnect_title">Kulaklıklar yeniden bağlandığında</string>
+    <string name="pref_unpauseOnBluetoothReconnect_title">Bluetooth yeniden bağlandığında</string>
+    <string name="pref_stream_over_download_title">Akışı tercih et</string>
+    <string name="pref_stream_over_download_sum">Listelerde indirme düğmesi yerine akış düğmesini göster</string>
+    <string name="pref_low_quality_on_mobile_title">Mobilde düşük kaliteyi tercih et</string>
+    <string name="pref_low_quality_on_mobile_sum">Ölçülü ağda, yalnızca düşük kaliteli medya (varsa) alınır</string>
+    <string name="pref_use_adaptive_progress_title">İlerlemeyi uyarlanabilir şekilde güncelle</string>
+    <string name="pref_use_adaptive_progress_sum">İlerlemeyi, medya süresinin %2\'si veya 5 saniye olanın daha yüksek olduğu uyarlanabilir bir aralıkta güncelleyin. Bu, biraz enerji tasarrufu sağlar. Aksi takdirde her 5 saniyede bir güncellenir.</string>
+    <string name="pref_autodl_queues_title">Dahil edilecek kuyruklar</string>
+    <string name="pref_metered_network_title">Ölçülü ağ ayarları</string>
+    <string name="pref_mobileUpdate_sum">Mobil veri bağlantısında neyin izin verileceğini seçin</string>
+    <string name="pref_mobileUpdate_refresh">Podcast yenileme</string>
+    <string name="pref_mobileUpdate_images">Kapak resimleri</string>
+    <string name="pref_mobileUpdate_auto_download">Otomatik indirme</string>
+    <string name="pref_mobileUpdate_episode_download">Bölüm indirme</string>
+    <string name="pref_mobileUpdate_streaming">Akış</string>
+    <string name="user_interface_label">Kullanıcı arayüzü</string>
+    <string name="user_interface_sum">Görünüm, abonelikler, kilit ekranı</string>
+    <string name="pref_black_theme_title">Tam siyah</string>
+    <string name="pref_black_theme_message">Koyu tema için tam siyah kullan</string>
+
+    <string name="pref_automatic_download_title">Otomatik indirme</string>
+    <string name="pref_automatic_download_sum">Bölümlerin otomatik indirilmesini yapılandır</string>
+    <string name="pref_automatic_download_on_battery_title">Şarj olmadan indir</string>
+    <string name="pref_automatic_download_on_battery_sum">Pil şarj olmadığında otomatik indirmeye izin ver</string>
+
+    <string name="pref_autodl_queue_empty_title">Kuyruk boşaldığında başlat</string>
+    <string name="pref_autodl_queue_empty_sum">Bir kuyruk boşaldığında, politikası \"Yalnızca yeni öğeler\" olmayan ilgili beslemeler için otomatik indirme başlar</string>
+
+    <string name="pref_auto_download_include_soon_title">\"Yakında\"yı dahil et</string>
+    <string name="pref_auto_download_include_soon_summary">Oynatma durumu Yakında olarak ayarlanmış bölümleri dahil etmek için ayarlayın.</string>
+
+    <string name="pref_episode_cache_title">Bölüm önbelleği</string>
+    <string name="pref_episode_cache_summary">Cihazda önbelleğe alınan indirilmiş bölümlerin toplam sayısı (0 sınırsız anlamına gelir). Bu sayıya ulaşıldığında otomatik indirme askıya alınır.</string>
+    <string name="pref_auto_download_counting_played_title">Oynatılanları sayma</string>
+    <string name="pref_auto_download_counting_played_summary">İndirilen ve oynatılmış bölümlerin bölüm önbelleğine sayılıp sayılmayacağını ayarlayın</string>
+    <string name="pref_episode_cover_title">Bölüm kapağını kullan</string>
+    <string name="pref_episode_cover_summary">Mevcut olduğunda listelerde bölüme özgü kapağı kullan. İşaretlenmezse, uygulama her zaman podcast kapak resmini kullanır.</string>
+
+
+    <string name="pref_theme_title_automatic">Otomatik</string>
+    <string name="pref_theme_title_light">Açık</string>
+    <string name="pref_theme_title_dark">Koyu</string>
+    <string name="pref_playback_speed_sum">Değişken hız oynatma için mevcut hızları özelleştir</string>
+    <string name="pref_feed_playback_speed_sum">Bu podcast\'in bölümleri için ses oynatımı başlatıldığında kullanılacak hız</string>
+    <string name="pref_feed_skip">Otomatik atlama</string>
+    <string name="pref_feed_skip_sum">Giriş ve kapanış jeneriklerini atla.</string>
+    <string name="pref_feed_audio_type">Ses türü</string>
+    <string name="pref_feed_audio_type_sum">Geliştirilmiş işleme için Konuşma, Müzik veya Film.</string>
+    <string name="pref_feed_audio_quality">Ses kalitesi</string>
+    <string name="pref_feed_audio_quality_sum">Küresel genellikle yüksek kaliteye eşittir, ancak ölçülü ağ için prefLowQualityMedia ayarlanmışsa hariç. Buradaki kalite ayarı, ölçülü ağ için prefLowQualityMedia ayarına önceliklidir.</string>
+    <string name="pref_feed_video_quality">Video kalitesi</string>
+    <string name="pref_feed_video_quality_sum">Küresel düşük kaliteye eşittir, buradaki kalite ayarı ölçülü ağ için prefLowQualityMedia ayarına önceliklidir.</string>
+    <string name="pref_feed_associated_queue">İlgili kuyruk</string>
+    <string name="pref_feed_associated_queue_sum">Beslemedeki bölümlerin varsayılan olarak ekleneceği kuyruk</string>
+    <string name="pref_feed_skip_ending_toast">Son %d saniye atlandı</string>
+    <string name="pref_feed_skip_intro_toast">İlk %d saniye atlandı</string>
+
+
+    <string name="pref_fallback_speed">Yedek hız</string>
+    <string name="pref_speed_forward">Hızlı ileri hız</string>
+    <string name="pref_speed_forward_sum">Atlama düğmesine tıklandığında hızlı ileri gitmek için hızı özelleştir</string>
+    <string name="pref_fallback_speed_sum">Oynat düğmesine uzun basıldığında kullanılacak hızı özelleştir</string>
+    <string name="pref_fast_forward">Hızlı ileri atlama süresi</string>
+    <string name="pref_fast_forward_sum">Hızlı ileri düğmesine tıklandığında ileri atlanacak saniye sayısını özelleştir</string>
+    <string name="pref_rewind">Geri sarma atlama süresi</string>
+    <string name="pref_rewind_sum">Geri sarma düğmesine tıklandığında geri atlanacak saniye sayısını özelleştir</string>
+    <string name="pref_stream_cache">Akış önbellek boyutu</string>
+    <string name="pref_stream_cache_sum">Daha iyi yerel geri sarma ve tekrar oynatma için akışlı medyanın önbellek boyutunu (minimum 10MB) özelleştir. Değişiklikten sonra uygulama yeniden başlatılır.</string>
+
+    <string name="pref_playback_video_mode">Video oynatma modu</string>
+    <string name="pref_playback_video_mode_sum">Video bölümünün varsayılan olarak nasıl oynatılacağını seçin</string>
+    <string name="pref_swipe_refresh_title">Kaydırarak yenile</string>
+    <string name="pref_swipe_refresh_sum">Tüm abonelikleri yenilemek için aşağı kaydır</string>
+    <string name="pref_feedGridLayout_title">Abonelikler ızgara düzeni kullanır</string>
+    <string name="pref_feedGridLayout_sum">Ayarlandığında, Abonelikler görünümü ızgara düzeni kullanır, aksi takdirde liste düzeni</string>
+
+    <string name="pref_show_notification_skip_title">Bildirimde atlama göster</string>
+    <string name="pref_show_notification_skip_sum">Bildirim panelinde atlama düğmesini aç/kapat</string>
+    <string name="pref_enqueue_location_title">Kuyruğa ekleme konumu</string>
+    <string name="pref_enqueue_location_sum">Bölümleri şuraya ekle: %1$s</string>
+    <string name="enqueue_location_back">Geri</string>
+    <string name="enqueue_location_front">Ön</string>
+    <string name="enqueue_location_after_current">Mevcut bölümden sonra</string>
+    <string name="enqueue_location_random">Rastgele</string>
+
+    <string name="documentation_support">Belgeler ve destek</string>
+
+    <string name="bug_report_title">Hata bildir</string>
+    <string name="email_developer">Geliştiriciye e-posta</string>
+    <string name="need_email_client">Telefonda bir e-posta istemcisi yüklü olmalıdır.</string>
+    <string name="open_bug_tracker">Hata izleyiciyi aç</string>
+    <string name="copy_to_clipboard">Panoya kopyala</string>
+    <string name="copied_to_clipboard">Panoya kopyalandı</string>
+    <string name="pref_proxy_title">Proxy</string>
+    <string name="pref_proxy_sum">Bir ağ proxy\'si ayarla</string>
+    <string name="pref_no_browser_found">Web tarayıcısı bulunamadı.</string>
+    <string name="pref_enqueue_downloaded_title">İndirilenleri kuyruğa ekle</string>
+    <string name="pref_enqueue_downloaded_summary">İndirilen bölümleri kuyruğa ekle</string>
+    <string name="pref_skip_silence_title">Seste sessizliği atla</string>
+    <string name="pref_skip_silence_sum">Oynatmada sessizliğin atlanıp atlanmayacağı</string>
+    <string name="behavior">Davranış</string>
+    <string name="pref_select_properties">Özellikleri seç</string>
+    <string name="pref_import_media_files_later">Medya dosyaları yalnızca veritabanı içe aktarıldıktan sonra içe aktarılabilir.</string>
+    <string name="pref_default_page">Varsayılan sayfa</string>
+    <string name="pref_default_page_sum">Podcini başlatıldığında açılan ekran</string>
+    <string name="pref_back_button_opens_drawer">Geri düğmesi çekmeceyi açar</string>
+    <string name="pref_back_button_opens_drawer_summary">Varsayılan sayfada geri düğmesine basıldığında gezinme çekmecesi açılır</string>
+    <string name="pref_show_error_toasts">Hata bildirimlerini göster</string>
+    <string name="pref_show_error_toasts_sum">Hata mesajlarının bildirim olarak gösterilip gösterilmeyeceğini aç/kapat.</string>
+    <string name="pref_print_logs">Hata ayıklama günlüklerini yazdır</string>
+    <string name="pref_print_logs_sum">Hata ayıklama mesajlarının kaydedilip kaydedilmeyeceğini aç/kapat. Bu, performansı düşürebilir. Yalnızca sorunları bildirmeye hazırlanırken bunu açın.</string>
+
+    <string name="pref_delete_removes_from_queue_title">Silme kuyruktan kaldırır</string>
+    <string name="pref_delete_removes_from_queue_sum">Bir bölüm silindiğinde otomatik olarak kuyruktan kaldır</string>
+    <string name="pref_contribute">Katkıda bulun</string>
+
+    <!-- About screen -->
+    <string name="about_pref">Hakkında</string>
+    <string name="podcini_version">Podcini sürümü</string>
+    <string name="online_help">Çevrimiçi ana sayfa</string>
+    <string name="online_help_sum">Çevrimiçi daha fazla bilgi edinin</string>
+    <string name="privacy_policy">Gizlilik politikası</string>
+    <string name="licenses">Lisanslar</string>
+    <string name="licenses_summary">Podcini başka harika yazılımlar kullanır</string>
+    <string name="email_sum">Sorunları bildirin veya geliştiriciye doğrudan önerilerde bulunun.</string>
+
+    <!-- Search -->
+    <string name="search_status_no_results">Sonuç bulunamadı</string>
+
+    <string name="search_label">Ara</string>
+    <string name="no_results_for_query">\"%1$s\" için sonuç bulunamadı</string>
+    <string name="search_online">Çevrimiçi ara</string>
+
+    <!-- Synchronization -->
+    <string name="sync_status_started">Senkronizasyon başladı</string>
+    <string name="sync_status_episodes_upload">Bölüm değişiklikleri yükleniyor…</string>
+    <string name="sync_status_episodes_download">Bölüm değişiklikleri indiriliyor…</string>
+    <string name="sync_status_upload_played">Oynatılan durum yükleniyor…</string>
+    <string name="sync_status_subscriptions">Abonelikler senkronize ediliyor…</string>
+    <string name="sync_status_wait_for_downloads">İndirmelerin tamamlanması bekleniyor…</string>
+    <string name="sync_status_success">Senkronizasyon başarılı</string>
+    <string name="sync_status_in_progress">Senkronizasyon devam ediyor</string>
+    <string name="sync_status_error">Senkronizasyon başarısız</string>
+    <string name="sync_error_host_not_respond">Ana bilgisayar yanıt vermiyor, vazgeçiliyor</string>
+    <string name="sync_error_guest_not_respond">Misafir yanıt vermiyor, vazgeçiliyor</string>
+
+    <!-- import and export -->
+    <string name="import_export_summary">Abonelikleri ve kuyruğu başka bir cihaza taşı</string>
+    <string name="html_export_summary">Aboneliklerinizi bir arkadaşınıza gösterin</string>
+    <string name="opml_export_summary">Aboneliklerinizi başka bir podcast uygulamasına aktarın</string>
+    <string name="opml_import_summary">Aboneliklerinizi başka bir podcast uygulamasından içe aktarın</string>
+    <string name="combo_export_summary">Veritabanını, tercihleri, medya dosyalarını seçerek dışa aktar.</string>
+    <string name="combo_import_summary">Veritabanını, tercihleri, medya dosyalarını seçerek içe aktar.</string>
+    <string name="opml_import_label">OPML içe aktar</string>
+    <string name="opml_add_podcast_label">Podcast listesini içe aktar (OPML)</string>
+    <string name="opml_reader_error">Dosya okunurken bir hata oluştu. Gerçekten bir OPML dosyası seçtiğinizden ve dosyanın geçerli olduğundan emin olun.</string>
+    <string name="progress_export_label">Bölüm ilerlemesini dışa aktar</string>
+    <string name="progress_import_label">Bölüm ilerlemesini içe aktar</string>
+    <string name="progress_export_summary">Podcini bölüm geçmişini farklı bir Podcini kurulumuna aktar. Veritabanını aktarabiliyorsanız buna gerek yoktur.</string>
+    <string name="progress_import_summary">Başka bir Podcini kurulumundan Podcini bölüm geçmişini içe aktar. Veritabanını zaten içe aktardıysanız buna gerek yoktur.</string>
+    <string name="progress_import_warning">Bölüm ilerlemesini içe aktarmak, mevcut oynatma geçmişinizin tamamını değiştirecektir. Mevcut ilerlemenizi yedek olarak dışa aktarmalısınız. Değiştirmek istiyor musunuz\? Evet ise, bir sonraki ekranda istenen .json dosyasını seçin. İşlem, boyuta bağlı olarak birkaç dakika sürebilir. Tamamlandığında, başarı veya başarısızlık bildirimi gösterilecektir.</string>
+    <string name="opml_export_label">OPML dışa aktar</string>
+    <string name="html_export_label">HTML dışa aktar</string>
+    <string name="import_SQLite_message">İçe aktarılan abonelikler, bölümler ve oynatma geçmişi mevcut veritabanına eklenecektir. Onaylarsanız, daha önce dışa aktarılmış bir sqlite veritabanı seçin."</string>
+    <string name="combo_import_warning">Seçilen öğelerden herhangi birini içe aktarmak, mevcut depolamanızdakilerin yerini alacaktır. Onaylarsanız, daha önce dışa aktarılmış ve adı \"Podcini-Backups\" içeren bir dizin seçin</string>
+    <string name="combo_export_label">Kombinasyon dışa aktar</string>
+    <string name="combo_import_label">Kombinasyon içe aktar</string>
+    <string name="import_AP_label">AntennaPod veritabanını içe aktar</string>
+    <string name="import_PA_label">Podcast Addict yedeğinden içe aktar</string>
+    <string name="import_PA_DB_label">Abonelikleri içe aktar</string>
+    <string name="import_PA_DB_message">İçe aktarılan abonelikler, bölümler ve oynatma geçmişi Podcini\'nin veritabanına eklenecektir."</string>
+    <string name="import_PA_directory_label">Dizin içe aktar</string>
+    <string name="import_PA_directory_message">Çevrimdışı arama için bir podcast dizini içe aktar."</string>
+    <string name="import_PA_message">Onaylarsanız, Podcast Addict uygulamasından daha önce dışa aktarılmış bir yedek arşivi seçin."</string>
+    <string name="import_directory_toast">Yalnızca şu dizin adları kabul edilir: </string>
+    <string name="import_file_type_toast">Yalnızca şu dosya uzantıları kabul edilir: </string>
+    <string name="import_export_error_label">İçe/Dışa Aktarma hatası</string>
+    <string name="export_success_title">Dışa aktarma başarılı</string>
+    <string name="successful_import_label">İçe aktarma başarılı</string>
+    <string name="import_ok">Podcini\'yi yeniden başlatmak için lütfen Tamam\'a basın</string>
+
+    <string name="favorites_export_label">Favorileri dışa aktar</string>
+    <string name="favorites_export_summary">Kaydedilen favorileri dosyaya dışa aktar</string>
+
+    <string name="restore_subscriptions_label">Abonelikleri geri yükle</string>
+    <string name="restore_subscriptions_summary">Daha önce yedeklenen %d abonelik geri yüklenebilir. Bunları geri yüklemek ister misiniz?</string>
+
+    <!-- Sleep timer -->
+    <string name="set_sleeptimer_label">Uyku zamanlayıcısını ayarla</string>
+    <string name="disable_sleeptimer_label">Uyku zamanlayıcısını devre dışı bırak</string>
+    <string name="extend_sleep_timer_label">+%d dk</string>
+    <string name="end_episode">Bölüm sonuna kadar</string>
+    <string name="sleep_timer_label">Uyku zamanlayıcısı</string>
+    <string name="time_dialog_invalid_input">Geçersiz giriş, süre pozitif bir tam sayı olmalıdır</string>
+    <string name="shake_to_reset_label">Sıfırlamak için salla</string>
+    <string name="timer_vibration_label">Bitişten kısa süre önce titre</string>
+    <string name="time_minutes">dakika</string>
+    <string name="time_hours">saat</string>
+    <plurals name="time_minutes_quantified">
+        <item quantity="one">1 dakika</item>
+        <item quantity="other">%d dakika</item>
+    </plurals>
+    <plurals name="time_hours_quantified">
+        <item quantity="one">1 saat</item>
+        <item quantity="other">%d saat</item>
+    </plurals>
+    <plurals name="time_days_quantified">
+        <item quantity="one">1 gün</item>
+        <item quantity="other">%d gün</item>
+    </plurals>
+    <string name="auto_enable_label">Oynat\'a basıldığında uyku zamanlayıcısını otomatik olarak etkinleştir</string>
+    <string name="auto_enable_sum">İki kutuya \"Başlangıç\" saatini ve \"Bitiş\" saatini girin, ardından ayar düğmesine basın. Saatler 0 ile 23 arasındadır.</string>
+
+    <!-- Synchronisation -->
+    <string name="wifi_sync">Wi-Fi üzerinden cihazla senkronize et</string>
+    <string name="wifi_sync_summary_unchoosen">Bölüm oynatma durumlarınızı senkronize etmek için aynı Wi-Fi ağındaki iki cihazı bağlayabilirsiniz</string>
+    <string name="synchronization_choose_title">Senkronizasyon sağlayıcısını seç</string>
+    <string name="synchronization_summary_unchoosen">Aboneliklerinizi ve bölüm oynatma durumunuzu senkronize etmek için birden fazla sağlayıcıdan birini seçebilirsiniz</string>
+    <string name="dialog_choose_sync_service_title">Senkronizasyon sağlayıcısını seç</string>
+    <string name="synchronization_summary_nextcloud">Gpoddersync, kendi sunucunuza kolayca kurabileceğiniz açık kaynaklı bir Nextcloud uygulamasıdır. Uygulama, Podcini projesinden bağımsızdır.</string>
+    <string name="synchronization_host_explanation">Senkronizasyon için kendi sunucunuzu seçebilirsiniz. Tercih ettiğiniz senkronizasyon sunucusunu belirledikten sonra, lütfen adresini buraya girin.</string>
+    <string name="synchronization_host_address_label">Ana bilgisayar adresi</string>
+    <string name="synchronization_host_port_label">Ana bilgisayar portu</string>
+    <string name="synchronization_host_label">Sunucu adresi</string>
+    <string name="guest_butLabel">Misafir olarak</string>
+    <string name="host_butLabel">Ana bilgisayar olarak</string>
+    <string name="proceed_to_login_butLabel">Giriş yapmaya devam et</string>
+    <string name="wifisync_explanation_message">Bu, iki eş cihaz arasında Wi-Fi senkronizasyonu gerçekleştirir. Cihazlar ya Ana Bilgisayar ya da Misafir olarak hareket etmelidir, aynı anda ikisi birden olamaz. Ana Bilgisayar olarak hareket eden cihazın IP adresi gösterilecektir. Bu adresi misafir cihaza kopyaladığınızdan emin olun. Port numarası gerektiğinde değiştirilebilir, ancak her iki cihaz da aynı port numarasını kullanmalıdır. Onaylandıktan sonra iptal edilemez. Onaydan sonra, her iki cihazda yanıt için maksimum bekleme süresi 2 dakikadır.</string>
+    <string name="wifisync_progress_message">Eş ile iletişim kuruluyor</string>
+    <string name="synchronization_nextcloud_authenticate_browser">Açılan web tarayıcısını kullanarak erişim izni verin ve Podcini\'ye geri dönün.</string>
+    <string name="connect_to_peer">Eşe bağlan</string>
+    <string name="host_or_guest">Önce kendinizi Ana Bilgisayar veya Misafir yapın</string>
+    <string name="gpodnetauth_login_butLabel">Giriş yap</string>
+    <string name="username_label">Kullanıcı adı</string>
+    <string name="password_label">Şifre</string>
+
+    <string name="synchronization_sync_changes_title">Şimdi senkronize et</string>
+    <string name="synchronization_sync_summary">Abonelik ve bölüm durumu değişikliklerini senkronize et</string>
+    <string name="synchronization_full_sync_title">Tam senkronizasyonu zorla</string>
+    <string name="synchronization_force_sync_summary">Tüm abonelikleri ve bölüm durumlarını yeniden senkronize et</string>
+    <string name="synchronization_logout">Çıkış yap</string>
+    <string name="pref_synchronization_logout_toast">Çıkış başarılı</string>
+    <string name="gpodnetsync_error_title">gpodder.net senkronizasyon hatası</string>
+    <string name="gpodnetsync_error_descr">Senkronizasyon sırasında bir hata oluştu:\u0020</string>
+    <string name="gpodnetsync_pref_report_successful">Başarılı</string>
+    <string name="gpodnetsync_pref_report_failed">Başarısız</string>
+
+    <!-- Directory chooser -->
+
+    <!-- Online feed view -->
+    <string name="subscribe_label">Abone ol</string>
+
+    <!-- Content descriptions for image buttons -->
+
+    <string name="status_downloading_label">Bölüm indiriliyor</string>
+
+    <!-- Feed settings/information screen -->
+    <string name="authentication_label">Kimlik doğrulama</string>
+    <string name="authentication_descr">Bu podcast ve bölümleri için kullanıcı adınızı ve şifrenizi değiştirin.</string>
+    <string name="tags_label">Etiketler</string>
+        <string name="feed_tags_summary">Aboneliklerinizi düzenlemenize yardımcı olmak için bu podcast\'in etiketlerini değiştirin</string>
+
+    <string name="auto_download_settings_label">Otomatik indirme ayarları</string>
+    <string name="episode_filters_label">Bölüm filtresi</string>
+    <string name="episode_inclusive_filters_label">Bölüm kapsayıcı filtresi</string>
+    <string name="episode_exclusive_filters_label">Bölüm hariç tutma filtresi</string>
+    <string name="episode_filters_description">Otomatik indirirken bir bölümün dahil edilip edilmeyeceğine veya hariç tutulacağına karar vermek için kullanılan terimler listesi</string>
+
+    <string name="exclude_terms">Aşağıdaki terimlerden herhangi birini içeren bölümleri hariç tut</string>
+    <string name="include_terms">Yalnızca aşağıdaki terimlerden herhangi birini içeren bölümleri dahil et</string>
+
+    <string name="exclude_longer_than">Şundan uzun olanları hariç tut</string>
+    <string name="exclude_shorter_than">Şundan kısa olanları hariç tut</string>
+    <string name="mark_excluded_episodes_played">Hariç tutulan bölümleri oynatılmış olarak işaretle</string>
+    <string name="use_wide_layout">Geniş düzeni kullan</string>
+    <string name="use_wide_layout_summary">Bölüm listesindeki geniş düzen, daha büyük bir resim gösterir ve video içerikleri için daha uygundur.</string>
+    <string name="keep_updated">Güncel tut</string>
+    <string name="keep_updated_summary">Bu podcast\'i tüm podcast\'ler (otomatik) yenilenirken dahil et</string>
+
+
+
+    <string name="auto_download_disabled_sum">Burada otomatik indirme, genel ayarlarda otomatik indirme etkinleştirildiğinde ve beslemede akış tercih edilmediğinde etkinleştirilebilir.</string>
+    <string name="statistics_length_played">Başlatılanların toplam süresi:</string>
+    <string name="statistics_time_played">Oynatılan süre:</string>
+    <string name="statistics_time_spent">Harcanan süre:</string>
+    <string name="statistics_total_duration">Toplam süre (tahmini):</string>
+    <string name="statistics_episodes_on_device">Cihazdaki bölümler:</string>
+    <string name="statistics_space_used">Kullanılan alan:</string>
+    <string name="statistics_episodes_started_total">Başlatılan/toplam bölümler:</string>
+
+    <string name="this_podcast">Bu podcast</string>
+    <string name="all_podcasts">Tüm podcast\'ler</string>
+    <string name="feeds_related_to_author">Yazarla ilişkili olabilecek beslemeler »</string>
+    <string name="edit_url_menu">Besleme URL\'sini düzenle</string>
+    <string name="edit_url_confirmation_msg">RSS adresini değiştirmek, oynatma durumunu ve bölüm listelerini kolayca bozabilir. Bunu değiştirmenizi ÖNERMİYORUZ ve bir şeyler ters giderse destek SAĞLAMAYACAĞIZ. Bu işlem geri alınamaz. Bozuk abonelik, adresi geri değiştirerek ONARILAMAZ. Devam etmeden önce yedekleme yapmanızı öneririz.</string>
+
+    <!-- PodciniSP -->
+    <string name="sp_apps_importing_feeds_msg">Tek amaçlı uygulamalardan abonelikler içe aktarılıyor…</string>
+
+    <!-- Add podcast fragment -->
+    <string name="search_podcast_hint">Podcast ara…</string>
+
+    <string name="search_itunes_label">Apple Podcasts\'ta ara</string>
+    <string name="search_podcastindex_label">Podcast Index\'te ara</string>
+
+    <string name="advanced">Gelişmiş</string>
+
+
+
+
+
+
+
+    <string name="search_powered_by">%1$s tarafından sonuçlar</string>
+    <string name="select_country">Ülke seç</string>
+
+    <!-- Local feeds -->
+    <string name="add_local_folder">Yerel klasör ekle</string>
+    <string name="local_folder">Yerel klasör</string>
+    <string name="reconnect_local_folder">Yerel klasörü yeniden bağla</string>
+    <string name="reconnect_local_folder_warning">İzin reddi durumunda, aynı klasöre yeniden bağlanmak için bunu kullanabilirsiniz. Başka bir klasör seçmeyin.</string>
+    <string name="local_feed_description">Bu sanal podcast, Podcini\'ye bir klasör eklenerek oluşturuldu.</string>
+    <string name="unable_to_start_system_file_manager">Sistem dosya yöneticisi başlatılamadı</string>
+
+    <string name="downloaded_label">İndirilmiş</string>
+
+    <string name="auto_downloadable_label">Otomatik indirilebilir</string>
+    <string name="has_chapters">Bölümleri var</string>
+    <string name="filename">Dosya adı</string>
+
+    <string name="lower">Düşük</string>
+    <string name="middle">Orta</string>
+    <string name="higher">Yüksek</string>
+
+    <string name="include">Dahil et</string>
+    <string name="exclude">Hariç tut</string>
+    <string name="off">Kapalı</string>
+
+    <string name="play_speed">Oynatma hızı</string>
+
+    <string name="custom_speed">Özel</string>
+    <string name="has_skips">Atlamalar ayarlanmış</string>
+    <string name="commented">Yorum yapılmış</string>
+    <string name="add_comment">Yorum ekle (10 saniyede otomatik kaydet)</string>
+
+    <string name="feed_type">Besleme türü</string>
+    <string name="synthetic">Sentetik</string>
+    <string name="normal">Normal</string>
+    <string name="feed_origin">Besleme kökeni</string>
+    <string name="shelve_important">Önemli bölümleri rafa kaldır</string>
+    <string name="youtube">YouTube</string>
+    <string name="rss">RSS</string>
+    <string name="has_video">Video içeriyor</string>
+    <string name="has_comments">Yorum yapılmış</string>
+
+    <string name="always">Her zaman</string>
+    <string name="never">Asla</string>
+    <string name="auto_download">Otomatik indirme</string>
+    <string name="auto_enqueue">Otomatik kuyruğa ekleme</string>
+
+    <!-- Share episode dialog -->
+    <string name="share_playback_position_dialog_label">Oynatma konumunu dahil et</string>
+    <string name="share_dialog_episode_website_label">Bölüm web sayfası</string>
+    <string name="share_dialog_for_social">Sosyal mesaj</string>
+    <string name="share_dialog_media_address">Medya adresi</string>
+    <string name="share_dialog_media_file_label">Medya dosyası</string>
+    <string name="share_starting_position_label">Şuradan başlıyor</string>
+
+    <!-- Audio controls -->
+    <string name="audio_controls">Ses kontrolleri</string>
+    <string name="playback_speed">Oynatma hızı</string>
+    <string name="player_switch_to_audio_only">Yalnızca ses</string>
+
+    <!-- proxy settings -->
+    <string name="proxy_type_label">Tür</string>
+    <string name="host_label">Ana bilgisayar</string>
+    <string name="port_label">Port</string>
+    <string name="optional_hint">(İsteğe bağlı)</string>
+    <string name="proxy_test_label">Test</string>
+    <string name="proxy_checking">Kontrol ediliyor…</string>
+    <string name="proxy_test_successful">Test başarılı</string>
+    <string name="proxy_test_failed">Test başarısız</string>
+    <string name="proxy_host_empty_error">Ana bilgisayar boş olamaz</string>
+    <string name="proxy_host_invalid_error">Ana bilgisayar geçerli bir IP adresi veya alan adı değil</string>
+    <string name="proxy_port_invalid_error">Port geçerli değil</string>
+
+    <!-- Subscriptions fragment -->
+
+    <!-- Notification channels -->
+    <string name="notification_group_errors">Hatalar</string>
+
+    <string name="notification_channel_user_action">Eylem gereklidir</string>
+    <string name="notification_channel_user_action_description">Örneğin bir şifre girmeniz gerekiyorsa, sizin eyleminiz gerektiğinde gösterilir.</string>
+    <string name="notification_channel_downloading">İndiriliyor</string>
+    <string name="notification_channel_downloading_description">Şu anda indirilirken gösterilir.</string>
+    <string name="notification_channel_playing">Şu anda oynatılıyor</string>
+    <string name="notification_channel_playing_description">Oynatmayı kontrol etmenizi sağlar. Bu, bir podcast oynatılırken gördüğünüz ana bildirimdir.</string>
+    <string name="notification_channel_download_error">İndirme başarısız</string>
+    <string name="notification_channel_download_error_description">İndirme veya besleme güncellemesi başarısız olduğunda gösterilir.</string>
+    <string name="notification_channel_sync_error">Senkronizasyon başarısız</string>
+    <string name="notification_channel_sync_error_description">Gpodder senkronizasyonu başarısız olduğunda gösterilir.</string>
+
+    <!-- Widget settings -->
+
+    <!-- On-Demand configuration -->
+    <string name="on_demand_config_setting_changed">Ayar başarıyla güncellendi.</string>
+    <string name="on_demand_config_stream_text">Çok fazla akış yapıyor gibisiniz. Bölüm listelerinin akış düğmelerini göstermesini ister misiniz\?</string>
+    <string name="on_demand_config_download_text">Çok fazla indiriyor gibisiniz. Bölüm listelerinin indirme düğmelerini göstermesini ister misiniz\?</string>
+
+
+
+    <string name="add_shortcut">Kısayol ekle</string>
+</resources>

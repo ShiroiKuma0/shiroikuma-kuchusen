@@ -1,0 +1,263 @@
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.dsl.ApplicationExtension
+
+plugins {
+    id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
+    id("io.github.xilinjia.krdb")
+    id("kotlin-parcelize")
+    kotlin("plugin.serialization")
+}
+
+composeCompiler {
+    reportsDestination = layout.buildDirectory.dir("compose_compiler")
+//    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
+}
+
+kotlin { jvmToolchain(21) }
+
+val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "README.md", "NOTICE.txt", "LICENSE.txt", "MANIFEST.MF").map { "/META-INF/$it" }
+
+configure<ApplicationExtension> {
+    namespace = "ac.mdiq.podcini"
+
+    compileSdk = 36
+    buildToolsVersion = "36.1.0"
+
+    defaultConfig {
+        minSdk = 26
+        targetSdk = 36
+
+        versionCode = 45
+        versionName = "12.0.0"
+
+        ndkVersion = "29.0.14206865"
+
+        applicationId = "ac.mdiq.Podcini.A"
+
+        val apiKey = project.findProperty("podcastindexApiKey") as? String ?: ""
+        val apiSecret = project.findProperty("podcastindexApiSecret") as? String ?: ""
+        if (apiKey.isNotEmpty()) {
+            buildConfigField("String", "PODCASTINDEX_API_KEY", "\"$apiKey\"")
+            buildConfigField("String", "PODCASTINDEX_API_SECRET", "\"$apiSecret\"")
+        } else {
+            buildConfigField("String", "PODCASTINDEX_API_KEY", "\"QT2RYHSUZ3UC9GDJ5MFY\"")
+            buildConfigField("String", "PODCASTINDEX_API_SECRET", "\"Zw2NL74ht5aCtx5zFL$#MY$##qdVCX7x37jq95Sz\"")
+        }
+    }
+
+//     sourceSets {
+//         getByName("main") {
+//             kotlin.directories.add("../../PodciniLib/src/main/kotlin")
+//             aidl.directories.add("../../PodciniLib/src/main/aidl")
+//         }
+//     }
+
+    packaging {
+        resources {
+            excludes.addAll(metaInfExcludes)
+            pickFirsts.add("/META-INF/versions/9/OSGI-INF/MANIFEST.MF")
+        }
+    }
+
+    compileOptions {
+//        isCoreLibraryDesugaringEnabled = true   // for VistaGuide
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
+        resValues = true
+        compose = true
+        aidl = true
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = true
+        }
+    }
+
+    flavorDimensions += "market"
+    productFlavors {
+        create("free") {
+            dimension = "market"
+        }
+        create("play") {
+            dimension = "market"
+//             applicationIdSuffix = ".play"
+        }
+    }
+
+    val strictLint = project.hasProperty("strictLint")
+    lint {
+        checkReleaseBuilds = strictLint
+        checkDependencies = strictLint
+
+        warningsAsErrors = strictLint
+        abortOnError = strictLint
+
+        disable += listOf(
+            "UnsafeOptInUsageError",
+            "TypographyDashes",
+            "TypographyQuotes",
+            "ObsoleteLintCustomCheck",
+            "RestrictedApi"
+        )
+    }
+
+    signingConfigs {
+        create("releaseConfig") {
+            enableV1Signing = true
+            enableV2Signing = true
+            storeFile = file(project.findProperty("releaseStoreFile") as? String ?: "keystore")
+            storePassword = project.findProperty("releaseStorePassword") as? String ?: "password"
+            keyAlias = project.findProperty("releaseKeyAlias") as? String ?:  "alias"
+            keyPassword = project.findProperty("releaseKeyPassword") as? String ?:  "password"
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            resValue("string", "app_name", "Podcini.A")
+            resValue("string", "provider_authority", "ac.mdiq.Podcini.A.provider")
+//            vcsInfo.include = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs["releaseConfig"]
+        }
+        getByName("debug") {
+            resValue("string", "app_name", "Podcini.A Debug")
+            applicationIdSuffix = ".debug"
+            resValue("string", "provider_authority", "ac.mdiq.Podcini.A.debug.provider")
+        }
+    }
+
+    androidResources {
+        generateLocaleConfig = true
+    }
+
+    dependenciesInfo {
+        // Disables dependency metadata when building APKs.
+        includeInApk = false
+        // Disables dependency metadata when building Android App Bundles.
+        includeInBundle = false
+    }
+}
+
+androidComponents {
+    val androidExt = extensions.getByType<ApplicationExtension>()
+    val appName = "Podcini.A"
+    val versionName = androidExt.defaultConfig.versionName ?: "0.0.0"
+    onVariants { variant ->
+        val variantName = variant.name
+        val capitalized = variantName.replaceFirstChar { it.uppercase() }
+        val copyTask = tasks.register<Copy>("export${capitalized}Apks") {
+            from(variant.artifacts.get(SingleArtifact.APK)) {
+                include("**/*.apk")
+                eachFile {
+                    name = name
+                        .replace(Regex("-(release|debug)(?=\\.apk$)"), "")
+                        .replace("app", appName)
+                        .replace(".apk", "-$versionName.apk")
+                }
+                into("")
+            }
+            into(layout.buildDirectory.dir("exported-apks/$variantName"))
+        }
+        tasks.matching { it.name == "assemble$capitalized" }.configureEach { finalizedBy(copyTask) }
+    }
+}
+
+dependencies {
+    implementation(platform("androidx.compose:compose-bom:2026.05.01"))
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-core")
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+
+    implementation("androidx.annotation:annotation:1.10.0")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.documentfile:documentfile:1.1.0")
+    implementation("androidx.core:core-splashscreen:1.2.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.webkit:webkit:1.16.0")
+    implementation("androidx.work:work-runtime:2.11.2")
+
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.10.1")
+    implementation("androidx.media3:media3-ui:1.10.1")
+    implementation("androidx.media3:media3-common:1.10.1")
+    implementation("androidx.media3:media3-session:1.10.1")
+
+    implementation("com.google.android.material:material:1.14.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
+    implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
+
+    implementation("com.github.XilinJia:PodciniLib:1.0.1")
+    implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
+
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
+
+    implementation("androidx.navigation3:navigation3-runtime:1.1.2")
+    implementation("androidx.navigation3:navigation3-ui:1.1.2")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+
+    implementation("io.ktor:ktor-http:3.5.0")
+    implementation("io.ktor:ktor-client-core:3.5.0")
+    implementation("io.ktor:ktor-client-okhttp:3.5.0")
+    implementation("io.ktor:ktor-client-cio:3.5.0")
+    implementation("io.ktor:ktor-utils:3.5.0")
+
+    implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
+    implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
+
+    implementation("io.github.pdvrieze.xmlutil:core:1.0.0-rc2")
+    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc2")
+    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc2")
+
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
+    implementation("com.squareup.okio:okio:3.17.0")
+
+    implementation("net.dankito.readability4j:readability4j:1.0.8")
+
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.2")
+    //noinspection GradleDependency
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
+
+    "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
+
+    "playImplementation"("androidx.media3:media3-cast:1.10.0")
+    "playImplementation"("com.google.android.gms:play-services-base:18.9.0")
+    "playImplementation"("androidx.mediarouter:mediarouter:1.8.1")
+    "playImplementation"("com.google.android.gms:play-services-cast-framework:22.2.0")
+}
+
+val copyLicenseTask = tasks.register<Copy>("copyLicense") {
+    from("../LICENSE")
+    into("src/main/assets/")
+    rename { "$it.txt" }
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyLicenseTask)
+}

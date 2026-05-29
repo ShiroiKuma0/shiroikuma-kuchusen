@@ -1,0 +1,154 @@
+@file:Suppress("FunctionName")
+
+package ac.mdiq.podcini.utils
+
+import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.net.download.DownloadError
+import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.model.DownloadResult
+import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
+import ac.mdiq.podcini.storage.model.Feed
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+val LogScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+var sessionLogs = mutableStateListOf<String>()
+var toastMassege by mutableStateOf("")
+
+private suspend fun trimToasts() {
+    val size = sessionLogs.size
+    if (size > 120) {
+        withContext(Dispatchers.Main) {
+            val newList = sessionLogs.subList(20, size).toList()
+            sessionLogs.clear()
+            sessionLogs.addAll(newList)
+        }
+    }
+}
+
+fun Logd(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
+}
+
+fun Loge(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: Error: $m")
+    }
+}
+
+fun LogeFor(t: String, episodeId: Long?, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: $episodeId Error: $m")
+    }
+}
+
+fun Logs(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    showStackTrace()
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
+        sessionLogs.add("${fullDateTimeString()} $t: Error: $m ")
+    }
+}
+
+fun LogsFor(t: String, episodeId: Long?, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
+    showStackTrace()
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m "
+        sessionLogs.add("${fullDateTimeString()} $t: $episodeId Error: $m ")
+    }
+}
+
+fun Logs(t: String, e: Throwable, m: String = "") {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
+    val me = e.message
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
+        sessionLogs.add("${fullDateTimeString()} $t: $m Error: $me")
+    }
+}
+
+fun LogsFor(t: String, episodeId: Long?, e: Throwable, m: String = "") {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
+    val me = e.message
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: $m Error: $me"
+        sessionLogs.add("${fullDateTimeString()} $t: $episodeId $m Error: $me")
+    }
+}
+
+fun Logt(t: String, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
+    LogScope.launch {
+        trimToasts()
+        toastMassege = "$t: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: $m")
+    }
+}
+
+fun LogtFor(t: String, episodeId: Long?, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
+    LogScope.launch {
+        trimToasts()
+        toastMassege = "$t: $m"
+        sessionLogs.add("${fullDateTimeString()} $t: $episodeId $m")
+    }
+}
+
+fun LogFor(t: String, feed: Feed, success: Boolean, message: String, reason:  DownloadError? = null, toastAnyway: Boolean = false) {
+    runOnIOScope { logDownloadResult(DownloadResult(feed, reason, success, message)) }
+    if (toastAnyway && success) Logt(t, "Feed operation: success=$success, $message: ${feed.title}")
+    if (!success) Loge(t, "Feed operation: success=$success, $message: ${feed.title}")
+}
+
+fun showStackTrace() {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) {
+        val stackTraceElements = Thread.currentThread().stackTrace
+        stackTraceElements.forEach { element -> Log.w("showStackTrace", element.toString()) }
+    }
+}
+
+fun stackTraceShort() {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) {
+        val stackTrace = Thread.currentThread().stackTrace
+        val caller = if (stackTrace.size > 4) stackTrace[4] else null
+        Log.d("stackTraceShort", "${caller?.className}.${caller?.methodName}")
+    }
+}
+
+var startTime: Long = 0
+var nanoTime: Long = 0
+
+fun startTiming() {
+    nanoTime = System.nanoTime()
+    startTime = nanoTime
+}
+fun timeIt(msg: String) {
+    if (BuildConfig.DEBUG) {
+        val time = System.nanoTime()
+        val dTime = (time - nanoTime) / 1000000
+        val dsTime = (time - startTime) / 1000000
+        Logd("TimeIt", "$msg $time delta: $dTime from Start: $dsTime" )
+        nanoTime = time
+    }
+}

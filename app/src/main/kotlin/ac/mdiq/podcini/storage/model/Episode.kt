@@ -1,0 +1,823 @@
+package ac.mdiq.podcini.storage.model
+
+import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
+import ac.mdiq.podcini.shared.EpisodeIPC
+import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.storage.database.episodeById
+import ac.mdiq.podcini.storage.database.feedsMap
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.UnifiedFile
+import ac.mdiq.podcini.storage.utils.clipsDir
+import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.generateFileName
+import ac.mdiq.podcini.storage.utils.guessFileName
+import ac.mdiq.podcini.storage.utils.mediaDir
+import ac.mdiq.podcini.storage.utils.toSafeUri
+import ac.mdiq.podcini.storage.utils.toUF
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.LogsFor
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.fullDateTimeString
+import androidx.compose.runtime.Stable
+import io.github.xilinjia.krdb.ext.realmListOf
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.ext.toRealmSet
+import io.github.xilinjia.krdb.types.RealmList
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.RealmSet
+import io.github.xilinjia.krdb.types.annotations.Ignore
+import io.github.xilinjia.krdb.types.annotations.Index
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import io.ktor.client.request.head
+import io.ktor.client.request.header
+import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlin.math.max
+
+private const val smartMarkAsPlayedPercent: Float = 0.95f
+
+@Stable
+class Episode : RealmObject {
+    @PrimaryKey
+    var id: Long = 0L   // increments from nowInMillis() * 100 at time of creation
+
+    @Index
+    var feedId: Long? = null
+
+    var downloadUrl: String? = null
+
+    var mimeType: String? = ""
+
+    /**
+     * The id/guid that can be found in the rss/atom feed. Might not be set, especially in youtube feeds
+     */
+    var identifier: String? = null
+
+    var title: String? = null
+
+    var shortDescription: String? = null
+
+    var description: String? = null
+
+    var transcript: String? = null
+
+    var link: String? = null
+
+    var pubDate: Long = 0
+
+    var trackNumber: Int = 0
+
+    @Ignore
+    val feed: Feed?
+        get() = if (feedId != null) feedsMap[feedId!!] else null
+
+    // parent in these refers to the original parent of the content (shared)
+    var parentTitle: String? = null
+
+    var parentURL: String? = null
+
+    /**
+     * Returns the image of this item, as specified in the feed.
+     * To load the image that can be displayed to the user, use [.getImageLocation],
+     * which also considers embedded pictures or the feed picture if no other picture is present.
+     */
+    var imageUrl: String? = null
+
+    var duration: Int = 0    // in milliseconds
+
+    var position: Int = 0 // Current position in file, in milliseconds
+
+    // info from youtube
+    var viewCount: Int = 0
+
+    var likeCount: Int = 0
+
+    @set:JvmName("setPlayStateProperty")
+    var playState: Int
+        private set
+
+    var playStateSetTime: Long = 0L
+        private set
+
+    var paymentLink: String? = null
+
+    var isAutoDownloadEnabled: Boolean = true
+
+    var related: RealmSet<Episode> = realmSetOf()
+
+    @Ignore
+    val tagsAsString: String
+        get() = tags.joinToString(TAG_SEPARATOR)
+    var tags: RealmSet<String> = realmSetOf()
+
+    var clips: RealmSet<String> = realmSetOf()
+
+    var marks: RealmSet<Long> = realmSetOf()
+
+    var podcastIndexChapterUrl: String? = null
+
+    var chapters: RealmList<Chapter> = realmListOf()
+
+    var chaptersLoaded: Boolean = false
+
+    @set:JvmName("setRatingProperty")
+    var rating: Int = Rating.UNRATED.code
+        private set
+
+    var ratingTime: Long = 0L
+        private set
+
+    @JvmName("setRatingFunction")
+    fun setRating(r: Rating, setTime: Long = 0L) {
+        rating = r.code
+        ratingTime = if (setTime > 0L) setTime else nowInMillis()
+    }
+
+    var comment: String = ""
+        private set
+
+    var commentTime: Long = 0L
+        private set
+
+    var todos: RealmList<Todo> = realmListOf()
+
+    /**
+     * Returns the value that uniquely identifies this FeedItem. If the
+     * itemIdentifier attribute is not null, it will be returned. Else it will
+     * try to return the title. If the title is not given, it will use the link
+     * of the entry.
+     */
+    @Ignore
+    val identifyingValue: String?
+        get() = when {
+            !identifier.isNullOrEmpty() -> identifier
+            !title.isNullOrEmpty() -> title
+            downloadUrl != null -> downloadUrl
+            else -> link
+        }
+
+    var fileUrl: String? = null
+
+    @Ignore
+    var downloaded: Boolean
+        get() = fileUrl != null
+        set(value) {
+            if (value) downloadTime = nowInMillis()
+            if (playState == EpisodeState.NEW.code) setPlayState(EpisodeState.UNPLAYED)
+        }
+    var downloadTime: Long = 0
+
+    var lastPlayedTime: Long = 0 // Last time this media was played (in ms)
+
+    var startPosition: Int = -1
+    var playedDurationWhenStarted: Int = 0
+    var playedDuration: Int = 0 // How many ms of this file have been played
+
+    var timeSpentOnStart: Long = 0 // How many ms of this file have been played in actual time
+    var startTime: Long = 0 // time in ms when start playing
+    var timeSpent: Long = 0 // How many ms of this file have been played in actual time
+
+    // File size in Byte
+    var size: Long = 0L
+
+    var origFeedTitle: String? = null
+    var origFeeddownloadUrl: String? = null
+    var origFeedlink: String? = null
+
+    var playbackCompletionTime: Long = 0
+
+    // if null: unknown, need to be checked
+    var hasEmbeddedPicture: Boolean? = null
+
+    var forceVideo: Boolean = false
+
+    var repeatTime: Long = 0L
+
+    var repeatInterval: Long = 0L
+
+    @Ignore
+    val isWorthy: Boolean
+        get() = (playState != EpisodeState.IGNORED.code && comment != "")
+                || rating >= Rating.GOOD.code
+                || playState == EpisodeState.AGAIN.code
+                || playState == EpisodeState.FOREVER.code
+                || playState == EpisodeState.SOON.code
+                || playState == EpisodeState.LATER.code
+                || clips.isNotEmpty()
+                || marks.isNotEmpty()
+
+    constructor() {
+        this.playState = EpisodeState.NEW.code
+        playStateSetTime = nowInMillis()
+    }
+
+    // used only in LocalFeedUpdater
+    constructor(id: Long, title: String?, itemIdentifier: String?, link: String?, pubTime: Long, state: Int, feed: Feed?) {
+        this.id = id
+        this.title = title
+        this.identifier = itemIdentifier
+        this.link = link
+        this.pubDate = pubTime
+        this.playState = state
+        playStateSetTime = nowInMillis()
+        if (feed != null) this.feedId = feed.id
+    }
+
+    fun updateFromOther(other: Episode, includingState: Boolean = false) {
+//        Logd(TAG, "updateFromOther ${other.viewCount} ${other.title} $title")
+        if (other.imageUrl != null) this.imageUrl = other.imageUrl
+        if (other.title != null) title = other.title
+        if (other.description != null) description = other.description
+        if (other.link != null) link = other.link
+        if (other.pubDate != 0L && other.pubDate != pubDate) pubDate = other.pubDate
+
+        this.downloadUrl = other.downloadUrl
+
+        if (other.size > 0) size = other.size
+        // Do not overwrite duration that we measured after downloading
+        if (other.duration > 0 && duration <= 0) duration = other.duration
+        if (other.mimeType != null) mimeType = other.mimeType
+
+        if (other.paymentLink != null) paymentLink = other.paymentLink
+        if (other.chapters.isNotEmpty()) {
+            chapters.clear()
+            chapters.addAll(other.chapters)
+        }
+        if (other.podcastIndexChapterUrl != null) podcastIndexChapterUrl = other.podcastIndexChapterUrl
+        if (other.viewCount > 0) viewCount = other.viewCount
+        if (other.likeCount > 0) likeCount = other.likeCount
+
+        if (includingState) {
+            this.rating = other.rating
+            this.playState = other.playState
+            this.playStateSetTime = other.playStateSetTime
+            this.position = other.position
+            this.playbackCompletionTime = other.playbackCompletionTime
+            this.playedDuration = other.playedDuration
+            this.hasEmbeddedPicture = other.hasEmbeddedPicture
+            this.lastPlayedTime = other.lastPlayedTime
+            this.isAutoDownloadEnabled = other.isAutoDownloadEnabled
+        }
+    }
+
+    fun imageLocation(forceFeed: Boolean = false): String? {
+        return when {
+            forceFeed || feed?.useFeedImage() == true -> feed?.imageUrl
+            else -> {
+                when {
+                    imageUrl != null -> imageUrl
+                    feed != null -> feed!!.imageUrl
+                    hasEmbeddedPicture == true -> fileUrl
+                    else -> null
+                }
+            }
+        }
+    }
+
+    @JvmName("setPlayStateFunction")
+    fun setPlayState(state: EpisodeState, resetPosition: Boolean = false, setTime: Long = 0L) {
+        playState = if (state != EpisodeState.UNSPECIFIED) state.code
+        else {
+            if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code
+            else EpisodeState.PLAYED.code
+        }
+        if (resetPosition || playState in listOf(EpisodeState.PLAYED.code, EpisodeState.IGNORED.code)) position = 0
+        if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
+        playStateSetTime = if (setTime > 0L) setTime else nowInMillis()
+    }
+
+    fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
+
+    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent
+
+    /**
+     * Updates this item's description property if the given argument is longer than the already stored description
+     * @param newDescription The new item description, content:encoded, itunes:description, etc.
+     */
+    fun setDescriptionIfLonger(newDescription: String?) {
+        if (newDescription.isNullOrEmpty()) return
+        when {
+            this.description == null -> this.description = newDescription
+            description!!.length < newDescription.length -> this.description = newDescription
+        }
+    }
+
+    fun setTranscriptIfLonger(newTranscript: String?) {
+        if (newTranscript.isNullOrEmpty()) return
+        when {
+            this.transcript == null -> this.transcript = newTranscript
+            transcript!!.length < newTranscript.length -> this.transcript = newTranscript
+        }
+    }
+
+    fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(System.currentTimeMillis()) + ":\n"
+
+    fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
+        if (addition) {
+            comment = if (comment.isBlank()) "" else (comment + "\n")
+            commentTime = nowInMillis()
+            comment += fullDateTimeString(commentTime) + ":\n" + text
+        } else {
+            comment = text
+            if (setTime > 0L) commentTime = setTime
+        }
+    }
+
+    /**
+     * Get the link for the feed item for the purpose of Share. It fallbacks to
+     * use the feed's link if the named feed item has no link.
+     */
+    fun getLinkWithFallback(): String? {
+        return when {
+            !link.isNullOrBlank() -> link
+            !feed?.link.isNullOrEmpty() -> feed!!.link
+            else -> null
+        }
+    }
+
+//    override fun toString(): String {
+//        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
+//    }
+
+    fun fillMedia(duration: Int, position: Int,
+                  size: Long, mimeType: String?, fileUrl: String?, downloadUrl: String?,
+                  downloaded: Boolean, playbackCompletionTime: Long, playedDuration: Int,
+                  lastPlayedTime: Long) {
+        this.duration = duration
+        this.position = position
+        this.playedDuration = playedDuration
+        this.playedDurationWhenStarted = playedDuration
+        this.size = size
+        this.mimeType = mimeType
+        this.playbackCompletionTime =  playbackCompletionTime
+        this.lastPlayedTime = lastPlayedTime
+        this.fileUrl = fileUrl
+        this.downloadUrl = downloadUrl
+        this.downloaded = downloaded
+    }
+
+    fun fillMedia(downloadUrl: String?, size: Long, mimeType: String?) {
+        this.size = size
+        this.mimeType = mimeType
+        fileUrl = null
+        this.downloadUrl = downloadUrl
+//        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
+    }
+
+    fun getMediaType(): MediaType = MediaType.fromMimeType(mimeType)
+
+    suspend fun getMediaFileUriString(): String {
+        val fileName = getMediafilename()
+        Logd(TAG, "getMediaFileUriString: filename: $fileName")
+        val subDirectoryName = generateFileName(feed?.title ?: "NoFeed")
+        var subDirectory = mediaDir.listChildren().find { it.name == subDirectoryName }
+        if (subDirectory == null || !subDirectory.exists()) subDirectory = mediaDir.createDirectory(subDirectoryName)
+        Logd(TAG, "getMediaFileUriString subDirectory: ${subDirectory.absPath}")
+        var fileUri: String? = subDirectory.listChildren().find { it.name == fileName }?.absPath
+        Logd(TAG, "getMediaFileUriString fileUri: $fileUri")
+        if (fileUri == null) {
+            var file = subDirectory / fileName
+            if (!file.exists()) file = subDirectory.createFile(mimeType?:"", fileName)
+            fileUri = file.absPath
+        }
+        Logd(TAG, "getMediaFileUriString fileUri 1: $fileUri")
+        return fileUri
+    }
+
+    fun getMediafilename(): String {
+        val titleBaseFilename = if (title != null) generateFileName(title!!) else ""
+        val urlBaseFilename = if (!downloadUrl.isNullOrBlank()) guessFileName(downloadUrl!!, null, mimeType) else ""
+        var baseFilename = if (titleBaseFilename != "") titleBaseFilename else urlBaseFilename
+        val filenameMaxLength = 220
+        if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.take(filenameMaxLength)
+        return baseFilename + "." + id + "." + urlBaseFilename.substringAfterLast('.', "")
+    }
+
+    fun isDownloaded(): Boolean {
+        Logd(TAG, "isDownloaded fileUrl: $fileUrl")
+        val url = fileUrl ?: return false
+        return runBlocking { url.toSafeUri().toUF().exists() }
+    }
+
+    suspend fun fetchMediaSize(persist: Boolean = true, force: Boolean = false) : Long {
+        return withContext(Dispatchers.IO) {
+            var size_ = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
+            when {
+                fileUrl != null -> size_ = if (fileUrl!!.isNotBlank()) fileUrl!!.toSafeUri().toUF().size() ?: -1L else -1L
+                !isImageDownloadAllowed -> {
+                    Logt(TAG, "fetchMediaSize need unrestricted network or allow image on mobile for fetchMediaSize")
+                    return@withContext -1
+                }
+                force || !isSizeSetUnknown() -> {
+                    Logd(TAG, "fetchMediaSize querying network")
+                    val url = downloadUrl
+                    if (url.isNullOrEmpty()) return@withContext -1
+                    try {
+                        val response = getKtorClient().head(url) { header(HttpHeaders.AcceptEncoding, "identity") }
+                        if (response.status.isSuccess()) size_ = response.headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: -1L
+                    } catch (e: CancellationException) {
+                        Logd(TAG, "fetchMediaSize canceled")
+                        return@withContext -1L
+                    } catch (e: Exception) {
+                        LogsFor(TAG, id, "fetchMediaSize failed ${e.message}")
+                        return@withContext -1L  // better luck next time
+                    }
+                }
+            }
+            // they didn't tell us the size, but we don't want to keep querying on it
+            size_ = if (size_ <= 0) CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() else size_
+            if (persist) upsert(this@Episode) { it.size = size_ }
+            else size = size_
+            size_
+        }
+    }
+
+    fun getClipFile(clipname: String): UnifiedFile {
+        return clipsDir / "recorded_${id}_$clipname"
+    }
+
+    fun isSizeSetUnknown(): Boolean = (size == CHECKED_ON_SIZE_BUT_UNKNOWN.toLong())
+
+    fun getEpisodeTitle(): String = title ?: identifyingValue ?: "No title"
+
+    /**
+     * This method should be called every time playback starts on this object.
+     * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
+     */
+    fun setPlaybackStart() {
+        Logd(TAG, "setPlaybackStart ${nowInMillis()} timeSpent: $timeSpent")
+        startPosition = max(position, 0)
+        playedDurationWhenStarted = playedDuration
+        timeSpentOnStart = timeSpent
+        startTime = nowInMillis()
+    }
+
+    fun setChapters(chapters_: List<Chapter>) {
+        for (c in chapters_) Logd(TAG, "chapter: ${c.title}")
+        chapters.clear()
+        chapters.addAll(chapters_)
+        chaptersLoaded = true
+    }
+
+    fun getCurrentChapterIndex(position: Int): Int {
+        if (chapters.isEmpty()) return -1
+        for (i in chapters.indices) if (chapters[i].start > position) return i - 1
+        return chapters.size - 1
+    }
+
+    fun suitableForDownload(): Boolean = !downloadUrl.isNullOrEmpty() && !isDownloaded() && feed?.isLocal != true
+
+    //    fun checkEmbeddedPicture(persist: Boolean = true) {
+//        if (!localFileAvailable()) hasEmbeddedPicture = false
+//        else {
+//            var retriever: FFmpegMediaMetadataRetriever? = null
+//            try {
+//                retriever = FFmpegMediaMetadataRetriever()
+//                retriever.setDataSource(fileUrl?.toSafeUri().toString())
+//                hasEmbeddedPicture = (retriever.embeddedPicture != null)
+//            } catch (e: Exception) { Logs(TAG, e, "checkEmbeddedPicture failed.") } finally { retriever?.release() }
+//        }
+//        if (persist) upsertBlk(this) {}
+//    }
+
+    fun checkEmbeddedPicture(persist: Boolean = true) {
+        if (fileUrl.isNullOrBlank()) hasEmbeddedPicture = false
+        else {
+            // TODO: what to do with this
+//            try {
+//                MediaMetadataRetrieverCompat().use { mmr ->
+//                    mmr.setDataSource(getAppContext(), Uri.parse(fileUrl))
+//                    val image = mmr.embeddedPicture
+//                    hasEmbeddedPicture = image != null
+//                }
+//            } catch (e: Exception) {
+//                Logs(TAG, e)
+//                hasEmbeddedPicture = false
+//            }
+        }
+        // TODO
+//        if (persist && episode != null) upsertBlk(episode!!) {}
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Episode
+
+        if (id != other.id) return false
+        if (pubDate != other.pubDate) return false
+        if (trackNumber != other.trackNumber) return false
+        if (feedId != other.feedId) return false
+        if (playState != other.playState) return false
+        if (playStateSetTime != other.playStateSetTime) return false
+        if (isAutoDownloadEnabled != other.isAutoDownloadEnabled) return false
+        if (chaptersLoaded != other.chaptersLoaded) return false
+        if (rating != other.rating) return false
+        if (ratingTime != other.ratingTime) return false
+        if (viewCount != other.viewCount) return false
+        if (likeCount != other.likeCount) return false
+        if (commentTime != other.commentTime) return false
+        if (downloadTime != other.downloadTime) return false
+        if (duration != other.duration) return false
+        if (position != other.position) return false
+        if (lastPlayedTime != other.lastPlayedTime) return false
+        if (startPosition != other.startPosition) return false
+        if (playedDurationWhenStarted != other.playedDurationWhenStarted) return false
+        if (playedDuration != other.playedDuration) return false
+        if (timeSpentOnStart != other.timeSpentOnStart) return false
+        if (startTime != other.startTime) return false
+        if (timeSpent != other.timeSpent) return false
+        if (size != other.size) return false
+        if (playbackCompletionTime != other.playbackCompletionTime) return false
+        if (hasEmbeddedPicture != other.hasEmbeddedPicture) return false
+        if (forceVideo != other.forceVideo) return false
+        if (repeatTime != other.repeatTime) return false
+        if (identifier != other.identifier) return false
+        if (title != other.title) return false
+        if (parentTitle != other.parentTitle) return false
+        if (related.size != other.related.size) return false
+        if (tags.size != other.tags.size) return false
+        if (clips.size != other.clips.size) return false
+        if (marks.size != other.marks.size) return false
+        if (chapters.size != other.chapters.size) return false
+        if (comment != other.comment) return false
+        if (todos.size != other.todos.size) return false
+        if (fileUrl != other.fileUrl) return false
+        if (mimeType != other.mimeType) return false
+        if (origFeedTitle != other.origFeedTitle) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + pubDate.hashCode()
+        result = 31 * result + trackNumber.hashCode()
+        result = 31 * result + (feedId?.hashCode() ?: 0)
+        result = 31 * result + playState
+        result = 31 * result + playStateSetTime.hashCode()
+        result = 31 * result + isAutoDownloadEnabled.hashCode()
+        result = 31 * result + chaptersLoaded.hashCode()
+        result = 31 * result + rating
+        result = 31 * result + ratingTime.hashCode()
+        result = 31 * result + viewCount
+        result = 31 * result + likeCount
+        result = 31 * result + commentTime.hashCode()
+        result = 31 * result + downloadTime.hashCode()
+        result = 31 * result + duration
+        result = 31 * result + position
+        result = 31 * result + lastPlayedTime.hashCode()
+        result = 31 * result + startPosition
+        result = 31 * result + playedDurationWhenStarted
+        result = 31 * result + playedDuration
+        result = 31 * result + timeSpentOnStart.hashCode()
+        result = 31 * result + startTime.hashCode()
+        result = 31 * result + timeSpent.hashCode()
+        result = 31 * result + size.hashCode()
+        result = 31 * result + playbackCompletionTime.hashCode()
+        result = 31 * result + (hasEmbeddedPicture?.hashCode() ?: 0)
+        result = 31 * result + forceVideo.hashCode()
+        result = 31 * result + repeatTime.hashCode()
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (title?.hashCode() ?: 0)
+        result = 31 * result + (parentTitle?.hashCode() ?: 0)
+        result = 31 * result + related.size
+        result = 31 * result + tags.size
+        result = 31 * result + clips.size
+        result = 31 * result + marks.size
+        result = 31 * result + chapters.size
+        result = 31 * result + comment.hashCode()
+        result = 31 * result + todos.size
+        result = 31 * result + (fileUrl?.hashCode() ?: 0)
+        result = 31 * result + (mimeType?.hashCode() ?: 0)
+        result = 31 * result + (origFeedTitle?.hashCode() ?: 0)
+        return result
+    }
+
+    companion object {
+        private val TAG: String = Episode::class.simpleName ?: "Anonymous"
+
+        const val INVALID_TIME: Int = -1
+
+        /**
+         * Indicates we've checked on the size of the item via the network
+         * and got an invalid response. Using Integer.MIN_VALUE because
+         * 1) we'll still check on it in case it gets downloaded (it's <= 0)
+         * 2) By default all EpisodeMedia have a size of 0 if we don't know it,
+         * so this won't conflict with existing practice.
+         */
+        private const val CHECKED_ON_SIZE_BUT_UNKNOWN = Int.MIN_VALUE
+    }
+}
+
+@Serializable
+data class EpisodeDTO(
+    val id: Long,
+    val feedId: Long? = null,
+    val downloadUrl: String? = null,
+    val mimeType: String? = "",
+
+    val title: String? = null,
+    val shortDescription: String? = null,
+    val description: String? = null,
+    val link: String? = null,
+    val pubDate: Long = 0,
+    val imageUrl: String? = null,
+
+    val duration: Int = 0,
+    val position: Int = 0,
+
+    val playedDuration: Int = 0,
+    val timeSpent: Long = 0,
+    val playbackCompletionTime: Long = 0,
+
+    val viewCount: Int = 0,
+
+    val playState: Int = EpisodeState.UNSPECIFIED.code,
+    val playStateSetTime: Long = 0L,
+    val isAutoDownloadEnabled: Boolean = true,
+
+    val tags: Set<String> = setOf(),
+    val marks: Set<Long> = setOf(),
+    val clips: Set<String> = setOf(),
+    val todos: List<TodoDTO> = listOf(),
+
+    val rating: Int = Rating.UNRATED.code,
+    val ratingTime: Long = 0L,
+
+    val comment: String = "",
+    val commentTime: Long = 0L,
+
+    val lastPlayedTime: Long = 0,
+    val repeatTime: Long = 0L,
+    )
+
+fun Episode.toDTO() = EpisodeDTO(
+    id = this.id,
+    feedId = this.feedId,
+    downloadUrl = this.downloadUrl,
+    mimeType = this.mimeType,
+    title = this.title,
+    shortDescription = this.shortDescription,
+    description = this.description,
+    link = this.link,
+    pubDate = this.pubDate,
+    imageUrl = this.imageUrl,
+    duration = this.duration,
+    position = this.position,
+
+    playedDuration = this.playedDuration,
+    timeSpent = this.timeSpent,
+    playbackCompletionTime = this.playbackCompletionTime,
+
+    viewCount = this.viewCount,
+    playState = this.playState,
+    playStateSetTime = this.playStateSetTime,
+    isAutoDownloadEnabled = this.isAutoDownloadEnabled,
+
+    tags = this.tags.toSet(),
+    marks = this.marks.toSet(),
+    clips = this.clips.toSet(),
+    todos = this.todos.map { it.toDTO() },
+
+    rating = this.rating,
+    ratingTime = this.ratingTime,
+    comment = this.comment,
+    commentTime = this.commentTime,
+    lastPlayedTime = this.lastPlayedTime,
+    repeatTime = this.repeatTime,
+)
+
+fun Episode.toBasicDTO() = EpisodeDTO(
+    id = this.id,
+    downloadUrl = this.downloadUrl,
+    mimeType = this.mimeType,
+    title = this.title,
+    shortDescription = this.shortDescription,
+    description = this.description,
+    link = this.link,
+    pubDate = this.pubDate,
+    imageUrl = this.imageUrl,
+    duration = this.duration,
+    viewCount = this.viewCount,
+
+    tags = this.tags.toSet(),
+    marks = this.marks.toSet(),
+    clips = this.clips.toSet(),
+    todos = this.todos.map { it.toDTO() },
+
+    rating = this.rating,
+    ratingTime = this.ratingTime,
+    comment = this.comment,
+    commentTime = this.commentTime,
+)
+
+fun EpisodeDTO.toRealm(): Episode = Episode().apply {
+    val dto = this@toRealm
+    id = dto.id
+    val e = episodeById(id) ?: this
+
+    return upsertBlk(e) {
+        if (it.feedId == null) it.feedId = dto.feedId
+        if (it.downloadUrl == null) it.downloadUrl = dto.downloadUrl
+        if (it.mimeType.isNullOrBlank()) it.mimeType = dto.mimeType
+        if (it.title == null) it.title = dto.title
+        if (it.shortDescription == null) it.shortDescription = dto.shortDescription
+        if (it.description == null) it.description = dto.description
+        if (it.link == null) it.link = dto.link
+        if (it.pubDate == 0L) it.pubDate = dto.pubDate
+        if (it.imageUrl == null) it.imageUrl = dto.imageUrl
+        if (it.duration == 0) it.duration = dto.duration
+
+        it.position = dto.position
+        it.playedDuration = dto.playedDuration
+        it.timeSpent = dto.timeSpent
+        it.playbackCompletionTime = dto.playbackCompletionTime
+
+        it.viewCount = dto.viewCount
+        it.setPlayState(EpisodeState.fromCode(dto.playState), setTime = dto.playStateSetTime)
+        it.isAutoDownloadEnabled = dto.isAutoDownloadEnabled
+
+        it.tags = dto.tags.toRealmSet()
+        it.marks = dto.marks.toRealmSet()
+        it.clips = dto.clips.toRealmSet()
+        it.todos.clear()
+        it.todos.addAll(dto.todos.map { td -> td.toRealm() })
+
+        if (dto.ratingTime > 0L || dto.rating > Rating.UNRATED.code) it.setRating(Rating.fromCode(dto.rating), setTime = dto.ratingTime)
+        if (dto.commentTime > 0L || dto.comment.isNotBlank()) it.addComment(dto.comment, addition = false, setTime = dto.commentTime)
+        it.lastPlayedTime = dto.lastPlayedTime
+        it.repeatTime = dto.repeatTime
+    }
+}
+
+fun EpisodeIPC.toEpisode(): Episode {
+    val episode = Episode()
+    episode.feedId = this.feedId
+    episode.title = this.title
+    episode.fileUrl = this.fileUrl
+    episode.link = this.link
+    episode.downloadUrl = this.downloadUrl
+    episode.description = this.description
+    episode.imageUrl = this.imageUrl
+    episode.pubDate = this.pubDate
+    episode.size = this.size
+    episode.pubDate = this.pubDate
+    episode.viewCount = this.viewCount
+    episode.likeCount = this.likeCount
+    episode.mimeType = this.mimeType
+    episode.duration = this.duration
+    return episode
+}
+
+fun Episode.toIPC(): EpisodeIPC {
+    val episode = EpisodeIPC()
+    episode.feedId = this.feedId
+    episode.title = this.title
+    episode.fileUrl = this.fileUrl
+    episode.link = this.link
+    episode.downloadUrl = this.downloadUrl
+    episode.description = this.description
+    episode.imageUrl = this.imageUrl
+    episode.pubDate = this.pubDate
+    episode.size = this.size
+    episode.pubDate = this.pubDate
+    episode.viewCount = this.viewCount
+    episode.likeCount = this.likeCount
+    episode.mimeType = this.mimeType
+    episode.duration = this.duration
+    return episode
+}
+
+@Serializable
+data class WidgetEpisode(
+    val id: Long,
+    val t: String?,
+    val pd: Long,
+    val s: Int,
+    val du: Int,
+    val r: Int
+)
+
+fun Episode.toWidget() = WidgetEpisode(
+    id = this.id,
+    t = this.title?.take(40),
+    pd = this.pubDate,
+    s = this.playState,
+    du = this.duration,
+    r = this.rating
+)
+
+fun WidgetEpisode.toRealm() = realm.query(Episode::class).query("id = ${this.id}").first().find()

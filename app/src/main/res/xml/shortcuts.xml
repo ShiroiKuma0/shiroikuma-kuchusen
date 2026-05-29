@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_playlist_shortcut"
+        android:shortcutId="Queues"
+        android:shortcutShortLabel="@string/queue_label">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="ac.mdiq.podcini.activity.MainActivity">
+            <extra android:name="shortcut_route" android:value="Queues" />
+        </intent>
+        <categories android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_add"
+        android:shortcutId="FindFeeds"
+        android:shortcutShortLabel="@string/add_feed_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ac.mdiq.podcini.activity.MainActivity">
+            <extra android:name="shortcut_route" android:value="FindFeeds" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/baseline_view_in_ar_24"
+        android:shortcutId="Facets"
+        android:shortcutShortLabel="@string/facets">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ac.mdiq.podcini.activity.MainActivity">
+            <extra android:name="shortcut_route" android:value="Facets" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_subscriptions_shortcut"
+        android:shortcutId="Library"
+        android:shortcutShortLabel="@string/library">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ac.mdiq.podcini.activity.MainActivity">
+            <extra android:name="shortcut_route" android:value="Library" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_refresh_shortcut"
+        android:shortcutId="refresh"
+        android:shortcutShortLabel="@string/refresh_label">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ac.mdiq.podcini.activity.MainActivity">
+            <extra
+                android:name="refresh_on_start"
+                android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>
