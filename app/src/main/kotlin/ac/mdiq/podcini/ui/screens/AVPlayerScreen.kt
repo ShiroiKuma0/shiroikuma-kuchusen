@@ -13,8 +13,7 @@ import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
-import ac.mdiq.podcini.sources.sourceGatewayClient
-import ac.mdiq.podcini.shared.FeedType
+import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
@@ -26,6 +25,7 @@ import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -180,8 +180,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlin.collections.ifEmpty
-import kotlin.collections.indices
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
@@ -754,7 +752,7 @@ fun AVPlayerScreen() {
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
-                val isExtFeed = remember(vm.episodeFeed?.id) { sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(vm.episodeFeed!!.downloadUrl!!) } == true }
+                val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
                 if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) IconButton(onClick = {
 //                    vm.switchToAudioOnly = true
                     if (theatres[vm.playerId].mPlayer?.curEpisode != null) {
@@ -821,7 +819,7 @@ fun AVPlayerScreen() {
         val mediaType = remember(theatres[vm.playerId].mPlayer?.curEpisode?.id) { theatres[vm.playerId].mPlayer?.curEpisode?.getMediaType() }
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
-            val isExtFeed = remember(vm.episodeFeed?.id) { sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(vm.episodeFeed!!.downloadUrl!!) } == true }
+            val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = true }

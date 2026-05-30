@@ -13,8 +13,7 @@ import ac.mdiq.podcini.net.feed.PodcastHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
-import ac.mdiq.podcini.sources.sourceGatewayClient
-import ac.mdiq.podcini.storage.model.toFeed
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.compileLanguages
@@ -31,6 +30,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.toFeed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -280,10 +280,13 @@ class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, va
     suspend fun refreshFeed(feed: Feed) {
         if (feed.downloadUrl.isNullOrBlank()) return
 
-        val feedIpc = if (sourceGatewayClient?.withProvider { it.canHandleFeed(feed.downloadUrl!!) } == true ) sourceGatewayClient?.withProvider { it.downloadFeed(feed.downloadUrl!!, feed.lastUpdateTime, fullUpdate, feed.limitEpisodesCount) } else null
-        var feed_ = feedIpc?.toFeed()
+        var feed_: Feed? = null
+        val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feed.downloadUrl!!) } == true }
+        if (client != null) {
+            val feedIpc = client.withProvider { it.downloadFeed(feed.downloadUrl!!, feed.lastUpdateTime, fullUpdate, feed.limitEpisodesCount) }
+            feed_ = feedIpc?.toFeed()
+        }
         if (feed_ == null) feed_ = downloadFeed(feed)
-
         if (feed_ != null) {
             val downloadStatus = DownloadResult(feed_, DownloadError.SUCCESS, true, "")
             if (fullUpdate) updateFeedFull(feed_, removeUnlistedItems = removeUnlisted, downloadStatus = downloadStatus)

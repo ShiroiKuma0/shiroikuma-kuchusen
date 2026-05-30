@@ -1,14 +1,15 @@
 package ac.mdiq.podcini.config
 
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
-import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
 import ac.mdiq.podcini.net.ssl.SslProviderInstaller
 import ac.mdiq.podcini.net.sync.SyncService
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkChangedDetected
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.releaseAController
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
+import ac.mdiq.podcini.sources.discoverSources
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.cancelQueuesJob
@@ -38,7 +39,7 @@ object ClientConfig {
     fun initialize() {
         if (initialized) return
         getRealmInstance()
-        sourceGatewayClient?.preWarm()
+        discoverSources(appPrefs.loadExternalApp)
 
         if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch { networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) } }
 

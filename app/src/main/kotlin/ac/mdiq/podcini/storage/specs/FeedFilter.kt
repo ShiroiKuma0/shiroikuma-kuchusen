@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
@@ -47,7 +47,11 @@ class FeedFilter(vararg properties_: String) {
             properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR isLocal == false ")
         }
 
-        val providerMomains = sourceGatewayClient?.withProviderBlocking { it.feedDomains() } ?: listOf()
+        val providerMomains = mutableListOf<String>()
+        for (client in sourceClients) {
+            val ds = client.withProviderBlocking { it.feedDomains() }
+            if (!ds.isNullOrEmpty()) providerMomains.addAll(ds)
+        }
         if (providerMomains.isNotEmpty()) {
             val sb = StringBuilder("( ")
             for (d in providerMomains) {

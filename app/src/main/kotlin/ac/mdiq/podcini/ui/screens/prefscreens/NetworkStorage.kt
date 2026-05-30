@@ -4,9 +4,6 @@ import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.MediaFilesTransporter
-import ac.mdiq.podcini.shared.PodciniHttpClient
-import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
-import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndScheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.getInitialDelay
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
@@ -20,14 +17,16 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.setWifiSyncEnabled
 import ac.mdiq.podcini.net.sync.nextcloud.NextcloudLoginFlow
 import ac.mdiq.podcini.net.sync.nextcloud.NextcloudLoginFlow.AuthenticationCallback
 import ac.mdiq.podcini.net.sync.wifi.WifiSyncService.Companion.startInstantSync
+import ac.mdiq.podcini.shared.PodciniHttpClient
+import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
+import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
+import ac.mdiq.podcini.shared.ProxyConfig
+import ac.mdiq.podcini.sources.discoverSources
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.proxyConfig
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.shared.ProxyConfig
-import ac.mdiq.podcini.sources.SourceGatewayClient
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
 import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.mediaDir
@@ -373,10 +372,7 @@ fun NetworkStorageScreen() {
         }
         TitleSummarySwitchRow(R.string.pref_use_external_app, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
             upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
-            if (it) {
-                sourceGatewayClient = SourceGatewayClient(getAppContext())
-                sourceGatewayClient?.preWarm()
-            } else sourceGatewayClient = null
+            discoverSources(it)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

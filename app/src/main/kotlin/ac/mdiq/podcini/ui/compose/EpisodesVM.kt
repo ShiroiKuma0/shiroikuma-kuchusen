@@ -9,7 +9,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -26,6 +25,7 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
@@ -720,7 +720,9 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     CoroutineScope(Dispatchers.IO).launch {
                                         ytUrls.clear()
                                         for (e in selected) {
-                                            if (sourceGatewayClient?.withProvider { it.canHandleUrl(e.downloadUrl ?: "")} == true) ytUrls.add(e.downloadUrl!!)
+                                            // TODO: may have issues
+                                            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(e.downloadUrl ?: "") } == true }
+                                            if (client != null) ytUrls.add(e.downloadUrl!!)
                                             else addRemoteToMiscSyndicate(e)
                                         }
                                     }

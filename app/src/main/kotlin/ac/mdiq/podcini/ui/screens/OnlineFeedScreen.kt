@@ -11,11 +11,13 @@ import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.feed.subscribe
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.isExtFeed
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
@@ -87,7 +89,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -120,7 +121,6 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -175,6 +175,8 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     var sLog by mutableStateOf<SubscriptionLog?>(null)
 
+    var gatewayClient: SourceGatewayClient? = null
+
     init {
         timeIt("$TAG start of init")
         feedUrl = url
@@ -188,7 +190,8 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             errorDetails = details
             showErrorDialog = true
         }
-        val defaultCapable = sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(feedUrl) } ==  true
+        gatewayClient = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feedUrl) } == true }
+        val defaultCapable = gatewayClient != null
         feedBuilder = FeedBuilderBase(showError )
         if (feedUrl.isEmpty()) {
             Loge(TAG, "feedUrl is null.")
@@ -205,16 +208,16 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
                     if (defaultCapable) {
 //                        val feeds = extensionClient.withProvider { it.feedsAtUrl(url) }    // TODO
-                        val fipc = sourceGatewayClient?.withProvider { it.buildFeed(url, "", 0) }
+                        val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                         if (fipc != null) {
                             val eList = mutableListOf<EpisodeIPC>()
-                            var episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                            var episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                             while (episodes.isNotEmpty()) {
                                 eList.addAll(episodes)
                                 numEpisodes = eList.size
                                 if (numEpisodes > limitEpisodesCount) break
                                 Logd(TAG, "Subscribing eList: ${eList.size}")
-                                episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                             }
                             fipc.episodes = eList
                             val feed_ = fipc.toFeed()
@@ -241,16 +244,16 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         isFeedFoundBySearch = true
                         if (defaultCapable) {
 //                            val feeds = extensionClient.withProvider { it.feedsAtUrl(url) }    // TODO
-                            val fipc = sourceGatewayClient?.withProvider { it.buildFeed(url, "", 0) }
+                            val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                             if (fipc != null) {
                                 val eList = mutableListOf<EpisodeIPC>()
-                                var episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                var episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     numEpisodes = eList.size
                                     if (numEpisodes > limitEpisodesCount) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                                    episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                    episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 }
                                 fipc.episodes = eList
                                 val feed_ = fipc.toFeed()
@@ -293,7 +296,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     fun isSameFeed(feed: Feed, url: String?, title: String?, author: String?): Boolean {
         if (url == null) return false
-        return if (sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(url) } == true) (feed.downloadUrl == url || (feed.title == title && feed.author == author))
+        return if (isExtFeed(url)) (feed.downloadUrl == url || (feed.title == title && feed.author == author))
         else feed.downloadUrl == url
     }
 
@@ -403,7 +406,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 
     @Composable
     fun ShowTabsDialog(onDismissRequest: () -> Unit, handleFeed: (FeedIPC) -> Unit) {
-        val feeds = remember(url) { sourceGatewayClient?.withProviderBlocking { it.feedsAtUrl(url) } ?: listOf() }
+        val feeds = remember(url) { vm.gatewayClient?.withProviderBlocking { it.feedsAtUrl(url) } ?: listOf() }
         val ytTabsMap = remember { mutableStateMapOf<Int, String>() }
         AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.choose_tab), style = CustomTextStyles.titleCustom) },
@@ -431,16 +434,16 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     CoroutineScope(Dispatchers.IO).launch {
                         for (i in ytTabsMap.keys) {
                             Logd(TAG, "Subscribing $i ${feeds[i]}")
-                            val fipc = sourceGatewayClient?.withProvider { it.buildFeed(url, ytTabsMap[i]!!, i) }
+                            val fipc = vm.gatewayClient?.withProvider { it.buildFeed(url, ytTabsMap[i]!!, i) }
                             if (fipc != null) {
                                 val eList = mutableListOf<EpisodeIPC>()
-                                var episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     vm.numEpisodes = eList.size
                                     if (vm.numEpisodes > vm.limitEpisodesCount) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                                    episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                    episodes = vm.gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 }
                                 fipc.episodes = eList
                                 handleFeed(fipc)
@@ -565,7 +568,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         vm.limitEpisodesCount = it
                     }
                 }
-                val isAudoDL = remember(vm.feedUrl) { sourceGatewayClient?.withProviderBlocking { it.isFeedAutoDownloadable(vm.feedUrl) } == true }
+                val isAudoDL = remember(vm.feedUrl) { vm.gatewayClient?.withProviderBlocking { it.isFeedAutoDownloadable(vm.feedUrl) } == true }
                 if (appPrefs.enableAutoDl && isAudoDL) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
                     Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))

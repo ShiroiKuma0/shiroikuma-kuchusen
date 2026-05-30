@@ -14,7 +14,9 @@ import ac.mdiq.podcini.net.sync.transceive.sendEpisodes
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allFeeds
@@ -23,7 +25,6 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.eraseEpisodes
-import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
@@ -43,6 +44,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.ShareLog.Status
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
+import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -52,8 +54,6 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.loadChapters
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
@@ -357,7 +357,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             if (url?.contains("youtube.com") == true && curItem_.description?.startsWith("Short:") == true) {
                 Logd(TAG, "buildCleanedNotes getting extended description: ${curItem_.title}")
                 try {
-                    val desc = sourceGatewayClient?.withProvider { it.getEpisodeDescription(url) }
+                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(url) } == true }
+                    val desc = client?.withProvider { it.getEpisodeDescription(url) }
                     cleanedNotes = if (!desc.isNullOrBlank()) {
                         curItem_ = upsertBlk(curItem_) { it.description = desc }
                         shownotesCleaner?.processShownotes(desc, curItem_.duration)
@@ -1178,8 +1179,15 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val viewCounts = remember { listOf(EpisodeSortOrder.VIEWS_ASC, EpisodeSortOrder.VIEWS_DESC, EpisodeSortOrder.VIEWS_SPEED_ASC, EpisodeSortOrder.VIEWS_SPEED_DESC) }
     val likeCounts = remember { listOf(EpisodeSortOrder.LIKES_ASC, EpisodeSortOrder.LIKES_DESC) }
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (sourceGatewayClient?.withProviderBlocking { it.haveViewCount() } == true) viewCounts else listOf()) + (if (sourceGatewayClient?.withProviderBlocking { it.haveLikeCount() } == true) likeCounts else listOf()) ) ) } }
-    
+    fun clientHaveViewCounts(): Boolean {
+        for (client in sourceClients) if (client.withProviderBlocking { it.haveViewCount() } == true) return true
+        return false
+    }
+    fun clientHaveLikeCounts(): Boolean {
+        for (client in sourceClients) if (client.withProviderBlocking { it.haveLikeCount() } == true) return true
+        return false
+    }
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (clientHaveViewCounts()) viewCounts else listOf()) + (if (clientHaveLikeCounts()) likeCounts else listOf()) ) ) } }
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
@@ -1411,7 +1419,8 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                             for (url in sharedUrls) {
                                 val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
                                 try {
-                                    val episode = sourceGatewayClient?.withProvider { it.buildEpisode(url)?.toEpisode() } ?: continue
+                                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(url) } == true }
+                                    val episode = client?.withProvider { it.buildEpisode(url)?.toEpisode() } ?: continue
                                     val existing = realm.query(Episode::class).query("title == $0 AND duration > $1 AND duration < $2", episode.title, (0.98*episode.duration).toInt(), (1.02*episode.duration).toInt()).first().find()
                                     if (existing == null) {
                                         val status = addToSyndicate(episode, toFeed!!)

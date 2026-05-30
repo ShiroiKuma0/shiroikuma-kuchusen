@@ -5,10 +5,11 @@ import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.subscribe
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
-import ac.mdiq.podcini.shared.FeedSearchResult
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.shared.EpisodeIPC
-import ac.mdiq.podcini.shared.FeedType
+import ac.mdiq.podcini.shared.FeedSearchResult
+import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
@@ -20,7 +21,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
-import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.OnlineFeed
 import ac.mdiq.podcini.ui.screens.navTo
@@ -169,15 +169,16 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
         fun isYT(url: String, feedSource: String): Boolean = (feedSource == "VistaGuide" || url.contains("youtube.com"))
         if (isYT(url, result.source)) {
             runOnIOScope {
-                val fipc = sourceGatewayClient?.withProvider { it.buildFeed(url, result.source, 0) }
+                val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
+                val fipc = client?.withProvider { it.buildFeed(url, result.source, 0) }
 //                val feed = defaultProvider.buildFeed(url, result.source, 0)
                 if (fipc != null) {
                     val eList = mutableListOf<EpisodeIPC>()
-                    var episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                    var episodes = client.withProvider { it.getEpisodes(100) }?: listOf()
                     while (episodes.isNotEmpty()) {
                         eList.addAll(episodes)
                         Logd(TAG, "subscribeFeed eList: ${eList.size}")
-                        episodes = sourceGatewayClient?.withProvider { it.getEpisodes(100) } ?: listOf()
+                        episodes = client.withProvider { it.getEpisodes(100) } ?: listOf()
                     }
                     fipc.episodes = eList
                     subscribe(fipc)
@@ -187,7 +188,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
         } else {
             runOnIOScope {
                 val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-                fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
+                fbb.buildPodcast(result.feedUrl, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
             }
         }
     }
@@ -206,7 +207,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             if (result.feedUrl != null) {
                 Logd(TAG, "feed.feedId: ${result.feedId}")
                 if (result.feedId > 0) navTo(FeedDetails(feedId = result.feedId))
-                else navTo(OnlineFeed(url = result.feedUrl!!, source = result.source))
+                else navTo(OnlineFeed(url = result.feedUrl, source = result.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         
@@ -223,16 +224,16 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
                 Text(result.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
                 val authorText = remember(result.author, result.feedUrl) {
                     when {
-                        !result.author.isNullOrBlank() -> result.author!!.trim { it <= ' ' }
-                        result.feedUrl != null && !result.feedUrl!!.contains("itunes.apple.com") -> result.feedUrl
+                        !result.author.isNullOrBlank() -> result.author.trim { it <= ' ' }
+                        result.feedUrl != null && !result.feedUrl.contains("itunes.apple.com") -> result.feedUrl
                         else -> ""
                     } }
                 if (!authorText.isNullOrBlank()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (result.subscriberCount > 0) Text(formatLargeInteger(result.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
-                    if (result.count != null && result.count!! > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.count != null && result.count > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.weight(1f))
-                    if (result.update != null) Text(result.update!!, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.update != null) Text(result.update, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
                 Text(result.source + ": " + result.feedUrl, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
             }

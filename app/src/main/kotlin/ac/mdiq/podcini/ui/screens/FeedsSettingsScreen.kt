@@ -2,8 +2,8 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase
-import ac.mdiq.podcini.sources.sourceGatewayClient
-import ac.mdiq.podcini.shared.FeedType
+import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.sources.clientsHaveMultiQ
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -468,7 +468,7 @@ fun FeedsSettingsScreen() {
                 }
             }
             // qualities
-            val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && sourceGatewayClient?.withProviderBlocking { it.haveMultiQualities() } == true) }
+            val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && clientsHaveMultiQ()) }
             if (feedToSet.type == FeedType.YOUTUBE.name || hasMultiQ) {
                 //                    audio quality
                 Column {
@@ -513,7 +513,7 @@ fun FeedsSettingsScreen() {
                     }
                     Text(text = stringResource(R.string.pref_feed_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
-                val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && sourceGatewayClient?.withProviderBlocking { it.haveMultiQualities() } == true) }
+                val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && clientsHaveMultiQ()) }
                 if (feedToSet.videoModePolicy != VideoMode.AUDIO_ONLY || hasMultiQ) {
                     //                    video quality
                     Column {

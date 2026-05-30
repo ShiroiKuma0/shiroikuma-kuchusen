@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 46
-        versionName = "12.0.1"
+        versionCode = 47
+        versionName = "12.0.2"
 
         ndkVersion = "29.0.14206865"
 
@@ -61,7 +61,6 @@ configure<ApplicationExtension> {
     }
 
     compileOptions {
-//        isCoreLibraryDesugaringEnabled = true   // for VistaGuide
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -207,7 +206,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
 
-    implementation("com.github.XilinJia:PodciniLib:1.0.1")
+    implementation("com.github.XilinJia:PodciniLib:1.0.2")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")

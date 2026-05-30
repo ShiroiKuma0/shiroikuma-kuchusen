@@ -12,7 +12,8 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.receiver.PodciniWidget
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -561,13 +562,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bufferingUpdateListener = null
     }
 
-    fun formMediaSource(media: Episode, needVideo: Boolean): MediaSource? {
+    fun formMediaSource(media: Episode, needVideo: Boolean, client:  SourceGatewayClient): MediaSource? {
         var mSource: MediaSource? = null
         val context = getAppContext()
         val metadata = buildMetadata(media)
 //        if (ytMediaSpecs.media.id != media.id) ytMediaSpecs = YTMediaSpecs(media)
+
         Logd(TAG, "formMediaSource setting for YouTube source")
-        audioSpecs = sourceGatewayClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
+        audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
         var aSource: ProgressiveMediaSource? = null
         if (audioSpecs.isNotEmpty()) {
             Logd(TAG, "formMediaSource audioSpecs ${audioSpecs.size}")
@@ -579,11 +581,11 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     .setTag(metadata).setUri(audioStream.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
                 Logd(TAG, "formMediaSource aSource set to: ${audioStream.url}")
             } else Loge(TAG, "audioStream or url is null or blank")
-        } else Loge(TAG, "audioStreamsList empty")
+        } else Logt(TAG, "audioStreamsList empty")
 
         if (aSource == null || needVideo) {
             if (aSource == null) {
-                videoSpecs = sourceGatewayClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
+                videoSpecs = client.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
                 if (videoSpecs.isNotEmpty()) {
                     val videoStream = setVideoStream(videoSpecs, media)
                     if (!videoStream.url.isNullOrBlank()) {
@@ -591,9 +593,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoStream.url!!.toSafeUri()).build())
                         mSource = MergingMediaSource(true, vSource)
                     } else Loge(TAG, "videoStream or url is null or blank")
-                } else Loge(TAG, "videoStreamsList empty")
+                } else Logt(TAG, "videoStreamsList empty")
             } else {
-                videoSpecs = sourceGatewayClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+                videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
                 if (videoSpecs.isNotEmpty()) {
                     val videoStream = setVideoStream(videoSpecs, media)
                     if (!videoStream.url.isNullOrBlank()) {
@@ -603,7 +605,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         mediaSources.add(aSource)
                         mSource = MergingMediaSource(true, *mediaSources.toTypedArray<MediaSource>())
                     } else Loge(TAG, "videoStream or url is null or blank")
-                } else Loge(TAG, "videoStreamsList empty")
+                } else Logt(TAG, "videoStreamsList empty")
             }
         } else mSource = aSource
         return mSource
@@ -626,7 +628,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val password = feed?.password
         bitrate = 0
         try {
-            mediaSource = if (sourceGatewayClient?.withProviderBlocking { it.canHandleUrl(media.downloadUrl?:"") } == true) formMediaSource(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) else null
+            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(media.downloadUrl?:"") } == true }
+            mediaSource = if (client != null) formMediaSource(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, client) else null
             if (mediaSource != null) {
                 Logd(TAG, "prepareDataSource setting with mediaSource")
                 mediaItem = mediaSource?.mediaItem

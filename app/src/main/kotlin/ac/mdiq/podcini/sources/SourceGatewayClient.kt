@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.sources
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import android.content.ComponentName
@@ -11,9 +11,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,59 +23,112 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-//private var _sourceGatewayClient: SourceGatewayClient? = null
-//val sourceGatewayClient: SourceGatewayClient?
-//    get() {
-//        if (_sourceGatewayClient != null) return _sourceGatewayClient
-//        return if (appPrefs.loadExternalApp) SourceGatewayClient(getAppContext()).also { _sourceGatewayClient = it } else { null.also { _sourceGatewayClient = null } }
-//    }
+private const val TAG = "GatewayClient"
 
-var sourceGatewayClient: SourceGatewayClient? = null
-    get() {
-        if (field == null && appPrefs.loadExternalApp) field = SourceGatewayClient(getAppContext())
-        return field
+
+var sourceClients: List<SourceGatewayClient> = listOf()
+
+val typeClientMap = mutableMapOf<FeedType, SourceGatewayClient>()
+
+fun getSourceClient(feedType: FeedType): SourceGatewayClient? {
+    return typeClientMap[feedType]
+}
+
+fun isExtFeed(url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    for (client in sourceClients) if (client.withProviderBlocking { it.canHandleFeed(url) } == true) return true
+    return false
+}
+fun clientsHaveMultiQ(): Boolean {
+    for (client in sourceClients) if (client.withProviderBlocking { it.haveMultiQualities() } == true) return true
+    return false
+}
+
+fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(flags.toLong()))
+    } else {
+        @Suppress("DEPRECATION")
+        queryIntentServices(intent, flags)
     }
-    set(value) {
-        field = value
-    }
-class SourceGatewayClient(private val context: Context) {
-    companion object {
-        private const val TAG = "GatewayClient"
+}
+
+fun discoverSources(loadExternal: Boolean) {
+    if (!loadExternal) sourceClients = listOf()
+    else CoroutineScope(Dispatchers.IO).launch { sourceClients = getSourceClients() }
+}
+
+suspend fun getSourceClients(): List<SourceGatewayClient> {
+    val context = getAppContext()
+    val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
+    val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
+    if (resolveInfos.isEmpty()) {
+        Loge(TAG, "No external source provider is available. Ignored")
+        upsert(appPrefs) { p-> p.loadExternalApp = false }
+        return listOf()
     }
 
+    val clients = mutableListOf<SourceGatewayClient>()
+    for (resolveInfo in resolveInfos) {
+        val serviceInfo = resolveInfo.serviceInfo
+        Logd(TAG, "getSourceClients exported=${serviceInfo.exported}")
+        Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
+        Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
+        Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
+        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) } //            val success = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        val client = SourceGatewayClient()
+        val connection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName, service: IBinder) {
+                Logd(TAG, "onServiceConnected")
+                val remote = IPodciniGateway.Stub.asInterface(service)
+                client.gateway = remote
+                client.connection = this
+                Logd(TAG, "onServiceConnected Service connected")
+            }
+            override fun onServiceDisconnected(name: ComponentName) {
+                Logd(TAG, "Service disconnected")
+                client.gateway = null
+                client.connection = null
+            }
+            override fun onBindingDied(name: ComponentName) {
+                Logd(TAG, "Binding died")
+                client.gateway = null
+                client.connection = null
+            }
+            override fun onNullBinding(name: ComponentName) {
+                Logd(TAG, "Null binding")
+                client.gateway = null
+                client.connection = null
+            }
+        }
+        val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE)
+        if (success) clients.add(client)
+    }
+    return clients
+}
+
+class SourceGatewayClient() {
     private val mutex = Mutex()
 
     @Volatile
-    private var gateway: IPodciniGateway? = null
+    var gateway: IPodciniGateway? = null
 
     @Volatile
-    private var connection: ServiceConnection? = null
+    var connection: ServiceConnection? = null
 
     @Volatile
     private var bindDeferred: CompletableDeferred<IPodciniGateway>? = null
 
-    fun preWarm() {
-        Logd(TAG, "preWarm")
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                getOrBindGateway()
-                Logd(TAG, "preWarm Extension gateway pre-warmed successfully.")
-            } catch (e: Exception) { Loge(TAG, "preWarm failed: ${e.message}") }
-        }
-    }
-
     suspend fun <T> execute(block: suspend (IPodciniGateway) -> T): T? {
-        val gateway = getOrBindGateway() ?: return null
-        return block(gateway)
+        if (gateway == null) return null
+        return block(gateway!!)
     }
 
     fun <T> executeBlocking(block: (IPodciniGateway) -> T): T? {
-//        check(Looper.myLooper() != Looper.getMainLooper()) { "executeBlocking must not be called on main thread" }
         Logd(TAG, "executeBlocking")
         return runBlocking(Dispatchers.IO) {
-            val gateway = getOrBindGateway()?: return@runBlocking null
-            Logd(TAG, "executeBlocking got gateway")
-            withContext(Dispatchers.IO) { block(gateway) }
+            if (gateway == null) return@runBlocking null
+            withContext(Dispatchers.IO) { block(gateway!!) }
         }
     }
 
@@ -90,7 +143,6 @@ class SourceGatewayClient(private val context: Context) {
 //        Logs(TAG, "withProviderBlocking")
         return executeBlocking { gateway ->
             val provider = gateway.provider ?: throw IllegalStateException("Extension does not provide Provider support")
-            Logd(TAG, "withProviderBlocking got provider")
             block(provider)
         }
     }
@@ -99,79 +151,9 @@ class SourceGatewayClient(private val context: Context) {
         mutex.withLock { disconnectLocked() }
     }
 
-    private suspend fun getOrBindGateway(): IPodciniGateway? = withContext(Dispatchers.IO) {
-//        showStackTrace()
-//        Log.d(TAG, "getOrBindGateway")
-        gateway?.let { return@withContext it }
-        val deferred: CompletableDeferred<IPodciniGateway>
-        mutex.withLock {
-            gateway?.let { return@withContext it }
-            bindDeferred?.let {
-                deferred = it
-                return@withLock
-            }
-            deferred = CompletableDeferred()
-            bindDeferred = deferred
-            val connection = object : ServiceConnection {
-                override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                    Logd(TAG, "onServiceConnected")
-                    val remote = IPodciniGateway.Stub.asInterface(service)
-                    gateway = remote
-                    Logd(TAG, "onServiceConnected Service connected")
-                    deferred.complete(remote)
-                }
-                override fun onServiceDisconnected(name: ComponentName) {
-                    Logd(TAG, "Service disconnected")
-                    gateway = null
-                }
-                override fun onBindingDied(name: ComponentName) {
-                    Logd(TAG, "Binding died")
-                    gateway = null
-                }
-                override fun onNullBinding(name: ComponentName) {
-                    Logd(TAG, "Null binding")
-                    gateway = null
-                    if (!deferred.isCompleted) deferred.completeExceptionally(IllegalStateException("Null binding from gateway service"))
-                }
-            }
-
-            this@SourceGatewayClient.connection = connection
-            val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
-            val resolveInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.packageManager.resolveService(intent, PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong()))
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.resolveService(intent, PackageManager.MATCH_ALL)
-            }
-            if (resolveInfo == null) {
-                Loge(TAG, "No external source provider is available. Ignored")
-                sourceGatewayClient = null
-                upsert(appPrefs) { p-> p.loadExternalApp = false }
-//                throw IllegalStateException("No service found for gateway action. Ensure the external app is installed and its package visibility is declared in <queries>.")
-                return@withContext null
-            }
-
-            val serviceInfo = resolveInfo.serviceInfo
-            Logd(TAG, "getOrBindGateway exported=${serviceInfo.exported}")
-            Logd(TAG, "getOrBindGateway permission=${serviceInfo.permission}")
-            Logd(TAG, "getOrBindGateway Targeting Package: ${serviceInfo.packageName}")
-            Logd(TAG, "getOrBindGateway Targeting Class: ${serviceInfo.name}")
-            val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
-//            val success = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE)
-            Logd(TAG, "getOrBindGateway success: $success")
-            if (!success) {
-                bindDeferred = null
-                throw IllegalStateException("Failed to bind")
-            }
-        }
-        return@withContext deferred.await()
-    }
-
     private fun disconnectLocked() {
         gateway = null
-        connection?.let { try { context.unbindService(it) } catch (_: Exception) { } }
-
+        connection?.let { try { getAppContext().unbindService(it) } catch (_: Exception) { } }
         connection = null
         bindDeferred = null
     }

@@ -757,6 +757,11 @@ class Feed : RealmObject {
     }
 }
 
+enum class FeedType(name: String) {
+    RSS("rss"),
+    ATOM1("atom"),
+    YOUTUBE("YouTube")
+}
 @Serializable
 data class FeedDTO(
     val id: Long,

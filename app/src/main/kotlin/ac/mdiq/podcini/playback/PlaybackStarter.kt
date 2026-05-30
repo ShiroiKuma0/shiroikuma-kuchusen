@@ -8,7 +8,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapabl
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
-import ac.mdiq.podcini.shared.FeedType
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode

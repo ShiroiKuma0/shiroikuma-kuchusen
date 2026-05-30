@@ -3,8 +3,8 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Extras
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.shared.ShareType
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
@@ -63,19 +63,21 @@ class ShareReceiverActivity : ComponentActivity() {
                     activity.startActivity(intent)
                     if (finish) activity.finish()
                 }
-                // extension media
-                sourceGatewayClient?.withProviderBlocking { it.canHandleSharedMedia(sharedText) } == true -> {
-                    if (log != null) upsertBlk(log) { it.type = sourceGatewayClient?.withProviderBlocking { p-> p.getShareLogType() } }
-                    mediaCB()
-                }
-//              podcast or other?
                 else -> {
-                    if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
-                    Logd(TAG, "Activity is started with url $sharedText")
-                    val intent = showOnlineFeed(sharedText, true)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                    activity.startActivity(intent)
-                    if (finish) activity.finish()
+                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleSharedMedia(sharedText) } == true }
+                    if (client != null) {
+                        // extension media
+                        if (log != null) upsertBlk(log) { it.type = client.withProviderBlocking { p-> p.getShareLogType() } }
+                        mediaCB()
+                    } else {
+                        //              podcast or other?
+                        if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
+                        Logd(TAG, "Activity is started with url $sharedText")
+                        val intent = showOnlineFeed(sharedText, true)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                        activity.startActivity(intent)
+                        if (finish) activity.finish()
+                    }
                 }
             }
         }

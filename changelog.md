@@ -1,3 +1,8 @@
+# 12.0.2
+
+* capable of handling multiple external server apps
+* PodciniLib upped to 1.0.2
+
 # 12.0.1
 
 * corrected giving direct data source at native player creation

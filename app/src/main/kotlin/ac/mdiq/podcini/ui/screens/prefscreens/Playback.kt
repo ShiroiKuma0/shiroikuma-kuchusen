@@ -2,7 +2,8 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.sources.clientsHaveMultiQ
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
@@ -177,8 +178,7 @@ fun PlaybackScreen() {
             }
             Text(stringResource(R.string.pref_stream_cache_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
-
-        val hasMultiQ = remember { sourceGatewayClient?.withProviderBlocking { it.haveMultiQualities() } == true }
+        val hasMultiQ = remember { clientsHaveMultiQ() }
         if (hasMultiQ) TitleSummarySwitchRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, appPrefs.lowQualityOnMobile) {
             upsertBlk(appPrefs) { p-> p.lowQualityOnMobile = it }
         }

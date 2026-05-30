@@ -8,9 +8,9 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
-import ac.mdiq.podcini.sources.sourceGatewayClient
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -223,7 +223,12 @@ suspend fun deleteMedia(episode: Episode): Episode {
 
 fun canCheckMediaSize(episode: Episode): Boolean {
     Logd(TAG, "canCheckMediaSize episode.fileUrl: ${episode.fileUrl} episode.downloadUrl: ${episode.downloadUrl}")
-    return episode.feed?.isLocal == true || (episode.downloadUrl != null && sourceGatewayClient?.withProviderBlocking { it.canHandleUrl(episode.downloadUrl!!) } != true )
+    if (episode.feed?.isLocal == true) return true
+    if (episode.downloadUrl != null) {
+        val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(episode.downloadUrl!!) } == true }
+        return client != null
+    }
+    return false
 }
 
 fun checkAndMarkDuplicates(episode: Episode): Episode {

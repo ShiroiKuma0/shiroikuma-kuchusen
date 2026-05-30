@@ -3,9 +3,12 @@ package ac.mdiq.podcini.sources
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedIPC
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.shared.VideoSpec
 
 class BaseProvider: Provider.Stub() {
+
+    override fun feedType(): String = ""    // TODO
 
     override fun haveMultiQualities(): Boolean = false
 

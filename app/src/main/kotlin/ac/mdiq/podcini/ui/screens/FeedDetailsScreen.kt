@@ -7,7 +7,9 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-import ac.mdiq.podcini.sources.sourceGatewayClient
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.isExtFeed
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
@@ -29,7 +31,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
-import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.actions.ButtonTypes
@@ -463,7 +464,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     showConnectLocalFolderConfirm.value = true
                                     expanded = false
                                 })
-                                val isExtFeed = remember(feed?.id) { feed?.downloadUrl != null && sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(feed!!.downloadUrl!!) } == true }
+                                val isExtFeed = remember(feed?.id) { isExtFeed(feed?.downloadUrl) }
                                 if (vm.feedEpisodesSize > 0 && !isExtFeed) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                                     feedOperationText = context.getString(R.string.fetch_size)
                                     scope.launch(Dispatchers.IO) {
@@ -685,8 +686,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         feed?.isLocal == true -> ButtonTypes.PLAY.name
                         feed?.prefActionType != null -> feed!!.prefActionType!!
                         feed?.downloadUrl == null -> null
-                        sourceGatewayClient?.withProviderBlocking { it.canHandleFeed(feed!!.downloadUrl!!)} == true -> ButtonTypes.STREAM.name
-                        else -> null
+                        else -> {
+                            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feed!!.downloadUrl!!) } == true }
+                            if (client != null) ButtonTypes.STREAM.name else null
+                        }
                     } }
                 EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
                     swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,

@@ -23,7 +23,7 @@ import ac.mdiq.podcini.playback.base.TTSEngine.tts
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsJob
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsTmpFiles
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.shared.FeedType
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
