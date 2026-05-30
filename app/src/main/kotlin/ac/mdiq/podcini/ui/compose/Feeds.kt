@@ -188,7 +188,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
         } else {
             runOnIOScope {
                 val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-                fbb.buildPodcast(result.feedUrl, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
+                fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
             }
         }
     }
@@ -207,7 +207,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             if (result.feedUrl != null) {
                 Logd(TAG, "feed.feedId: ${result.feedId}")
                 if (result.feedId > 0) navTo(FeedDetails(feedId = result.feedId))
-                else navTo(OnlineFeed(url = result.feedUrl, source = result.source))
+                else navTo(OnlineFeed(url = result.feedUrl!!, source = result.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         
@@ -224,16 +224,16 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
                 Text(result.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
                 val authorText = remember(result.author, result.feedUrl) {
                     when {
-                        !result.author.isNullOrBlank() -> result.author.trim { it <= ' ' }
-                        result.feedUrl != null && !result.feedUrl.contains("itunes.apple.com") -> result.feedUrl
+                        !result.author.isNullOrBlank() -> result.author!!.trim { it <= ' ' }
+                        result.feedUrl != null && !result.feedUrl!!.contains("itunes.apple.com") -> result.feedUrl
                         else -> ""
                     } }
                 if (!authorText.isNullOrBlank()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (result.subscriberCount > 0) Text(formatLargeInteger(result.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
-                    if (result.count != null && result.count > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.count != null && result.count!! > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.weight(1f))
-                    if (result.update != null) Text(result.update, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.update != null) Text(result.update!!, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
                 Text(result.source + ": " + result.feedUrl, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
             }
