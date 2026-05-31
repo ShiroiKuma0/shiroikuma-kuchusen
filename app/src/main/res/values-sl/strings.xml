@@ -5,7 +5,7 @@
     <string name="feeds">Feeds</string>
 
     <string name="statistics_label">Statistike</string>
-    <string name="add_feed_label">Add podcast</string>
+    <string name="add_feed_label">Add feeds</string>
     <string name="online_episodes_label">Online episodes</string>
     <string name="episodes_label">Epizode</string>
 
@@ -627,7 +627,7 @@
     <string name="edit_url_confirmation_msg">Changing the RSS address can easily break the playback state and episode listings of the podcast. We do NOT recommend changing it and will NOT provide support if anything goes wrong. This cannot be undone. The broken subscription CANNOT be repaired by simply changing the address back. We suggest creating a backup before continuing.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Uvažanje naročnin iz enonamenskih aplikacij …</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Išči podcast…</string>
 
     <string name="search_itunes_label">Search Apple Podcasts</string>

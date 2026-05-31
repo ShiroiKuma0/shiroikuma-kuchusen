@@ -619,7 +619,7 @@
     <string name="edit_url_confirmation_msg">A alteração do endereço RSS pode destruir o estado de reprodução e os episódios do podcast. NÃO recomendamos esta alteração e NÃO podemos ajudar caso algo corra mal. Esta ação não pode ser revertida. A subscrição danificada NÃO pode ser reparada com uma simples alteração do endereço. Deve criar um backup antes de continuar.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importar subscrições de aplicações single-purpose…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Pesquisar podcast…</string>
 
     <string name="search_itunes_label">Pesquisar em Apple Podcasts</string>

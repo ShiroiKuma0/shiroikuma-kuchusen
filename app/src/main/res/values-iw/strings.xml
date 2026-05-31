@@ -517,7 +517,7 @@
   <string name="edit_url_confirmation_msg">החלפת כתובת ה־RSS יכולה בקלות לפגוע במצב הנגינה והצגת הפרקים של הפודקאסט. אנו לא ממליצים להחליף אותה ולא נספק תמיכה אם משהו ישתבש. זאת פעולה בלתי הפיעה. לא ניתן לשקם מינויים פגומים על ידי החזרת הכתובת הקודמת. אנו מציעים לגבות באופן יסודי בטרם בחירה להמשיך בתהליך.</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">מתבצע ייבוא מינויים מיישומונים ממוקדי מטרה…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">חיפוש פודקאסט…</string>
   <string name="search_itunes_label">חיפוש ב־Apple Podcasts</string>
   <string name="search_podcastindex_label">חיפוש ב־Podcast Index</string>

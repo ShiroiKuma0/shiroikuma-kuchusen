@@ -354,7 +354,7 @@
 
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Įkeliamos prenumeratos iš specializuotų programėlių…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Ieškoti tinklalaidės…</string>
 
     <string name="advanced">Išplėstinis</string>

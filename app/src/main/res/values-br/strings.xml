@@ -397,7 +397,7 @@
   <string name="edit_url_menu">Kemm URL ar wazh</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Oc\'h enporzhiañ ar c\'houmanantoù diwar arloadoù gant un arver unel…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Klask ur podskignad…</string>
 
     <string name="advanced">Araokaet</string>

@@ -476,7 +476,7 @@
   <string name="edit_url_confirmation_msg">Alterar o endereço RSS pode facilmente desfazer a lista e o estado atual de reprodução do podcast. Nós NÃO recomendamos a mudança e NÃO forneceremos suporte caso algo dê errado. Este processo não pode ser desfeito. A inscrição danificada NÃO pode ser reparada com a alteração para o endereço anterior. É recomendável fazer um backup antes de prosseguir.</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Importando assinaturas de aplicativos de finalidade única…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Procurar podcast…</string>
   <string name="search_itunes_label">Pesquisar em Apple Podcasts</string>
 

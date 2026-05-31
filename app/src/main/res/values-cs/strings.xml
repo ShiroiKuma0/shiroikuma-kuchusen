@@ -627,7 +627,7 @@
     <string name="edit_url_confirmation_msg">Změna adresy RSS může snadno narušit stav přehrávání a výpis epizod podcastu. Její změnu NEDOPORUČUJEME a v případě, že se něco pokazí, NEBUDE poskytnuta podpora. Tuto změnu nelze vrátit zpět. Poškozený odběr NELZE opravit pouhou změnou adresy zpět. Před pokračováním doporučujeme vytvořit zálohu.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importuji odběry z jednoúčelových aplikací…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Vyhledat podcast…</string>
 
     <string name="search_itunes_label">Vyhledávání v Apple Podcastech</string>

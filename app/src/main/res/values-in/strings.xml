@@ -612,7 +612,7 @@
     <string name="edit_url_confirmation_msg">Mengganti alamat RSS dapat merusak status pemutaran dan daftar episode podcast. Kami menyarankan untuk TIDAK mengubahnya dan kami tidak dapat memberikan bantuan jika ada yang salah. Aksi ini tidak dapat dikembalikan. Langganan yang rusak tidak dapat diperbaiki hanya dengan mengganti alamatnya kembali. Sebaiknya buat cadangan jika tetap ingin melanjutkan.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Impor langganan dari aplikasi bertujuan tunggal…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Cari podcast…</string>
 
     <string name="search_itunes_label">Search Apple Podcasts</string>

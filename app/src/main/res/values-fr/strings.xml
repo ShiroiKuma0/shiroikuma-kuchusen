@@ -620,7 +620,7 @@
     <string name="edit_url_confirmation_msg">Modifier le lien RSS peut facilement corrompre l\'état de lecture et la liste des épisodes du podcast. Il est recommandé de NE PAS LE CHANGER et AUCUNE AIDE ne pourra être fournie si quelque chose se passe mal. Cette action ne peut pas être annulée. L\'abonnement NE POURRA PAS ÊTRE RÉPARÉ en remettant juste l\'ancien lien. Il est recommandé de CRÉER UNE SAUVEGARDE avant de continuer.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importation des abonnements à partir d\'applications à usage unique…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Trouver un podcast…</string>
 
     <string name="search_itunes_label">Chercher sur Apple Podcasts</string>

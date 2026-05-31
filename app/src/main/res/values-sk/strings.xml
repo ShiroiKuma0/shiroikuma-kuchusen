@@ -627,7 +627,7 @@
     <string name="edit_url_confirmation_msg">Zmena RSS adresy môže ľahko pokaziť štádium prehrávania a zoznam epizód podcastu. NEdoporučujeme ju meniť a ani NEbudeme poskytovať podporu v prípade, že sa niečo pokazí. Zmeny sa nedajú vrátiť. Pokazený odber sa NEDÁ opraviť jednoduchým prepísaním adresy späť. Doporučujeme vytvorenie zálohy pred pokračovaním.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Imporovať odbery z jednoúčelových aplikácií…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Hľadať podcast…</string>
 
     <string name="search_itunes_label">Hľadať v Apple Podcasts</string>

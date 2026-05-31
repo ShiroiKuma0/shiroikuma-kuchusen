@@ -448,7 +448,7 @@
   <string name="edit_url_menu">Editatu jarioaren URLa</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Berariazko erabilerako aplikazioen harpidetzak inportatuz …</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Bilatu podcasta</string>
   <string name="search_itunes_label">Bilatu Apple Podcasts-en</string>
   <string name="search_podcastindex_label">Bilatu Podcast Index-en</string>

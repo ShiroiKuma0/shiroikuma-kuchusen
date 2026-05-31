@@ -617,7 +617,7 @@
     <string name="edit_url_confirmation_msg">Syötteen osoitteen muokkaaminen voi helposti sotkea podcastin toistotilan ja jaksolistaukset. Sen muokkaamista EI suositella, EIKÄ tukea tarjota mikäli jokin menee vikaan. Tätä ei saa tekemättömäksi. Sotkeutunutta tilausta EI voi korjata yksinkertaisesti vaihtamalla osoite takaisin. Varmuuskopion ottaminen ennen jatkamista on suositeltavaa.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Tuodaan tilauksia sovelluksista</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Etsi podcastia…</string>
 
     <string name="search_itunes_label">Etsi Apple Podcasteja</string>

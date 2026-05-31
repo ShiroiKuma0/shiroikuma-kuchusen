@@ -482,7 +482,7 @@
   <string name="edit_url_confirmation_msg">Å endre RSS adressen kan lett ødelegge avspillingsstatuset og episode køen av podcastene. We anbefaler IKKE å endre den og vil ikke tilby noen som helst støtte hvis noe slutte å virke. Dette kan ikke angres. En ødelagt abonnement kan ikke fikses med å endre adressen tilbake. Vi anbefaler å lage en sikkerhetskopi før du forsetter.</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Importerer abonnementer fra enkeltstående applikasjoner…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Søk etter podkast…</string>
   <string name="search_itunes_label">Leter i Apple Podcasts</string>
   <string name="search_podcastindex_label">Søk i podkast indeks</string>

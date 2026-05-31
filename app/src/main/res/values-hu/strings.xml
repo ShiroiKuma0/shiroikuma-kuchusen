@@ -617,7 +617,7 @@
     <string name="edit_url_confirmation_msg">Az RSS-cím módosítása könnyen elronthatja a lejátszási állapotokat és a podcast epizódlistáját. NEM javasoljuk a megváltoztatását, és ha hiba történik, akkor NEM nyújtunk támogatást. Ez nem vonható vissza. A hibás feliratkozás NEM javítható ki a cím visszaírásával. Azt javasoljuk, hogy a folytatás előtt készítsen biztonsági mentést.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Feliratkozások importálása az egycélú alkalmazásokból…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Podcast keresése…</string>
 
     <string name="search_itunes_label">Search Apple Podcasts</string>

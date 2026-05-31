@@ -627,7 +627,7 @@
     <string name="edit_url_confirmation_msg">Зміна RSS-адреси може легко зламати стан відтворення та списки епізодів подкасту. Ми НЕ рекомендуємо змінювати її і НЕ надаватимемо підтримку, якщо щось піде не так. Це не можна скасувати. Порушену підписку НЕ МОЖНА відновити, просто змінивши адресу назад. Ми рекомендуємо створити резервну копію, перш ніж продовжувати.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Імпорт подкастів з інших програм…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Шукати подкаст…</string>
 
     <string name="search_itunes_label">Шукати на Apple Podcasts</string>

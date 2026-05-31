@@ -627,7 +627,7 @@
     <string name="edit_url_confirmation_msg">Изменение адреса ссылки может запросто испортить состояние воспроизведения и список выпусков подкаста. Мы крайне НЕ рекомендуем его менять и НЕ сможем Вам помочь, если что-то пойдёт не так. Действие необратимо. Простым возвратом старого адреса поломку HE исправить. Советуем сперва создать резервную копию. </string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Импорт подписок из моноприложений…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Найти подкаст…</string>
 
     <string name="search_itunes_label">Поиск в Apple Podcasts</string>

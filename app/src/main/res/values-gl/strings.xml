@@ -513,7 +513,7 @@
   <string name="edit_url_confirmation_msg">Ao mudar o enderezo RSS podes quebrar o estado da reprodución e as listas de episodios do podcast. Non recomendamos cambialo e NON proporcionamos axuda se algo vai mal. Non ten volta atrás. Unha subscrición mal configurada NON PODE ser reparada simplemente volvendo ao enderezo anterior. Suxerimos crear unha copia de apoio antes de continuar.</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Importando as subscricións desde aplicacións de propósito único…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Buscar podcast…</string>
   <string name="search_itunes_label">Buscar en Apple Podcasts</string>
   <string name="search_podcastindex_label">Buscar en Podcast Index</string>

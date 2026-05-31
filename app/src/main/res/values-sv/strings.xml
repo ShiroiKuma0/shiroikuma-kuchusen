@@ -617,7 +617,7 @@
     <string name="edit_url_confirmation_msg">Att ändra RSS-adressen kan förstöra uppspelningsstatus och episodlistor för podcasten. Det är INTE rekomenderat att du ändrar den, du kommer INTE få någon support om något går fel. Ändringen kan inte göras ogjort. Den trasiga prenumerationen KAN INTE repareras genom att helt enkelt byta tillbaka adressen. Vi föreslår att du skapar en säkerhetskopia innan du fortsätter.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importerar prenumerationer från appar gjorda för ett enda syfte…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Sök podcast…</string>
 
     <string name="search_itunes_label">Sök i Apple Podcasts</string>

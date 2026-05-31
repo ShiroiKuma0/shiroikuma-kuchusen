@@ -617,7 +617,7 @@
     <string name="edit_url_confirmation_msg">تغییر نشانی RSS می تواند به سادگی  وضعیت پخش و سیاهه کردن قسمت‌های پادکست را خراب کند. تغییرش را توصیه نکرده و در صورت بروز مشکل، پشتیبانی فراهم نمی‌کنیم. این عمل بازگشت‌پذیر نیست. اشتراک خراب را نمی توان به سادگی با بازگرداندن نشانی درست کرد. پیشنهاد می‌کنیم پیش از ادامه، پشتیبان بگیرید.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">وارد کردن اشتراک از برنامه های تک منظوره</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">جستجوی پادکست …</string>
 
     <string name="search_itunes_label">جست‌وجوی پادکست‌های اپل</string>

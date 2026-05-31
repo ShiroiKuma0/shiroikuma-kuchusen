@@ -629,7 +629,7 @@
     <string name="edit_url_confirmation_msg">Zmiana adresu RSS może łatwo zepsuć stan odtwarzania i listę odcinków podcastu. NIE zalecamy zmiany i NIE zapewniamy wsparcia, jeśli coś pójdzie nie tak. Tego nie da się cofnąć. Uszkodzonej subskrypcji NIE MOŻNA naprawić poprzez zwykłą zmianę adresu z powrotem. Sugerujemy utworzenie kopii zapasowej przed kontynuowaniem.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importowanie subskrybcji z jednozadaniowych aplikacji</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Szukaj podcast…</string>
 
     <string name="search_itunes_label">Wyszukaj w Apple Podcasts</string>

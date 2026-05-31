@@ -639,7 +639,7 @@
     <string name="edit_url_confirmation_msg">تغيير رابط الـ RSS قد يؤدي إلى كسر حالة التشغيل و قائمة الحلقات للبودكاست. نحن لا ننصح بتغيرها ولن نقوم بتوفير أي دعم في حالة حصول أي خطأ. لا يمكن التراجع عن هذا التغيير. الاشتراك المكسور لن يمكن أن يتم استرجاعه بإعادة إرجاع الرابط القديم. ننصح بإنشاء نسخة احتياطية قبل المتابعة.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">استيراد الاشتراكات من التطبيقات ذات الغرض الواحد …</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">ابحث عن بودكاست…</string>
 
     <string name="search_itunes_label">ابحث Apple Podcasts</string>

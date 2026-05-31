@@ -486,7 +486,7 @@
   <string name="edit_url_confirmation_msg">Canviar l\'adreça RSS pot trencar fàcilment l\'estat de reproducció i les llistes d\'episodis del podcast. NO recomanem canviar-lo i NO oferirem suport si alguna cosa va malament. Això no es pot desfer. La subscripció trencada NO es pot reparar simplement canviant l\'adreça. Us suggerim que creeu una còpia de seguretat abans de continuar.</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">S\'estan important les subscripcions des de les apps de propòsit únic…</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">Cerca podcast…</string>
   <string name="search_itunes_label">Cerca a Apple Podcasts</string>
   <string name="search_podcastindex_label">Cerca a Podcast Index</string>

@@ -293,7 +293,7 @@
 
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">從 PodciniSP 匯入訂閱清單</string>
-  <!--Add podcast fragment-->
+
   <string name="search_podcast_hint">搜尋 Podcast…</string>
 
     <string name="advanced">進階</string>

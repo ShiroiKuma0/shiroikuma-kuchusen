@@ -617,7 +617,7 @@
     <string name="edit_url_confirmation_msg">Let op: door het aanpassen van het rss-adres kan de afspeelstatus en afleveringenlijst worden vergeten. We raden NIET aan om dit te doen en bieden GEEN ondersteuning als er iets misgaat. Deze actie is tevens onomkeerbaar, dus het oorspronkelijke adres kan niet worden hersteld. Maak van tevoren een reservekopie.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Bezig met importeren van abonnementen uit eenmalige apps…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Podcast zoeken…</string>
 
     <string name="search_itunes_label">Zoek Apple Podcast</string>

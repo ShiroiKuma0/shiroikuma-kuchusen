@@ -614,7 +614,7 @@
     <string name="edit_url_confirmation_msg">RSSのアドレスを変更すると、ポッドキャストの再生状態とエピソードのリストが壊れてしまう可能性があります。RSSのアドレスを変更することはおすすめしません。何か問題が起きたとしてもサポートは提供されません。この変更は元に戻せません。アドレスを元に戻すだけでは壊れた購読を修復することはできません。続行する前にバックアップを作成することをおすすめします。</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">単一目的のアプリから購読をインポート中…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">ポッドキャストの検索…</string>
 
     <string name="search_itunes_label">Apple Podcast を検索</string>

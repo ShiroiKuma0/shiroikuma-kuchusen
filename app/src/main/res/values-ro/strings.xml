@@ -622,7 +622,7 @@
     <string name="edit_url_confirmation_msg">Schimbarea adresei RSS poate distruge cu ușurință starea de redare și listele de episoade ale podcastului. NU recomandăm schimbarea acestuia și NU vă vom oferi asistență dacă ceva nu merge bine. Acest lucru nu poate fi anulat. Abonamentul defect NU POATE fi reparat prin simpla schimbare a adresei înapoi. Vă sugerăm să creați o copie de rezervă înainte de a continua.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importare abonamente din aplicații cu un singur scop…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Caută podcast…</string>
 
     <string name="search_itunes_label">Caută în Apple Podcasts</string>

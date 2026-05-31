@@ -620,7 +620,7 @@
     <string name="edit_url_confirmation_msg">Cambiare l\'indirizzo RSS può compromettere lo stato della riproduzione e l\'ascolto degli episodi di un podcast. Consigliamo di NON cambiarlo e NON forniamo supporto se qualcosa non dovesse funzionare. L\'operazione NON è reversibile e l\'iscrizione NON può essere ripristinata tornando all\'indirizzo precedente. Ti consigliamo di effettuare un backup prima di continuare.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importazione delle iscrizioni da applicazioni specifiche in corso…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Cerca podcast…</string>
 
     <string name="search_itunes_label">Cerca su Apple Podcast</string>

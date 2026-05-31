@@ -619,7 +619,7 @@
     <string name="edit_url_confirmation_msg">Cambiar la dirección RSS puede romper el estado de reproducción y la lista de episodios del podcast. NO recomendamos cambiarlo y NO se dará soporte si algo sale mal. Esto no se puede deshacer. Una suscripción rota NO se puede reparar deshaciendo el cambio. Recomendamos hacer un copia de seguridad antes continuar.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Importando suscripciones de aplicaciones de uso específico…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">Buscar podcast…</string>
 
     <string name="search_itunes_label">Buscar en Apple Podcasts</string>

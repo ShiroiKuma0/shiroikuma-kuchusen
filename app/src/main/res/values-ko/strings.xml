@@ -612,7 +612,7 @@
     <string name="edit_url_confirmation_msg">RSS 주소를 바꾸면 재생 상태와 팟캐스트 에피소드 목록을 쉽게 망가뜨립니다. RSS 주소를 바꾸지 않기를 권하고, 잘못된 경우 어떤 지원도 하지 않을 것입니다. RSS 주소를 한번 바꾸면 되돌릴 수 없습니다. 구독이 한번 망가지면 주소를 되돌린다고 해도 바로잡을 수 없습니다. 계속 하기 전에 백업을 만드시길 권장합니다.</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">단일 용도 앱에서 구독 정보를 가져옵니다…</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">팟캐스트 검색…</string>
 
     <string name="search_itunes_label">애플 팟캐스트 검색</string>

@@ -612,7 +612,7 @@
     <string name="edit_url_confirmation_msg">更改 RSS 地址可以轻松地破坏播客的播放状态和剧集列表。 我们不建议更改它，如果有任何错误，我们将不会提供支持。 此操作无法撤销。已损坏的订阅无法修复，只需更改地址就无法修复。我们建议在继续之前先创建一个备份。</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">从单一用途应用程序导入订阅&#8230;</string>
-    <!-- Add podcast fragment -->
+
     <string name="search_podcast_hint">搜索播客…</string>
 
     <string name="search_itunes_label">搜索苹果播客</string>
