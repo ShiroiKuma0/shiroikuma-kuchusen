@@ -75,7 +75,7 @@ object PodcastHandler {
                             if (handler == null) {
                                 val type = when (val tag = reader.localName) {
                                     ATOM_ROOT -> {
-                                        feed.type = FeedType.ATOM1.name
+                                        feed.type = FeedType.ATOM.name
                                         Logd(TAG, "getType Recognized type Atom")
                                         reader.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")?.let { feed.langSet.add(it) }
                                         Type.ATOM

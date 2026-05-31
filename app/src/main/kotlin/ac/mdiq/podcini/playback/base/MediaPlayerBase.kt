@@ -581,15 +581,9 @@ abstract class MediaPlayerBase {
                         if (!curEpisode?.downloadUrl.isNullOrBlank()) prepareDataSource(curEpisode!!)
                         else throw IOException("episode downloadUrl is null or empty ${curEpisode?.title}")
                     }
-
                     else -> {   // TODO: playing video often gets here??
                         Logd(TAG, "prepareMedia localMediaurl: ${curEpisode?.fileUrl}")
-                        if (!curEpisode?.fileUrl.isNullOrBlank()) prepareDataSource(
-                            curEpisode!!,
-                            curEpisode!!.fileUrl!!,
-                            null,
-                            null
-                        )
+                        if (!curEpisode?.fileUrl.isNullOrBlank()) prepareDataSource(curEpisode!!, curEpisode!!.fileUrl!!, null, null)
                         else throw IOException("Unable to read local file ${curEpisode?.fileUrl}")
                     }
                 }

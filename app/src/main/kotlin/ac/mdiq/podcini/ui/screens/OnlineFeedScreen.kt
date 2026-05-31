@@ -27,6 +27,7 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
@@ -207,7 +208,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     val urlString = PodcastSearcherRegistry.lookupUrl(feedUrl)
                     Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
                     if (defaultCapable) {
-//                        val feeds = extensionClient.withProvider { it.feedsAtUrl(url) }    // TODO
+//                        val feeds = extensionClient.withProvider { it.feedsTitlesAtUrl(url) }    // TODO
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                         if (fipc != null) {
                             val eList = mutableListOf<EpisodeIPC>()
@@ -243,7 +244,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         Logd(TAG, "Successfully retrieve feed url: $url")
                         isFeedFoundBySearch = true
                         if (defaultCapable) {
-//                            val feeds = extensionClient.withProvider { it.feedsAtUrl(url) }    // TODO
+//                            val feeds = extensionClient.withProvider { it.feedsTitlesAtUrl(url) }    // TODO
                             val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                             if (fipc != null) {
                                 val eList = mutableListOf<EpisodeIPC>()
@@ -406,7 +407,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 
     @Composable
     fun ShowTabsDialog(onDismissRequest: () -> Unit, handleFeed: (FeedIPC) -> Unit) {
-        val feeds = remember(url) { vm.gatewayClient?.withProviderBlocking { it.feedsAtUrl(url) } ?: listOf() }
+        val feeds = remember(url) { vm.gatewayClient?.withProviderBlocking { it.feedsTitlesAtUrl(url) } ?: listOf() }
         val ytTabsMap = remember { mutableStateMapOf<Int, String>() }
         AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.choose_tab), style = CustomTextStyles.titleCustom) },
@@ -568,7 +569,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         vm.limitEpisodesCount = it
                     }
                 }
-                val isAudoDL = remember(vm.feedUrl) { vm.gatewayClient?.withProviderBlocking { it.isFeedAutoDownloadable(vm.feedUrl) } == true }
+//                val isAudoDL = remember(vm.feedUrl) { vm.gatewayClient?.withProviderBlocking { it.isFeedAutoDownloadable(vm.feedUrl) } == true }
+                val isAudoDL = remember(vm.feed) { vm.feed?.type in listOf(FeedType.RSS.name, FeedType.ATOM.name) }
                 if (appPrefs.enableAutoDl && isAudoDL) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
                     Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))

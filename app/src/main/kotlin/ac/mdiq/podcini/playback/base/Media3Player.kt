@@ -270,16 +270,23 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             castPlayer?.play()
                         }
                         PlaybackException.ERROR_CODE_IO_UNSPECIFIED -> {
-                            LogtFor(TAG, curEpisode?.id, "Caught Source Error 2000 (NPE). Attempting a clean recovery...")
-                            val currentPosition = exoPlayer?.currentPosition ?: 0L
-                            val currentMediaItem = exoPlayer?.currentMediaItem
-                            if (currentMediaItem != null) {
-                                exoPlayer?.stop()
-                                exoPlayer?.setMediaItem(currentMediaItem)
-                                exoPlayer?.seekTo(currentPosition)
-                                exoPlayer?.prepare()
-                                exoPlayer?.play()
+//                            LogtFor(TAG, curEpisode?.id, "Caught Source Error 2000 (NPE). Attempting a clean recovery...")
+                            val cause = error.cause
+                            when (cause) {
+                                is HttpDataSource.InvalidResponseCodeException -> LogtFor(TAG, curEpisode?.id, "Server rejected request. HTTP ${cause.responseCode}: ${cause.message}")
+                                is HttpDataSource.HttpDataSourceException -> LogtFor(TAG, curEpisode?.id, "HTTP Error playing media. Response Code: ${cause.message}")
+                                is java.io.FileNotFoundException -> LogtFor(TAG, curEpisode?.id, "Local file or cache source missing.")
+                                else -> LogtFor(TAG, curEpisode?.id, "Generic IO Error stack trace: ${cause?.message}")
                             }
+//                            val currentPosition = exoPlayer?.currentPosition ?: 0L
+//                            val currentMediaItem = exoPlayer?.currentMediaItem
+//                            if (currentMediaItem != null) {
+//                                exoPlayer?.stop()
+//                                exoPlayer?.setMediaItem(currentMediaItem)
+//                                exoPlayer?.seekTo(currentPosition)
+//                                exoPlayer?.prepare()
+//                                exoPlayer?.play()
+//                            }
                         }
                         PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
                         PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED -> {
@@ -518,7 +525,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         }
 
-        val upstreamFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory) // Pass the factory directly!

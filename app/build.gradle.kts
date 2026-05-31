@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 47
-        versionName = "12.0.2"
+        versionCode = 48
+        versionName = "12.0.3"
 
         ndkVersion = "29.0.14206865"
 
@@ -46,12 +46,12 @@ configure<ApplicationExtension> {
         }
     }
 
-//     sourceSets {
-//         getByName("main") {
-//             kotlin.directories.add("../../PodciniLib/src/main/kotlin")
-//             aidl.directories.add("../../PodciniLib/src/main/aidl")
-//         }
-//     }
+//      sourceSets {
+//          getByName("main") {
+//              kotlin.directories.add("../../PodciniLib/src/main/kotlin")
+//              aidl.directories.add("../../PodciniLib/src/main/aidl")
+//          }
+//      }
 
     packaging {
         resources {
@@ -204,9 +204,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
-    implementation("org.jetbrains.kotlinx:atomicfu:0.32.1")
+    implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
 
-    implementation("com.github.XilinJia:PodciniLib:1.0.2")
+   implementation("com.github.XilinJia:PodciniLib:1.0.3")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")

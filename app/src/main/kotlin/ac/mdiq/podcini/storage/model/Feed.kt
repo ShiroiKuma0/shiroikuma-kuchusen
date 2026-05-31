@@ -759,7 +759,7 @@ class Feed : RealmObject {
 
 enum class FeedType(name: String) {
     RSS("rss"),
-    ATOM1("atom"),
+    ATOM("atom"),
     YOUTUBE("YouTube")
 }
 @Serializable

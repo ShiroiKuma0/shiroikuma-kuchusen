@@ -1,3 +1,9 @@
+# 12.0.3
+
+* in media player, amended ERROR_CODE_IO_UNSPECIFIED error handling
+* fixed local media not playing
+* PodciniLib upped to 1.0.3
+
 # 12.0.2
 
 * capable of handling multiple external server apps
