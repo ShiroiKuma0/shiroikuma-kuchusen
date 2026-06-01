@@ -1,7 +1,14 @@
+# 12.0.4
+
+* fixed player possibly playing previous media from external source
+* correced enum class FeedType definition
+* added compatibility check when loading an external service app
+* PodciniLib upped to 1.0.3
+
 # 12.0.3
 
 * in media player, amended ERROR_CODE_IO_UNSPECIFIED error handling
-* fixed local media not playing
+* fixed local media not playing, adopted from Podcini.X
 * PodciniLib upped to 1.0.3
 
 # 12.0.2

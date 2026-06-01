@@ -654,6 +654,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     override fun prepareDataSource(media: Episode, mediaUrl: String, user: String?, password: String?) {
+        mediaItem = null
+        mediaSource = null
         val metadata = buildMetadata(curEpisode!!)
         Logd(TAG, "prepareDataSource: $mediaUrl")
         val uri = mediaUrl.toSafeUri()

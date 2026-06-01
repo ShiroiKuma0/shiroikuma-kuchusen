@@ -876,7 +876,7 @@ fun AVPlayerScreen() {
         @Composable
         fun PlayerDetailedGearPanel(curItem: Episode, reset: Boolean, cb: (Boolean)->Unit) {
             val TAG = "PlayerDetailedYTPanel"
-            if (curItem.feed?.type == FeedType.YOUTUBE.name) {
+            if (curItem.feed?.type == FeedType.YouTube.name) {
                 var locales by remember { mutableStateOf<List<String>>(listOf()) }
                 var locale by remember { mutableStateOf("") }
                 var codecs by remember { mutableStateOf<List<String>>(listOf()) }

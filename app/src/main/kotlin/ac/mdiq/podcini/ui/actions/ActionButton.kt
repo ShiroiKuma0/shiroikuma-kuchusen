@@ -333,7 +333,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             return when {
                 item.downloadUrl.isNullOrBlank() -> ButtonTypes.TTS
-                item.feed == null || item.feedId == null || item.feed?.type == FeedType.YOUTUBE.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
+                item.feed == null || item.feedId == null || item.feed?.type == FeedType.YouTube.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                 isDownloadingMedia() -> ButtonTypes.CANCEL
                 else -> ButtonTypes.DOWNLOAD
             }
@@ -354,7 +354,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                         if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! in playActions.map { it.name }) ButtonTypes.valueOf(item.feed!!.prefActionType!!)
                         else ButtonTypes.PLAY
                     }
-                    item.feed == null || item.feedId == null || item.feed?.type == FeedType.YOUTUBE.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
+                    item.feed == null || item.feedId == null || item.feed?.type == FeedType.YouTube.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                     else -> ButtonTypes.DOWNLOAD
                 }
             }

@@ -11,6 +11,7 @@ import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
@@ -78,7 +79,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(149)
+    )).name("Podcini.realm").schemaVersion(150)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -227,6 +228,14 @@ val config: RealmConfiguration by lazy {
                     count++
                 }
                 Log.d(TAG, "updated downloadUrl for $count feeds")
+            }
+            if (oldRealm.schemaVersion() < 150) {
+                Log.d(TAG, "migrating DB from below 150")
+                var feeds = newRealm.query("Feed").find().toList()
+                for (f in feeds) {
+                    val type = f.getNullableValue<String>("type")
+                    if (type in listOf(FeedType.RSS.name, FeedType.ATOM.name)) f.set("episodesDownloadable", true)
+                }
             }
         }).build()
 }

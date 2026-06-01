@@ -696,7 +696,7 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
 //        val name = if (music) "YTMusic Syndicate" + if (video) "" else " Audio"
 //        else "Youtube Syndicate" + if (video) "" else " Audio"
 //        feed = createSynthetic(feedId, name)
-//        feed.type = FeedType.YOUTUBE.name
+//        feed.type = FeedType.YouTube.name
 //        feed.hasVideoMedia = video
 //        feed.audioTypeSetting = if (music) AudioType.MUSIC else AudioType.SPEECH
 //        feed.videoModePolicy = if (video) VideoMode.WINDOW else VideoMode.AUDIO_ONLY

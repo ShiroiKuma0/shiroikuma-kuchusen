@@ -314,6 +314,7 @@ class Feed : RealmObject {
 
     // ============= Queue ==============
 
+    var episodesDownloadable: Boolean = false
 
     // ============ auto-download/enqueue ==============
     var autoDownload: Boolean = false
@@ -453,6 +454,7 @@ class Feed : RealmObject {
         if (other.description != null) description = other.description
         if (other.author != null) author = other.author
         if (other.paymentLinkList.isNotEmpty()) paymentLinkList = other.paymentLinkList
+        episodesDownloadable = other.episodesDownloadable
 
         // this feed's nextPage might already point to a higher page, so we only update the nextPage value
         // if this feed is not paged and the other feed is.
@@ -562,6 +564,7 @@ class Feed : RealmObject {
         if (audioQuality != other.audioQuality) return false
         if (videoQuality != other.videoQuality) return false
         if (prefStreamOverDownload != other.prefStreamOverDownload) return false
+        if (episodesDownloadable != other.episodesDownloadable) return false
         if (autoDownload != other.autoDownload) return false
         if (autoEnqueue != other.autoEnqueue) return false
         if (queueId != other.queueId) return false
@@ -641,6 +644,7 @@ class Feed : RealmObject {
         result = 31 * result + audioQuality
         result = 31 * result + videoQuality
         result = 31 * result + prefStreamOverDownload.hashCode()
+        result = 31 * result + episodesDownloadable.hashCode()
         result = 31 * result + autoDownload.hashCode()
         result = 31 * result + autoEnqueue.hashCode()
         result = 31 * result + queueId.hashCode()
@@ -757,11 +761,12 @@ class Feed : RealmObject {
     }
 }
 
-enum class FeedType(name: String) {
-    RSS("rss"),
-    ATOM("atom"),
-    YOUTUBE("YouTube")
+enum class FeedType {
+    RSS,
+    ATOM,
+    YouTube
 }
+
 @Serializable
 data class FeedDTO(
     val id: Long,
@@ -846,6 +851,7 @@ fun FeedIPC.toFeed(): Feed {
     feed.downloadUrl = this.downloadUrl
     feed.hasVideoMedia = this.hasVideoMedia
     feed.prefStreamOverDownload = this.prefStreamOverDownload
+    feed.episodesDownloadable = this.episodesDownloadable
     feed.autoDownload = this.autoDownload
     feed.description = this.description
     feed.author = this.author
@@ -864,6 +870,7 @@ fun Feed.toIPC(): FeedIPC {
     feed.downloadUrl = this.downloadUrl
     feed.hasVideoMedia = this.hasVideoMedia
     feed.prefStreamOverDownload = this.prefStreamOverDownload
+    feed.episodesDownloadable = this.episodesDownloadable
     feed.autoDownload = this.autoDownload
     feed.description = this.description
     feed.author = this.author

@@ -67,7 +67,8 @@ class ShareReceiverActivity : ComponentActivity() {
                     val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleSharedMedia(sharedText) } == true }
                     if (client != null) {
                         // extension media
-                        if (log != null) upsertBlk(log) { it.type = client.withProviderBlocking { p-> p.getShareLogType() } }
+//                        if (log != null) upsertBlk(log) { it.type = client.withProviderBlocking { p-> p.getShareLogType() } }
+                        if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
                         mediaCB()
                     } else {
                         //              podcast or other?

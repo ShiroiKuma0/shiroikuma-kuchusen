@@ -16,6 +16,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.clientshaveLikeCounts
+import ac.mdiq.podcini.sources.clientshaveViewCounts
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -1179,15 +1181,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val viewCounts = remember { listOf(EpisodeSortOrder.VIEWS_ASC, EpisodeSortOrder.VIEWS_DESC, EpisodeSortOrder.VIEWS_SPEED_ASC, EpisodeSortOrder.VIEWS_SPEED_DESC) }
     val likeCounts = remember { listOf(EpisodeSortOrder.LIKES_ASC, EpisodeSortOrder.LIKES_DESC) }
-    fun clientHaveViewCounts(): Boolean {
-        for (client in sourceClients) if (client.withProviderBlocking { it.haveViewCount() } == true) return true
-        return false
-    }
-    fun clientHaveLikeCounts(): Boolean {
-        for (client in sourceClients) if (client.withProviderBlocking { it.haveLikeCount() } == true) return true
-        return false
-    }
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (clientHaveViewCounts()) viewCounts else listOf()) + (if (clientHaveLikeCounts()) likeCounts else listOf()) ) ) } }
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (clientshaveViewCounts()) viewCounts else listOf()) + (if (clientshaveLikeCounts()) likeCounts else listOf()) ) ) } }
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider

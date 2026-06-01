@@ -84,6 +84,7 @@ class FeedBuilderBase(val showError: (String?, String)->Unit) {
                 val feed = Feed(selectedDownloadUrl, null)
                 feed.isBuilding = true
                 val result = PodcastHandler.parseFeed(source, feed)
+                feed.episodesDownloadable = true
                 feed.isBuilding = false
                 if (result != null) withContext(Dispatchers.Main) { handleFeed(result.feed, result.alternateFeedUrls) }
             }

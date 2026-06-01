@@ -49,7 +49,8 @@ class FeedFilter(vararg properties_: String) {
 
         val providerMomains = mutableListOf<String>()
         for (client in sourceClients) {
-            val ds = client.withProviderBlocking { it.feedDomains() }
+//            val ds = client.withProviderBlocking { it.feedDomains() }
+            val ds = client.attributes?.feedDomains
             if (!ds.isNullOrEmpty()) providerMomains.addAll(ds)
         }
         if (providerMomains.isNotEmpty()) {

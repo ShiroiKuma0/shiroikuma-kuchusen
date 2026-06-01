@@ -266,7 +266,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                 Button({
                     val feed = feed_ ?: createSynthetic(0, name, hasVideo)
                     if (feed_ == null) {
-                        feed.type = if (isYoutube) FeedType.YOUTUBE.name else FeedType.RSS.name
+                        feed.type = if (isYoutube) FeedType.YouTube.name else FeedType.RSS.name
                         if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
                     }
                     upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }

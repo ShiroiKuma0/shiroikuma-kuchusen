@@ -1,11 +1,14 @@
 package ac.mdiq.podcini.sources
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
+import ac.mdiq.podcini.shared.ProviderAttrs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -28,10 +31,10 @@ private const val TAG = "GatewayClient"
 
 var sourceClients: List<SourceGatewayClient> = listOf()
 
-val typeClientMap = mutableMapOf<FeedType, SourceGatewayClient>()
+val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
 
-fun getSourceClient(feedType: FeedType): SourceGatewayClient? {
-    return typeClientMap[feedType]
+fun getSourceClient(name: String): SourceGatewayClient? {
+    return typeClientMap[name]
 }
 
 fun isExtFeed(url: String?): Boolean {
@@ -40,9 +43,21 @@ fun isExtFeed(url: String?): Boolean {
     return false
 }
 fun clientsHaveMultiQ(): Boolean {
-    for (client in sourceClients) if (client.withProviderBlocking { it.haveMultiQualities() } == true) return true
+//    for (client in sourceClients) if (client.withProviderBlocking { it.hasMultiQualities() } == true) return true
+    for (client in sourceClients) if (client.attributes?.hasMultiQualities == true) return true
     return false
 }
+
+fun clientshaveViewCounts(): Boolean {
+//    for (client in sourceClients) if (client.withProviderBlocking { it.hasViewCount() } == true) return true
+    for (client in sourceClients) if (client.attributes?.hasViewCount == true) return true
+    return false
+}
+fun clientshaveLikeCounts(): Boolean {
+    for (client in sourceClients) if (client.attributes?.hasLikeCount == true) return true
+    return false
+}
+
 
 fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -79,24 +94,33 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
         val client = SourceGatewayClient()
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                Logd(TAG, "onServiceConnected")
+//                Logt(TAG, "onServiceConnected")
                 val remote = IPodciniGateway.Stub.asInterface(service)
-                client.gateway = remote
-                client.connection = this
-                Logd(TAG, "onServiceConnected Service connected")
+                val attr = remote.attributes
+                Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
+                if (attr.feedType in FeedType.entries.map { it.name } && attr.apiVersion == PROVIDER_API_VERSION) {
+                    client.attributes = attr
+                    client.gateway = remote
+                    client.connection = this
+                    typeClientMap[attr.name] = client
+                    Logt(TAG, "onServiceConnected Service ${attr.name} connected")
+                } else Logt(TAG, "onServiceConnected Service ${attr.name} not qualified, rejected.")
             }
             override fun onServiceDisconnected(name: ComponentName) {
-                Logd(TAG, "Service disconnected")
+                Logt(TAG, "Service disconnected")
+                client.attributes = null
                 client.gateway = null
                 client.connection = null
             }
             override fun onBindingDied(name: ComponentName) {
-                Logd(TAG, "Binding died")
+                Logt(TAG, "Binding died")
+                client.attributes = null
                 client.gateway = null
                 client.connection = null
             }
             override fun onNullBinding(name: ComponentName) {
-                Logd(TAG, "Null binding")
+                Logt(TAG, "Null binding")
+                client.attributes = null
                 client.gateway = null
                 client.connection = null
             }
@@ -109,6 +133,8 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
 
 class SourceGatewayClient() {
     private val mutex = Mutex()
+
+    var attributes: ProviderAttrs? = null
 
     @Volatile
     var gateway: IPodciniGateway? = null
