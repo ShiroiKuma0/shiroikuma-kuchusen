@@ -71,6 +71,8 @@ abstract class EpisodeAction {
     open fun enabled(): Boolean = true
     abstract val iconRes: Int
     abstract val color: Color
+    open val subscribedOnly: Boolean = true
+
     @Composable
     open fun ActionOptions() {}
     open fun performAction(e: Episode) {
@@ -368,12 +370,15 @@ class SearchSelected : EpisodeAction() {
     override val iconRes:  Int = R.drawable.ic_search
     override val color: Color = Color(0xFF55AA55)
 
+    override val subscribedOnly: Boolean = false
+
     override fun performAction(e: Episode) {
         super.performAction(e)
         showSearchDialog = true
     }
     @Composable
     override fun ActionOptions() {
+        Logd("SearchSelected", "ActionOptions $showSearchDialog ${onEpisode?.title}")
         if (showSearchDialog && onEpisode?.title != null) {
             var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
             val selectedText = remember(textFieldValue.selection.collapsed, textFieldValue.selection.start, textFieldValue.selection.end) {

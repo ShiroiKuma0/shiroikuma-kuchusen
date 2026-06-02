@@ -271,23 +271,16 @@ object PodcastSearcherRegistry {
         return false
     }
 
+    // TODO: need to use sourceClients
     fun discoverExternalSearchers(): List<FeedSearcher> {
-        // 1. Target the unified Gateway Action string channel
         val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
         val context = getAppContext()
 
-        // 2. Query the system for any matching services answering this contract
         val resolveInfos = context.packageManager.queryIntentServices(intent, PackageManager.MATCH_ALL)
-
-        // 3. Map the system discovery data directly into your proxy instances
         return resolveInfos.map { resolveInfo ->
             val serviceInfo = resolveInfo.serviceInfo
             val componentName = ComponentName(serviceInfo.packageName, serviceInfo.name)
-
-            // Extract the user-facing application name or service label
             val appName = serviceInfo.loadLabel(context.packageManager).toString()
-
-            // Return your proxy casted implicitly to the abstract FeedSearcher collection element
             RemoteFeedSearcherProxy(context = context, componentName = componentName, name = appName)
         }
     }
@@ -305,29 +298,20 @@ class RemoteFeedSearcherProxy(
     private val componentName: ComponentName,
     override val name: String?
 ) : FeedSearcher {
-
-    // Wrap the synchronous AIDL call into a proper Kotlin suspend function
     override suspend fun search(query: String): List<FeedSearchResult> {
         return bindAndExecuteGateway { gateway ->
-            // Extract the sub-interface from the gateway layout
             val searchProvider = gateway.searchProvider
-            // Execute or return empty if this extension doesn't support search
             searchProvider?.search(query) ?: emptyList()
         }
     }
 
     override fun urlNeedsLookup(url: String): Boolean {
-        // We can execute this synchronously if it doesn't block network operations,
-        // or wrap it similarly to search() if it requires a roundtrip.
         return false
     }
 
-    // Helper block to handle dynamic lifecycle binding/unbinding on demand
     private suspend fun <T> bindAndExecuteGateway(block: (IPodciniGateway) -> T): T {
         return suspendCancellableCoroutine { continuation ->
-            val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply {
-                component = componentName
-            }
+            val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = componentName }
 
             val connection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName, service: IBinder) {

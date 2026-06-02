@@ -8,8 +8,8 @@ import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.ItunesSearcher
 import ac.mdiq.podcini.net.feed.PodcastIndexSearcher
-import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.FeedSearchResult
+import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.prepareUrl
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
@@ -234,11 +234,13 @@ fun FindFeedsScreen() {
                 showAdvanced = false
             })
             // TODO
-//            val gearProviderRes = remember { defaultProvider.searcherTAG() }
-//            if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-//                setOnlineSearchTerms(defaultProvider.searcherClass())
-//                showAdvanced = false
-//            })
+//            for (client in sourceClients) {
+//                val gearProviderRes = remember { client.attributes.searcherTAG }
+//                if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
+//                    setOnlineSearchTerms(client.searcherClass())
+//                    showAdvanced = false
+//                })
+//            }
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 setOnlineSearchTerms(ItunesSearcher::class.java)
                 showAdvanced = false

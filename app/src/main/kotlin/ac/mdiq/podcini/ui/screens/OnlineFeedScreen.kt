@@ -368,7 +368,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 
     val vm: OnlineFeedVM = viewModel(key = url, factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 
-    var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
+    var swipeActions by remember { mutableStateOf(SwipeActions(TAG, false)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -497,6 +497,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
+
+    swipeActions.ActionOptionsDialog()
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->

@@ -90,7 +90,8 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
         Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
         Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
         Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
-        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) } //            val success = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
+
         val client = SourceGatewayClient()
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -104,28 +105,40 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     client.connection = this
                     typeClientMap[attr.name] = client
                     Logt(TAG, "onServiceConnected Service ${attr.name} connected")
-                } else Logt(TAG, "onServiceConnected Service ${attr.name} not qualified, rejected.")
+                } else {
+                    Logt(TAG, "onServiceConnected Service ${attr.name} not qualified, rejected.")
+                    clients.remove(client)
+                }
             }
             override fun onServiceDisconnected(name: ComponentName) {
                 Logt(TAG, "Service disconnected")
                 client.attributes = null
                 client.gateway = null
+                clients.remove(client)
                 client.connection = null
             }
             override fun onBindingDied(name: ComponentName) {
-                Logt(TAG, "Binding died")
+                Logt(TAG, "Binding died, trying to rebind")
                 client.attributes = null
                 client.gateway = null
+                clients.remove(client)
+                context.unbindService(this)
                 client.connection = null
+
+                val success = context.bindService(explicitIntent, this, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
+                if (success) clients.add(client)
             }
             override fun onNullBinding(name: ComponentName) {
                 Logt(TAG, "Null binding")
                 client.attributes = null
                 client.gateway = null
+                clients.remove(client)
+                context.unbindService(this)
                 client.connection = null
             }
         }
-        val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE)
+
+        val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
         if (success) clients.add(client)
     }
     return clients

@@ -589,7 +589,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     .setTag(metadata).setUri(audioStream.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
                 Logd(TAG, "formMediaSource aSource set to: ${audioStream.url}")
             } else Loge(TAG, "audioStream or url is null or blank")
-        } else Logt(TAG, "audioStreamsList empty")
+        } else Logt(TAG, "There is no audio stream, trying with composite video stream")
 
         if (aSource == null || needVideo) {
             if (aSource == null) {
@@ -597,9 +597,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 if (videoSpecs.isNotEmpty()) {
                     val videoStream = setVideoStream(videoSpecs, media)
                     if (!videoStream.url.isNullOrBlank()) {
-                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(
-                            MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoStream.url!!.toSafeUri()).build())
+                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoStream.url!!.toSafeUri()).build())
                         mSource = MergingMediaSource(true, vSource)
+                        Logt(TAG, "Using composite video stream")
                     } else Loge(TAG, "videoStream or url is null or blank")
                 } else Logt(TAG, "videoStreamsList empty")
             } else {

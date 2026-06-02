@@ -610,31 +610,31 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         selectMode = false
                     }
                     val options = mutableListOf<@Composable () -> Unit>(
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             showPlayStateDialog = true
                             onSelected()
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), contentDescription = "Set played state")
                             Text(stringResource(id = R.string.set_play_state_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showChooseRatingDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), contentDescription = "Set rating")
                             Text(stringResource(id = R.string.set_rating_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showEditTagsDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), contentDescription = "Edit tags")
                             Text(stringResource(id = R.string.edit_tags)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showAddCommentDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
                             Text(stringResource(id = R.string.add_comments)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
                             else {
@@ -650,25 +650,25 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
                             Text(stringResource(id = R.string.download_label)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { selected.forEach { addToAssQueue(listOf(it)) } }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
                             Text(stringResource(id = R.string.add_to_associated_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { addToQueue(selected, actQueue) }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
                             Text(stringResource(id = R.string.add_to_active_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showPutToQueueDialog = true
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
                             Text(stringResource(id = R.string.add_to_queue)) } },
-                        { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             runOnIOScope { for (e in selected) smartRemoveFromQueues(e) }
                         }) {
@@ -676,7 +676,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.remove_from_all_queues)) } }
                     )
                     if (selected.isNotEmpty()) {
-                        if (curQueue != null) {
+                        if (curQueue != null && !isExternal) {
                             options.add {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                                     onSelected()
@@ -687,7 +687,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 }
                             }
                         }
-                        options.add {
+                        if (!isExternal) options.add {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                                 onSelected()
                                 runOnIOScope {
@@ -706,7 +706,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
                                 Text(stringResource(id = R.string.set_related)) }
                         }
-                        options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        if (!isExternal) options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showShelveDialog = true
                         }) {
@@ -731,7 +731,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     Text(stringResource(id = R.string.reserve_episodes_label))
                                 }
                             }
-                        options.add {
+                        if (!isExternal) options.add {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                                 onSelected()
                                 runOnIOScope {
@@ -753,7 +753,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 Text(stringResource(id = R.string.delete_episode_label))
                             }
                         }
-                        if (feed != null) {
+                        if (feed != null && !isExternal) {
                             options.add {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                                     onSelected()
@@ -764,7 +764,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 }
                             }
                         }
-                        options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
+                        if (!isExternal) options.add { Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
                             showMulticastDialog = true
                         }) {

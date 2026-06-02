@@ -483,7 +483,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
 }
 
 suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = null) {
-    Logd(TAG, "updateFeedSimple called")
+    Logd(TAG, "updateFeedSimple called on feed: ${newFeed.title}")
     val savedFeed = feedByIdentityOrID(newFeed, true)
     if (savedFeed == null) {
         downloadStatus?.let {

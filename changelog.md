@@ -1,9 +1,17 @@
+# 12.0.5
+
+* made binding to external service app more resilient
+* clarified toasts when external audio streams are empty
+* in OnlineFeed screen
+	* enabled swipe actions but only limit to applicable actions (only SearchSelected now)
+	* disabled inapplicable menu items in multi-select mode
+
 # 12.0.4
 
 * fixed player possibly playing previous media from external source
-* correced enum class FeedType definition
+* corrected enum class FeedType definition
 * added compatibility check when loading an external service app
-* PodciniLib upped to 1.0.3
+* PodciniLib upped to 1.0.4
 
 # 12.0.3
 

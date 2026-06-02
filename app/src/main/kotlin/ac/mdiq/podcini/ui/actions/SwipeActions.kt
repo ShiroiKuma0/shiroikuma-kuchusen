@@ -38,7 +38,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-class SwipeActions(private val tag: String) {
+class SwipeActions(private val tag: String, private val isSubscribed: Boolean = true) {
     var right by mutableStateOf<EpisodeAction>(NoAction())
     var left by mutableStateOf<EpisodeAction>(NoAction())
 
@@ -66,7 +66,7 @@ class SwipeActions(private val tag: String) {
 
         val leftAction = remember { mutableStateOf(left) }
         val rightAction = remember { mutableStateOf(right) }
-        var keys by remember { mutableStateOf(episodeActions) }
+        var keys by remember { mutableStateOf(if (isSubscribed) episodeActions else episodeActions.filter { !it.subscribedOnly }) }
 
         var direction by remember { mutableIntStateOf(0) }
         var showPickerDialog by remember { mutableStateOf(false) }
