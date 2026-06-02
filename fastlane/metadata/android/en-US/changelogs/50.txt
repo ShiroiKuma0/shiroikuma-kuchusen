@@ -1,0 +1,5 @@
+* made binding to external service app more resilient
+* clarified toasts when external audio streams are empty
+* in OnlineFeed screen
+	* enabled swipe actions but only limit to applicable actions (only SearchSelected now)
+	* disabled inapplicable menu items in multi-select mode

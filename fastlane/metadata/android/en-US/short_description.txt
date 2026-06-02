@@ -1,0 +1,1 @@
+Modern, feature-rich, extensible. Handles podcasts, local directories. Youtube contents facilitated by external app
