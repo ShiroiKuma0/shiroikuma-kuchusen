@@ -236,7 +236,7 @@ fun SearchScreen() {
                             navTo(OnlineFeed(url=query))
                             return@clickable
                         }
-                        setOnlineSearchTerms(query = query)
+                        searchOnline(query = query)
                         navTo(FindFeeds)
                     })
                 }

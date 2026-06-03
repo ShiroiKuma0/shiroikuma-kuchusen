@@ -5,12 +5,12 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
-import ac.mdiq.podcini.net.feed.CombinedSearcher
-import ac.mdiq.podcini.net.feed.ItunesSearcher
-import ac.mdiq.podcini.net.feed.PodcastIndexSearcher
+import ac.mdiq.podcini.net.feed.FeedSearchers
+import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searchProvider
+import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searcherInfos
 import ac.mdiq.podcini.shared.FeedSearchResult
-import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.prepareUrl
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -91,12 +91,13 @@ import kotlinx.coroutines.withContext
 
 
 private var searchText by mutableStateOf("")
-private var searchProvider by mutableStateOf<FeedSearcher>(CombinedSearcher::class.java.getDeclaredConstructor().newInstance())
 
-fun setOnlineSearchTerms(searchProvider_: Class<out FeedSearcher?> = CombinedSearcher::class.java, query: String? = null) {
-    Logd(TAG, "setOnlineSearchTerms: query: $query")
+fun searchOnline(searcherName: String = "", query: String? = null) {
     searchText = query ?: ""
-    searchProvider = searchProvider_.getDeclaredConstructor().newInstance()
+    if (searcherName.isNotBlank()) {
+        val searcher_ = searcherInfos.find { it.tag == searcherName }?.searcher
+        if (searcher_ != null) searchProvider = searcher_
+    }
 }
 
 class FindFeedsVM: ViewModel() {
@@ -230,23 +231,22 @@ fun FindFeedsScreen() {
     if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                setOnlineSearchTerms(CombinedSearcher::class.java)
+                searchOnline()
                 showAdvanced = false
             })
-            // TODO
-//            for (client in sourceClients) {
-//                val gearProviderRes = remember { client.attributes.searcherTAG }
-//                if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-//                    setOnlineSearchTerms(client.searcherClass())
-//                    showAdvanced = false
-//                })
-//            }
+            for (client in sourceClients) {
+                val searchName = remember { client.feedSearcher?.name?: "Anonymous" }
+                if (!searchName.isNullOrBlank()) Text(searchName, color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
+                    searchOnline(searchName)
+                    showAdvanced = false
+                })
+            }
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                setOnlineSearchTerms(ItunesSearcher::class.java)
+                searchOnline(FeedSearchers.Apple.name)
                 showAdvanced = false
             })
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                setOnlineSearchTerms(PodcastIndexSearcher::class.java)
+                searchOnline(FeedSearchers.PodcastIndex.name)
                 showAdvanced = false
             })
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {

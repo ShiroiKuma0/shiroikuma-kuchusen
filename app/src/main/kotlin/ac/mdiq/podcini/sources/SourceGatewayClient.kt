@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.sources
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.shared.FeedSearchResult
+import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
 import ac.mdiq.podcini.shared.ProviderAttrs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -17,6 +19,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +30,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private const val TAG = "GatewayClient"
-
 
 var sourceClients: List<SourceGatewayClient> = listOf()
 
@@ -57,7 +59,6 @@ fun clientshaveLikeCounts(): Boolean {
     for (client in sourceClients) if (client.attributes?.hasLikeCount == true) return true
     return false
 }
-
 
 fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -103,6 +104,8 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     client.attributes = attr
                     client.gateway = remote
                     client.connection = this
+                    val aidlSearchProvider = client.gateway?.getSearchProvider()
+                    if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
                     typeClientMap[attr.name] = client
                     Logt(TAG, "onServiceConnected Service ${attr.name} connected")
                 } else {
@@ -114,6 +117,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 Logt(TAG, "Service disconnected")
                 client.attributes = null
                 client.gateway = null
+                client.feedSearcher = null
                 clients.remove(client)
                 client.connection = null
             }
@@ -121,6 +125,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 Logt(TAG, "Binding died, trying to rebind")
                 client.attributes = null
                 client.gateway = null
+                client.feedSearcher = null
                 clients.remove(client)
                 context.unbindService(this)
                 client.connection = null
@@ -132,6 +137,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 Logt(TAG, "Null binding")
                 client.attributes = null
                 client.gateway = null
+                client.feedSearcher = null
                 clients.remove(client)
                 context.unbindService(this)
                 client.connection = null
@@ -148,6 +154,8 @@ class SourceGatewayClient() {
     private val mutex = Mutex()
 
     var attributes: ProviderAttrs? = null
+
+    var feedSearcher: FeedSearcher? = null
 
     @Volatile
     var gateway: IPodciniGateway? = null
@@ -195,5 +203,20 @@ class SourceGatewayClient() {
         connection?.let { try { getAppContext().unbindService(it) } catch (_: Exception) { } }
         connection = null
         bindDeferred = null
+    }
+}
+
+class GatewaySearcherAdapter(private val aidlProvider: IFeedSearchProvider) : FeedSearcher {
+    override val name: String?
+        get() = try { aidlProvider.name } catch (e: RemoteException) { null }
+
+    override fun urlNeedsLookup(url: String): Boolean {
+        return try { aidlProvider.urlNeedsLookup(url) } catch (e: RemoteException) { false }
+    }
+    override suspend fun search(query: String): List<FeedSearchResult> = withContext(Dispatchers.IO) {
+        try { aidlProvider.search(query) ?: emptyList() } catch (e: RemoteException) { emptyList() }
+    }
+    override suspend fun lookupUrl(url: String): String = withContext(Dispatchers.IO) {
+        try { aidlProvider.lookupUrl(url) ?: url } catch (e: RemoteException) { url }
     }
 }

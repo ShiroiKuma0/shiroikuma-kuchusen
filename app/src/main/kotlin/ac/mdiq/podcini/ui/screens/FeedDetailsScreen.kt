@@ -580,7 +580,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             if (feed?.isSynthetic() == false) {
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable {
-                        setOnlineSearchTerms(query = "${feed?.author} podcasts")
+                        searchOnline(query = "${feed?.author} podcasts")
                         navTo(FindFeeds)
                     })
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))

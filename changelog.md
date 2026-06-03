@@ -1,3 +1,7 @@
+# 12.0.6
+
+* amended feed searcher handling
+
 # 12.0.5
 
 * made binding to external service app more resilient

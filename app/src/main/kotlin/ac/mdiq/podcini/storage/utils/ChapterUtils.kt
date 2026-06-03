@@ -12,7 +12,6 @@ import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.LogtFor
 import android.content.ContentResolver
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpTimeoutConfig
@@ -485,7 +484,8 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                 reader.chapters.toList()
             }
             else -> {
-                LogtFor(TAG, episode.id, "failed to get chapters: file format $format currently not handled")
+//                LogtFor(TAG, episode.id, "failed to get chapters: file format $format currently not handled")
+                Logd(TAG, "failed to get chapters: file format $format currently not handled")
                 emptyList()
             }
         }

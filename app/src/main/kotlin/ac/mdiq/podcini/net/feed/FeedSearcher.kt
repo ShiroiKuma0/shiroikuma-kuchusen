@@ -1,22 +1,18 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.sources.IPodciniGateway
-import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.FeedSearchResult
+import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.shared.USER_AGENT
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatEpochMillisSimple
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
-import android.content.pm.PackageManager
-import android.os.IBinder
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -30,15 +26,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.io.IOException
 import org.json.JSONException
 import org.json.JSONObject
 
 private const val TAG = "FeedSearcher"
 
+enum class FeedSearchers {
+    PodcastIndex,
+    Apple,
+    Combined
+}
+
 class PodcastIndexSearcher : FeedSearcher {
     override suspend fun search(query: String): List<FeedSearchResult> {
+        Logd(TAG, "PodcastIndexSearcher search")
         fun fromPodcastIndex(json: JSONObject): FeedSearchResult {
             val title = json.optString("title", "")
             val imageUrl: String? = json.optString("image").takeIf { it.isNotEmpty() }
@@ -74,7 +76,7 @@ class PodcastIndexSearcher : FeedSearcher {
     }
 
     override val name: String
-        get() = "Podcast Index"
+        get() = FeedSearchers.PodcastIndex.name
 
     private fun HttpRequestBuilder.applyPodcastIndexAuth() {
         val now = nowInMillis()
@@ -101,6 +103,7 @@ class PodcastIndexSearcher : FeedSearcher {
 class ItunesSearcher : FeedSearcher {
     private val TAG = "ItunesSearcher"
     override suspend fun search(query: String): List<FeedSearchResult> {
+        Logd(TAG, "ItunesSearcher search")
         /**
          * Constructs a Podcast instance from a iTunes search result
          * @param json object holding the podcast information
@@ -165,7 +168,7 @@ class ItunesSearcher : FeedSearcher {
     }
 
     override val name: String
-        get() = "Apple"
+        get() = FeedSearchers.Apple.name
 
     companion object {
         private const val ITUNES_API_URL = "https://itunes.apple.com/search?media=podcast&term=%s"
@@ -175,7 +178,8 @@ class ItunesSearcher : FeedSearcher {
 
 class CombinedSearcher : FeedSearcher {
     override suspend fun search(query: String): List<FeedSearchResult> {
-        val searchProviders = PodcastSearcherRegistry.searchProviders
+        Logd(TAG, "CombinedSearcher search")
+        val searchProviders = PodcastSearcherRegistry.searcherInfos
         val searchResults = MutableList<List<FeedSearchResult>>(searchProviders.size) { listOf() }
 
         // Using a supervisor scope to ensure that one failing child does not cancel others
@@ -195,7 +199,7 @@ class CombinedSearcher : FeedSearcher {
         val resultRanking = mutableMapOf<String?, Float>()
         val urlToResult = mutableMapOf<String?, FeedSearchResult>()
         for (i in singleResults.indices) {
-            val providerPriority = PodcastSearcherRegistry.searchProviders[i].weight
+            val providerPriority = PodcastSearcherRegistry.searcherInfos[i].weight
             val providerResults = singleResults[i]
             for (position in providerResults.indices) {
                 val result = providerResults[position]
@@ -225,8 +229,8 @@ class CombinedSearcher : FeedSearcher {
     override val name: String
         get() {
             val names = mutableListOf<String?>()
-            for (i in PodcastSearcherRegistry.searchProviders.indices) {
-                val searchProviderInfo = PodcastSearcherRegistry.searchProviders[i]
+            for (i in PodcastSearcherRegistry.searcherInfos.indices) {
+                val searchProviderInfo = PodcastSearcherRegistry.searcherInfos[i]
                 val searcher = searchProviderInfo.searcher
                 if (searchProviderInfo.weight > 0.00001f && searcher.javaClass != CombinedSearcher::class.java) names.add(searcher.name)
             }
@@ -240,24 +244,24 @@ class CombinedSearcher : FeedSearcher {
 
 object PodcastSearcherRegistry {
     @get:Synchronized
-    var searchProviders: MutableList<SearcherInfo> = mutableListOf()
+    var searcherInfos: MutableList<SearcherInfo> = mutableListOf()
         get() {
             if (field.isEmpty()) {
                 field = mutableListOf()
-                field.add(SearcherInfo(CombinedSearcher(), 1.0f))
-//                val providerSearcher = defaultProvider.getSearcher()
-//                if (providerSearcher != null) field.add(SearcherInfo(providerSearcher, 1.0f))
-                val extSearchers = discoverExternalSearchers()
-                if (extSearchers.isNotEmpty()) field.addAll(extSearchers.map { SearcherInfo(it, 1.0f) })
-                field.add(SearcherInfo(ItunesSearcher(), 1.0f))
-                field.add(SearcherInfo(PodcastIndexSearcher(), 1.0f))
+                field.add(SearcherInfo(FeedSearchers.Combined.name, CombinedSearcher(), 1.0f))
+                val extSearchers = sourceClients.mapNotNull { it.feedSearcher }
+                if (extSearchers.isNotEmpty()) field.addAll(extSearchers.map { SearcherInfo(it.name?:"Anonymous", it, 1.0f) })
+                field.add(SearcherInfo(FeedSearchers.Apple.name, ItunesSearcher(), 1.0f))
+                field.add(SearcherInfo(FeedSearchers.PodcastIndex.name, PodcastIndexSearcher(), 1.0f))
             }
             return field
         }
         private set
 
+    var searchProvider by mutableStateOf(searcherInfos.find { it.tag == "Combined" }!!.searcher)
+
     suspend fun lookupUrl(url: String): String {
-        for (searcherInfo in searchProviders) {
+        for (searcherInfo in searcherInfos) {
             if (searcherInfo.searcher.javaClass != CombinedSearcher::class.java && searcherInfo.searcher.urlNeedsLookup(url))
                 return searcherInfo.searcher.lookupUrl(url)
         }
@@ -265,74 +269,16 @@ object PodcastSearcherRegistry {
     }
 
     fun urlNeedsLookup(url: String): Boolean {
-        for (searcherInfo in searchProviders) {
+        for (searcherInfo in searcherInfos) {
             if (searcherInfo.searcher.javaClass != CombinedSearcher::class.java && searcherInfo.searcher.urlNeedsLookup(url)) return true
         }
         return false
     }
 
-    // TODO: need to use sourceClients
-    fun discoverExternalSearchers(): List<FeedSearcher> {
-        val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
-        val context = getAppContext()
-
-        val resolveInfos = context.packageManager.queryIntentServices(intent, PackageManager.MATCH_ALL)
-        return resolveInfos.map { resolveInfo ->
-            val serviceInfo = resolveInfo.serviceInfo
-            val componentName = ComponentName(serviceInfo.packageName, serviceInfo.name)
-            val appName = serviceInfo.loadLabel(context.packageManager).toString()
-            RemoteFeedSearcherProxy(context = context, componentName = componentName, name = appName)
-        }
-    }
-
-    class SearcherInfo(val searcher: FeedSearcher, val weight: Float)
+    class SearcherInfo(val tag: String, val searcher: FeedSearcher, val weight: Float)
 }
 
 class FeedUrlNotFoundException( val artistName: String,  val trackName: String) : IOException() {
     override val message: String
         get() = "Result does not specify a feed url"
-}
-
-class RemoteFeedSearcherProxy(
-    private val context: Context,
-    private val componentName: ComponentName,
-    override val name: String?
-) : FeedSearcher {
-    override suspend fun search(query: String): List<FeedSearchResult> {
-        return bindAndExecuteGateway { gateway ->
-            val searchProvider = gateway.searchProvider
-            searchProvider?.search(query) ?: emptyList()
-        }
-    }
-
-    override fun urlNeedsLookup(url: String): Boolean {
-        return false
-    }
-
-    private suspend fun <T> bindAndExecuteGateway(block: (IPodciniGateway) -> T): T {
-        return suspendCancellableCoroutine { continuation ->
-            val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = componentName }
-
-            val connection = object : ServiceConnection {
-                override fun onServiceConnected(name: ComponentName, service: IBinder) {
-                    val gateway = IPodciniGateway.Stub.asInterface(service)
-                    try {
-                        val result = block(gateway)
-                        continuation.resumeWith(Result.success(result))
-                    } catch (e: Exception) {
-                        continuation.resumeWith(Result.failure(e))
-                    } finally {
-                        context.unbindService(this)
-                    }
-                }
-
-                override fun onServiceDisconnected(name: ComponentName) {
-                    // Handled gracefully by the coroutine continuation lifecycle
-                }
-            }
-
-            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-            continuation.invokeOnCancellation { context.unbindService(connection) }
-        }
-    }
 }

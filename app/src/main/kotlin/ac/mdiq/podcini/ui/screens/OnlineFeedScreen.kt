@@ -609,7 +609,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 
                 Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable {
-                        setOnlineSearchTerms(query = "${vm.feed?.author} podcasts")
+                        searchOnline(query = "${vm.feed?.author} podcasts")
                         navTo(FindFeeds)
                     })
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
