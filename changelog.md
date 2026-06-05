@@ -1,3 +1,8 @@
+# 12.0.7
+
+* removed old db migrations
+* no longer logging "No New episodes found for feed"
+
 # 12.0.6
 
 * amended feed searcher handling

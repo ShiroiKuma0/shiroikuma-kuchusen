@@ -2,6 +2,7 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.EPISODE_CACHE_SIZE_UNLIMITED
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.allFeeds
@@ -22,8 +23,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.utils.LogFor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.Logt
@@ -177,13 +176,15 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
                                     }
                                     episodes.addAll(es)
                                     Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
-                                } else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
+                                } else Logd(TAG, "No New episodes found for feed: ${f.title}")
+//                                else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
                             } else {
                                 queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 Logd(TAG, "assembleFeedsCandidates Non-Replace queryString: [${es.size}] $queryString")
                                 if (es.isNotEmpty()) episodes.addAll(es)
-                                else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
+                                else Logd(TAG, "No New episodes found for feed: ${f.title}")
+//                                else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
                             }
                         }
                     }

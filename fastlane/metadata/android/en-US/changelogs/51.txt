@@ -1,0 +1,1 @@
+* amended feed searcher handling
