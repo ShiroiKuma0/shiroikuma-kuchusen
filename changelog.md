@@ -2,6 +2,7 @@
 
 * removed old db migrations
 * no longer logging "No New episodes found for feed"
+* built with/for SDK 37
 
 # 12.0.6
 
