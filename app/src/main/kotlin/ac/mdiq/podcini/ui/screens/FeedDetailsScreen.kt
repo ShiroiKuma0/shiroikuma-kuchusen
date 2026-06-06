@@ -414,6 +414,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() } )
+                    AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
+                        onClick = { if (feed != null) vm.screenModeFlow.value = if (screenMode == FeedScreenMode.List) FeedScreenMode.Info else FeedScreenMode.List },
+                        onLongClick = { onImgLongClick() }))
                     Spacer(Modifier.weight(1f))
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered = remember(feed?.filterString, feed?.episodeFilter?.propertySet) { !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty() }
@@ -519,11 +522,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             Text(scoreText, style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(0.1f))
                         }
-                        AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
-                            onClick = { if (feed != null) vm.screenModeFlow.value = FeedScreenMode.Info },
-                            onLongClick = { onImgLongClick() }))
-                        Spacer(modifier = Modifier.weight(0.1f))
                         Text(vm.listInfoText, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.weight(0.1f))
                         PlayRandom(episodes)
                     }
                 }

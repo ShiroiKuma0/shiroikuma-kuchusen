@@ -1,3 +1,9 @@
+# 12.1.1
+
+* amended FeedDetails top/info bars
+	* feed image is moved to the top bar, and toggles list/info modes
+	* dice icon is padded and transparent
+
 # 12.1.0
 
 * on Infobar of media lists, added dice icon to randomly play an item
