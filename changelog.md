@@ -1,8 +1,7 @@
 # 12.1.1
 
-* amended FeedDetails top/info bars
-	* feed image is moved to the top bar, and toggles list/info modes
-	* dice icon is padded and transparent
+* in FeedDetails screen, feed image in info bar is moved to the top bar, and toggles list/info modes on click
+* dice icon on info bars is padded and transparent
 
 # 12.1.0
 

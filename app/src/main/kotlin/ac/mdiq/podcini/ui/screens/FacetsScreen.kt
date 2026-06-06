@@ -616,6 +616,7 @@ fun FacetsScreen(modeName: String = "") {
              }
             InforBar(swipeActions) {
                 Text(info, style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.weight(0.1f))
                 PlayRandom(episodes)
             }
             EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType,

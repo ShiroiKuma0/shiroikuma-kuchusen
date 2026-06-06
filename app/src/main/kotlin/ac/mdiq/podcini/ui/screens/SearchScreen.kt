@@ -322,6 +322,7 @@ fun SearchScreen() {
                 0 -> {
                     InforBar(swipeActions) {
                         Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.weight(0.1f))
                         PlayRandom(episodes)
                     }
                     EpisodeLazyColumn(episodes, swipeActions = swipeActions,

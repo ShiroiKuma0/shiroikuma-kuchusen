@@ -569,6 +569,7 @@ fun QueuesScreen(id: Long = -1L) {
                 }
                 if (vm.queuesMode in listOf(QueuesScreenMode.Bin, QueuesScreenMode.Queue)) InforBar(swipeActions) {
                     Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.weight(0.1f))
                     PlayRandom(episodes)
                 }
             }
