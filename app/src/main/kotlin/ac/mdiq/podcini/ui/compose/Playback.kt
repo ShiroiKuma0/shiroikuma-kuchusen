@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.playback.PlaybackStarter
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableFrom
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
@@ -20,7 +22,9 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -30,6 +34,7 @@ import ac.mdiq.podcini.utils.format
 import ac.mdiq.podcini.utils.formatNumberKmp
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -526,4 +531,14 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
         },
         confirmButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.close_label)) } }
     )
+}
+
+@Composable
+fun PlayRandom(episodes: List<Episode>) {
+    if (episodes.isNotEmpty()) Icon(imageVector = ImageVector.vectorResource(R.drawable.random_svgrepo_com), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "random", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable {
+        val item = episodes.random()
+        PlaybackStarter(item).shouldStreamThisTime(null).start(0)
+        playVideoIfNeeded(item)
+        actQueue = tmpQueue()
+    })
 }

@@ -38,6 +38,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.PlayRandom
 import ac.mdiq.podcini.ui.compose.StatusRowMode
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
@@ -613,7 +614,10 @@ fun FacetsScreen(modeName: String = "") {
             val info = remember(vm.infoBarText, vm.progressing, facetsMode) {
                 (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "")
              }
-            InforBar(swipeActions) { Text(info, style = MaterialTheme.typography.bodyMedium) }
+            InforBar(swipeActions) {
+                Text(info, style = MaterialTheme.typography.bodyMedium)
+                PlayRandom(episodes)
+            }
             EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType,
                 actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
         }

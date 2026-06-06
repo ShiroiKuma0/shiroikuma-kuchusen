@@ -43,6 +43,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
+import ac.mdiq.podcini.ui.compose.PlayRandom
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.borderColor
@@ -566,7 +567,10 @@ fun QueuesScreen(id: Long = -1L) {
                     }
 
                 }
-                if (vm.queuesMode in listOf(QueuesScreenMode.Bin, QueuesScreenMode.Queue)) InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
+                if (vm.queuesMode in listOf(QueuesScreenMode.Bin, QueuesScreenMode.Queue)) InforBar(swipeActions) {
+                    Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium)
+                    PlayRandom(episodes)
+                }
             }
         }
     }

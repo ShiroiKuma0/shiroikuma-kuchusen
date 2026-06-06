@@ -1,3 +1,7 @@
+# 12.1.0
+
+* on Infobar of media lists, added dice icon to randomly play an item
+
 # 12.0.7
 
 * removed old db migrations

@@ -47,6 +47,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.LayoutMode
+import ac.mdiq.podcini.ui.compose.PlayRandom
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.SendToDevice
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
@@ -523,6 +524,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             onLongClick = { onImgLongClick() }))
                         Spacer(modifier = Modifier.weight(0.1f))
                         Text(vm.listInfoText, style = MaterialTheme.typography.bodyMedium)
+                        PlayRandom(episodes)
                     }
                 }
             }

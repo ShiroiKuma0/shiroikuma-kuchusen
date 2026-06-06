@@ -18,6 +18,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.PlayRandom
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.textColor
@@ -319,7 +320,10 @@ fun SearchScreen() {
 
             when (vm.selectedTabIndex.intValue) {
                 0 -> {
-                    InforBar(swipeActions) { Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
+                    InforBar(swipeActions) {
+                        Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium)
+                        PlayRandom(episodes)
+                    }
                     EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
                             if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))

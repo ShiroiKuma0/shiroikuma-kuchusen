@@ -123,11 +123,8 @@ var showSwipeActionsDialog by mutableStateOf(false)
 
 @Composable
 fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit)) {
-    
-    
     val leftAction = swipeActions.left
     val rightAction = swipeActions.right
-//    Logd("InforBar", "textState: ${text.value}")
     Row {
         Icon(imageVector = ImageVector.vectorResource(leftAction.iconRes), tint = buttonColor, contentDescription = "left_action_icon",
             modifier = Modifier.width(24.dp).height(24.dp).clickable { showSwipeActionsDialog = true })
