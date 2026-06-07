@@ -534,11 +534,11 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
 }
 
 @Composable
-fun PlayRandom(episodes: List<Episode>) {
+fun PlayRandom(episodes: List<Episode>, playNext: Boolean = false) {
     if (episodes.isNotEmpty()) Icon(imageVector = ImageVector.vectorResource(R.drawable.random_svgrepo_com), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "random", modifier = Modifier.clickable {
         val item = episodes.random()
         PlaybackStarter(item).shouldStreamThisTime(null).start(0)
         playVideoIfNeeded(item)
-        actQueue = tmpQueue()
+        if (!playNext) actQueue = tmpQueue()
     })
 }

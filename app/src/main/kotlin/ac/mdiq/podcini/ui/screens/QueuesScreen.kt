@@ -459,7 +459,7 @@ fun QueuesScreen(id: Long = -1L) {
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)))
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 7.dp).clickable { drawerController?.open() })
                     if (vm.queuesMode == QueuesScreenMode.Queue) {
                         Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in queueNames.indices) queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
                             if (vm.curQueue.id == actQueue.id) {
@@ -570,7 +570,7 @@ fun QueuesScreen(id: Long = -1L) {
                 if (vm.queuesMode in listOf(QueuesScreenMode.Bin, QueuesScreenMode.Queue)) InforBar(swipeActions) {
                     Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.weight(0.1f))
-                    PlayRandom(episodes)
+                    PlayRandom(episodes, playNext = true)
                 }
             }
         }

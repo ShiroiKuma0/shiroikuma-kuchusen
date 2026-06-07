@@ -1,3 +1,12 @@
+# 12.1.2
+
+* dice icon in Queues screen continues to next in queue
+* in FeedDetails screen, top-left button opens the drawer (use system back to return)
+* in FindFeeds screen
+	* top-left button opens the drawer (use system back to return)
+	* "Advanced" is changed to a settings icon on the top bar, "Import OPML" option is removed (do that from Settings->Import/Export)
+	* "Local" is changed to "Local folder"
+
 # 12.1.1
 
 * in FeedDetails screen, feed image in info bar is moved to the top bar, and toggles list/info modes on click

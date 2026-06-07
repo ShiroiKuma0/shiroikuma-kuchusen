@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
-import ac.mdiq.podcini.config.settings.OpmlTransporter
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.net.feed.FeedSearchers
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searchProvider
@@ -35,11 +34,9 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,11 +44,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -61,7 +57,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -73,8 +68,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -88,7 +85,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
 
 private var searchText by mutableStateOf("")
 
@@ -184,39 +180,12 @@ fun FindFeedsScreen() {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    
-    @Composable
-    fun MyTopAppBar() {
-        Box {
-            TopAppBar(title = {
-                Logd(TAG, "Topbar searchText: $searchText")
-                SearchBarRow(R.string.search_podcast_hint, modifier = Modifier.fillMaxWidth(), defaultText = searchText, history = appAttribs.onlineSearchHistory) { str ->
-                    if (str.isBlank()) return@SearchBarRow
-                    searchText = str
-                    upsertBlk(appAttribs) {
-                        if (str in it.onlineSearchHistory) it.onlineSearchHistory.remove(str)
-                        it.onlineSearchHistory.add(0, str)
-                        if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
-                    }
-                    if (str.matches("http[s]?://.*".toRegex())) navTo(OnlineFeed(url=str))
-                    else vm.search(str)
-                }
-            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { if (!navBack()) drawerController?.open() }) } )
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
 
-    
     val actionColor = MaterialTheme.colorScheme.tertiary
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.intValue), vm.showOPMLRestoreDialog) {
         vm.showProgress = true
         performRestore()
         vm.showProgress = false
-    }
-    val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        OpmlTransporter.startImport(uri) { vm.readElements = it }
-        vm.showOpmlImportSelectionDialog = true
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -235,7 +204,7 @@ fun FindFeedsScreen() {
                 showAdvanced = false
             })
             for (client in sourceClients) {
-                val searchName = remember { client.feedSearcher?.name?: "Anonymous" }
+                val searchName = remember { client.feedSearcher?.name }
                 if (!searchName.isNullOrBlank()) Text(searchName, color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                     searchOnline(searchName)
                     showAdvanced = false
@@ -249,24 +218,40 @@ fun FindFeedsScreen() {
                 searchOnline(FeedSearchers.PodcastIndex.name)
                 showAdvanced = false
             })
-            Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
-                showAdvanced = false
-            })
         }
     }
 
-    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    @Composable
+    fun TopBar() {
+        Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_add), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 7.dp).clickable { drawerController?.open() })
+                SearchBarRow(R.string.search_podcast_hint, modifier = Modifier.weight(1f), defaultText = searchText, history = appAttribs.onlineSearchHistory) { str ->
+                    if (str.isBlank()) return@SearchBarRow
+                    searchText = str
+                    upsertBlk(appAttribs) {
+                        if (str in it.onlineSearchHistory) it.onlineSearchHistory.remove(str)
+                        it.onlineSearchHistory.add(0, str)
+                        if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
+                    }
+                    if (str.matches("http[s]?://.*".toRegex())) navTo(OnlineFeed(url=str))
+                    else vm.search(str)
+                }
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(7.dp).clickable { showAdvanced = true })
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+
+    Scaffold(topBar = { TopBar() }) { innerPadding ->
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (controlRow, gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {
                 Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { navTo(TopChart) })
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.local),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
+                Text(stringResource(R.string.local_folder),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                     try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
                 })
-                Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.advanced), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showAdvanced = !showAdvanced })
             }
 
             if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
