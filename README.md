@@ -277,33 +277,44 @@ For more details of the changes, see the [Changelog](changelog.md)
 ## Screenshots
 
 ### Settings
-<img src="./images/1_drawer.jpg" width="238" /> <img src="./images/2_setting.jpg" width="238" /> <img src="./images/2_setting01.jpg" width="238" /> 
+<img src="./images/Drawer.jpg" width="238" /> <img src="./images/Setting-UI.jpg" width="238" /> <img src="./images/2_setting01.jpg" width="238" /> 
 
-<img src="./images/2_setting1.jpg" width="238" /> <img src="./images/2_setting2.jpg" width="238" /> 
+<img src="./images/Settings-Import-Export.jpg" width="238" /> <img src="./images/Settings-Network-Storage.jpg" width="238" /> 
+<img src="./images/Settings-Playback.jpg" width="238" /> 
 
-### Subscriptions
-<img src="./images/3_subscriptions2.jpg" width="238" /> <img src="./images/3_subscriptions1.jpg" width="238" /> <img src="./images/3_subscriptions0.jpg" width="238" />
+### Library
+<img src="./images/Library-volumes-menu.jpg" width="238" /> <img src="./images/Library-sub-volumes.jpg" width="238" /> <img src="./images/Library-Icons.jpg" width="238" />
+
+<img src="./images/Library-filter.jpg" width="238" /> <img src="./images/Library-sort.jpg" width="238" /> <img src="./images/Library-multi-select-menu.jpg" width="238" />
 
 ### Feed
-<img src="./images/5_podcast_0.jpg" width="238" /> <img src="./images/5_podcast_1.jpg" width="238" /> <img src="./images/5_podcast_2.jpg" width="238" />
+<img src="./images/Feed-filter.jpg" width="238" /> <img src="./images/Feed-filter-ratings.jpg" width="238" /> <img src="./images/Feed-list-player.jpg" width="238" />
+
+<img src="./images/Feed-menu.jpg" width="238" /> 
+<img src="./images/Feed-Syndicate.jpg" width="238" /> 
 
 ### Feed settings
-<img src="./images/5_podcast_setting.jpg" width="238" /> <img src="./images/5_podcast_setting1.jpg" width="238" /> 
+<img src="./images/Feed-settings.jpg" width="238" /> <img src="./images/Feed-settings-policy.jpg" width="238" />
+
+### Media lists, queues, and easy access
+<img src="./images/Episodes-sort.jpg" width="238" />
+<img src="./images/Queues-menu.jpg" width="238" /> <img src="./images/Facets-menu.jpg" width="238" />
 
 ### Media and player details
-<img src="./images/6_episode.jpg" width="238" /> <img src="./images/6_player_details.jpg" width="238" /> 
+<img src="./images/Episode.jpg" width="238" /> <img src="./images/Player-details.jpg" width="238" /> 
+
+### Double players
+<img src="./images/Double-players.jpg" width="238" /> 
 
 ### Youtube share, syndicates and media
-<img src="./images/7_youtube_share.jpg" width="238" /> <img src="./images/7_youtube_syndicate.jpg" width="238" /> <img src="./images/7_youtube_shared.jpg" width="238" /> <img src="./images/7_youtube_episode.jpg" width="238" /> 
+<img src="./images/Youtube_share.jpg" width="238" />  <img src="./images/Youtube_shared.jpg" width="238" /> 
 
-### Multiple queues and media easy access
-<img src="./images/4_queue.jpg" width="238" /> <img src="./images/4_episodes.jpg" width="238" />
 
 ### Usage customization
-<img src="./images/8_speed.jpg" width="238" /> <img src="./images/8_swipe_setting.jpg" width="238" /> <img src="./images/8_swipe_setting1.jpg" width="238" /> <img src="./images/8_swipe_actions.jpg" width="238" /> <img src="./images/8_multi_selection.jpg" width="238" />
+<img src="./images/Speed-popup.jpg" width="238" /> <img src="./images/swipe-setting.jpg" width="238" /> <img src="./images/Swipe-settings-menu.jpg" width="238" /> <img src="./images/Stream-options-menu.jpg" width="238" /> <img src="./images/Episodes-multi-select-menu.jpg" width="238" />
 
 ### Get feeds online
-<img src="./images/9_feed_search.jpg" width="238" /> <img src="./images/9_online_feed_info.jpg" width="238" /> <img src="./images/91_online_episodes.jpg" width="238" />
+<img src="./images/Add-feeds.jpg" width="238" /> <img src="./images/9_online_feed_info.jpg" width="238" /> <img src="./images/91_online_episodes.jpg" width="238" />
 
 ### Android Auto
 <img src="./images/92_Auto_list.png" width="238" /> <img src="./images/92_Auto_player.png" width="238" />

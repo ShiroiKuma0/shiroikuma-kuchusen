@@ -1,3 +1,8 @@
+# 12.1.3
+
+* in FeedDetails screen, removed the redundant feed image in the header
+* update screenshots in Readme
+
 # 12.1.2
 
 * dice icon in Queues screen continues to next in queue
