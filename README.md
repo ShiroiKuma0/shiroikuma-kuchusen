@@ -298,6 +298,8 @@ For more details of the changes, see the [Changelog](changelog.md)
 ### Media lists, queues, and easy access
 <img src="./images/Episodes-sort.jpg" width="238" /> <img src="./images/Queues-menu.jpg" width="238" /> <img src="./images/Facets-menu.jpg" width="238" />
 
+<img src="./images/Stream-options-menu.jpg" width="238" /> <img src="./images/Episodes-multi-select-menu.jpg" width="238" />
+
 ### Media and player details
 <img src="./images/Episode.jpg" width="238" /> <img src="./images/Player-details.jpg" width="238" /> 
 
@@ -309,7 +311,7 @@ For more details of the changes, see the [Changelog](changelog.md)
 
 
 ### Usage customization
-<img src="./images/Speed-popup.jpg" width="238" /> <img src="./images/swipe-setting.jpg" width="238" /> <img src="./images/Swipe-settings-menu.jpg" width="238" /> <img src="./images/Stream-options-menu.jpg" width="238" /> <img src="./images/Episodes-multi-select-menu.jpg" width="238" />
+<img src="./images/Speed-popup.jpg" width="238" /> <img src="./images/swipe-setting.jpg" width="238" /> <img src="./images/Swipe-settings-menu.jpg" width="238" /> 
 
 ### Get feeds online
 <img src="./images/Add-feeds.jpg" width="238" /> <img src="./images/9_online_feed_info.jpg" width="238" /> <img src="./images/91_online_episodes.jpg" width="238" />
