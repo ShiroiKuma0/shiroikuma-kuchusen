@@ -277,7 +277,7 @@ For more details of the changes, see the [Changelog](changelog.md)
 ## Screenshots
 
 ### Settings
-<img src="./images/Drawer.jpg" width="238" /> <img src="./images/Setting-UI.jpg" width="238" /> <img src="./images/2_setting01.jpg" width="238" /> 
+<img src="./images/Drawer.jpg" width="238" /> <img src="./images/Setting-UI.jpg" width="238" /> 
 
 <img src="./images/Settings-Import-Export.jpg" width="238" /> <img src="./images/Settings-Network-Storage.jpg" width="238" /> 
 <img src="./images/Settings-Playback.jpg" width="238" /> 
@@ -290,15 +290,13 @@ For more details of the changes, see the [Changelog](changelog.md)
 ### Feed
 <img src="./images/Feed-filter.jpg" width="238" /> <img src="./images/Feed-filter-ratings.jpg" width="238" /> <img src="./images/Feed-list-player.jpg" width="238" />
 
-<img src="./images/Feed-menu.jpg" width="238" /> 
-<img src="./images/Feed-Syndicate.jpg" width="238" /> 
+<img src="./images/Feed-menu.jpg" width="238" /> <img src="./images/Feed-Syndicate.jpg" width="238" /> 
 
 ### Feed settings
 <img src="./images/Feed-settings.jpg" width="238" /> <img src="./images/Feed-settings-policy.jpg" width="238" />
 
 ### Media lists, queues, and easy access
-<img src="./images/Episodes-sort.jpg" width="238" />
-<img src="./images/Queues-menu.jpg" width="238" /> <img src="./images/Facets-menu.jpg" width="238" />
+<img src="./images/Episodes-sort.jpg" width="238" /> <img src="./images/Queues-menu.jpg" width="238" /> <img src="./images/Facets-menu.jpg" width="238" />
 
 ### Media and player details
 <img src="./images/Episode.jpg" width="238" /> <img src="./images/Player-details.jpg" width="238" /> 
