@@ -7,12 +7,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
-import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
 import androidx.core.content.ContextCompat
@@ -48,12 +46,11 @@ class PlaybackStarter(private val media: Episode) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
 //        showStackTrace()
         var media_ = media
-        var sameMedia = true
-        if (theatres[playerId].mPlayer?.curEpisode?.id != media.id || force) {
+        var sameMedia = !force
+        if (theatres[playerId].mPlayer?.curEpisode?.id != media.id) {
             sameMedia = false
             media_ = checkAndMarkDuplicates(media)
-            episodeChangedWhenScreenOff = true
-            theatres[playerId].mPlayer?.setAsCurEpisode(media_, force)
+            theatres[playerId].mPlayer?.setAsCurEpisode(media_)
         }
         theatres[playerId].mPlayer?.shouldRepeat = repeat
         Logd(TAG, "start: status: ${theatres[playerId].mPlayer?.status} sameMedia: $sameMedia")
@@ -68,7 +65,7 @@ class PlaybackStarter(private val media: Episode) {
                     theatres[playerId].mPlayer?.pause(false)
                     if (!sameMedia) {
                         theatres[playerId].mPlayer?.isSkipping = true
-                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
                         sleepManager?.restart()
                     }
                 }
@@ -76,19 +73,19 @@ class PlaybackStarter(private val media: Episode) {
                     if (sameMedia) theatres[playerId].mPlayer?.play()
                     else {
                         theatres[playerId].mPlayer?.isSkipping = true
-                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
                     }
                     sleepManager?.restart()
                 }
                 theatres[playerId].mPlayer!!.isStopped -> {
                     // TODO: test
 //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
-                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
                     sleepManager?.restart()
                 }
                 // TODO: test
                 theatres[playerId].mPlayer!!.isInitialized -> {
-                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
                     sleepManager?.restart()
                 }
                 else -> {

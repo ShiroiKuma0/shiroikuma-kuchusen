@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 56
-        versionName = "12.1.3"
+        versionCode = 57
+        versionName = "12.1.4"
 
         ndkVersion = "29.0.14206865"
 
@@ -206,7 +206,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
 
-    implementation("com.github.XilinJia:PodciniLib:1.0.4")
+    implementation("com.github.XilinJia:PodciniLib:1.0.5")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
@@ -229,12 +229,12 @@ dependencies {
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
 
-    implementation("io.github.pdvrieze.xmlutil:core:1.0.0-rc2")
-    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc2")
-    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc2")
+    implementation("io.github.pdvrieze.xmlutil:core:1.0.0-rc3")
+    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc3")
+    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc3")
 
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
-    implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:5.4.0")
     implementation("com.squareup.okio:okio:3.17.0")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")

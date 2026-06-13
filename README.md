@@ -374,7 +374,7 @@ For more details of the changes, see the [Changelog](changelog.md)
 ### Double players
 <img src="./images/Double-players.jpg" width="238" /> 
 
-### Youtube share, syndicates and media
+### Youtube share and media
 <img src="./images/Youtube_share.jpg" width="238" />  <img src="./images/Youtube_shared.jpg" width="238" /> 
 
 

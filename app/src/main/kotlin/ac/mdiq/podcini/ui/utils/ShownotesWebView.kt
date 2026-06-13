@@ -68,7 +68,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
 
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
-                Logd(TAG, "Page finished")
+//                Logd(TAG, "Page finished")
                 pageFinishedListener?.invoke()
             }
         }

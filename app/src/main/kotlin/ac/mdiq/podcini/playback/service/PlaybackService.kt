@@ -413,9 +413,6 @@ class PlaybackService : MediaLibraryService() {
         return mediaSession
     }
 
-    /**
-     * Handles media button events. return: keycode was handled
-     */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
         if (theatres[0].mPlayer == null) return false
         LogtFor(TAG, theatres[0].mPlayer?.curEpisode?.id, "Handling keycode: $keycode")
@@ -545,9 +542,6 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    /**
-     * @param bluetooth true if the event for unpausing came from bluetooth
-     */
     @RequiresPermission(Manifest.permission.VIBRATE)
     private fun unpauseIfPauseOnDisconnect(bluetooth: Boolean) {
         if (theatres[0].mPlayer != null) {
@@ -559,8 +553,6 @@ class PlaybackService : MediaLibraryService() {
         }
         if (transientPause) {
             transientPause = false
-            // TODO: need to handle for 31?
-//            if (Build.VERSION.SDK_INT >= 31) return
             when {
                 !bluetooth && appPrefs.unpauseOnHeadsetReconnect -> theatres[0].mPlayer?.play()
                 bluetooth && appPrefs.unpauseOnBluetoothReconnect -> {
@@ -646,9 +638,6 @@ class PlaybackService : MediaLibraryService() {
 
         var isCasting: Boolean = false
             internal set
-
-        // TODO: this appears not used
-        var episodeChangedWhenScreenOff: Boolean = false
 
         /**
          * Is true if the service was running, but paused due to headphone disconnect

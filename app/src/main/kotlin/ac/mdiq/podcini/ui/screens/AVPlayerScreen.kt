@@ -754,11 +754,10 @@ fun AVPlayerScreen() {
             } else {
                 val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
                 if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) IconButton(onClick = {
-//                    vm.switchToAudioOnly = true
                     if (theatres[vm.playerId].mPlayer?.curEpisode != null) {
-                        upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = false }
-                        theatres[vm.playerId].mPlayer?.pause(reinit = true)
-                        PlaybackStarter(theatres[vm.playerId].mPlayer?.curEpisode!!).shouldStreamThisTime(null).start(force = true)
+                        val media = upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = false }
+                        PlaybackStarter(media).shouldStreamThisTime(null).start(force = true)
+                        theatres[vm.playerId].mPlayer?.playingVideo = false
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_audiotrack_24), contentDescription = "audio only") }
                 var sleepIconRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.drawable.ic_sleep else R.drawable.ic_sleep_off) }
@@ -822,9 +821,9 @@ fun AVPlayerScreen() {
             val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
-                    upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = true }
-                    theatres[vm.playerId].mPlayer?.pause(reinit = true)
-                    PlaybackStarter(theatres[vm.playerId].mPlayer?.curEpisode!!).shouldStreamThisTime(null).start(force = true)
+                    val media = upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = true }
+                    PlaybackStarter(media).shouldStreamThisTime(null).start(force = true)
+                    theatres[vm.playerId].mPlayer?.playingVideo = true
                 })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
                 if (theatres[vm.playerId].mPlayer?.curEpisode != null) {

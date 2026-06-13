@@ -1,0 +1,6 @@
+* adjusted media buffer a bit to mitigate possible YT media hiccups at higher speed
+* ensure to cancel previous data source preparation when new request is launched
+* in PlayerDetailed screen
+	* fixed the defunct force-video button on the top bar (assembling video stream may take a couple seconds)
+	* amended audio-only button on the top video bar (removing video stream and resetting audio stream)
+* added media title natural sorting algorithm, applied in FeedDetails and Queues screens

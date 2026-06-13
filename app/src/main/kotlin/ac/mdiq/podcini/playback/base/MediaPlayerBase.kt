@@ -12,7 +12,6 @@ import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.lastTimerValue
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isAutoController
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -83,6 +82,7 @@ import kotlin.math.min
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -192,8 +192,7 @@ abstract class MediaPlayerBase {
         var pitch = SPEED_USE_GLOBAL
         if (media != null) {
             pitch = curPitch
-            if (pitch == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) pitch =
-                feedsMap[media.feedId!!]!!.playPitch
+            if (pitch == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) pitch = feedsMap[media.feedId!!]!!.playPitch
         }
         if (pitch == SPEED_USE_GLOBAL) pitch = appPrefs.playbackPitch
         return Pair(speed, pitch)
@@ -219,37 +218,30 @@ abstract class MediaPlayerBase {
         isSpeedForward = !isSpeedForward
     }
 
-    fun setAsCurEpisode(episode: Episode?, force: Boolean = false) {
+    fun setAsCurEpisode(episode: Episode?) {
         Logd(TAG, "setAsCurEpisode episode: ${episode?.title}")
         //        showStackTrace()
-        if (episode != null && episode.id == curEpisode?.id && !force) return
+        if (episode != null && episode.id == curEpisode?.id) return
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
         val episode_ = if (episode != null) episodeById(episode.id) else null
         when {
             episode_ != null -> {
                 bitrate = 0
                 curEpisode = episode_
-                playingVideo =
-                    (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
+                playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
                 skipSilence = null
                 shouldRepeat = false
                 curSpeed = SPEED_USE_GLOBAL
                 Logd(TAG, "setAsCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
-                    subscribeEpisode(
-                        curEpisode!!,
-                        MonitorEntity(
-                            TAG, onInit = { },
-                            onChanges = { e, f ->
-                                if (e.id == curEpisode?.id) {
-                                    curEpisode = e
-                                    Logd(
-                                        TAG,
-                                        "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}"
-                                    )
-                                }
+                    subscribeEpisode(curEpisode!!, MonitorEntity(TAG, onInit = { },
+                        onChanges = { e, f ->
+                            if (e.id == curEpisode?.id) {
+                                curEpisode = e
+                                Logd(TAG, "setAsCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
                             }
-                        ))
+                        }
+                    ))
                     if (!actQueue.contains(curEpisode!!)) {
                         val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
                         if (qes.isNotEmpty()) {
@@ -333,7 +325,6 @@ abstract class MediaPlayerBase {
         var nextItem = episodeById(nextQE.episodeId) ?: return null
         Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
         nextItem = checkAndMarkDuplicates(nextItem)
-        episodeChangedWhenScreenOff = true
         return nextItem
     }
 
@@ -346,14 +337,7 @@ abstract class MediaPlayerBase {
         val media = curEpisode!!
         val needStreaming = media.feed?.isLocal != true && media.fileUrl.isNullOrBlank()
         if (needStreaming && !isStreamingCapable(media)) return
-        prepareMedia(
-            playable = media,
-            streaming = needStreaming,
-            startWhenPrepared = true,
-            prepareImmediately = true,
-            forceReset = true,
-            doPostPlayback = false
-        )
+        prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
 
     fun onSleepTimerUpdate(event: FlowEvent.SleepTimerUpdatedEvent) {
@@ -365,26 +349,7 @@ abstract class MediaPlayerBase {
             }
 
             event.getTimeLeft() < SleepManager.SLEEP_TIMER_ENDING_THRESHOLD -> {
-                val multiplicators = floatArrayOf(
-                    0.1f,
-                    0.1f,
-                    0.2f,
-                    0.2f,
-                    0.3f,
-                    0.3f,
-                    0.4f,
-                    0.4f,
-                    0.5f,
-                    0.5f,
-                    0.6f,
-                    0.6f,
-                    0.7f,
-                    0.7f,
-                    0.8f,
-                    0.8f,
-                    0.9f,
-                    0.9f
-                )
+                val multiplicators = floatArrayOf(0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.3f, 0.4f, 0.4f, 0.5f, 0.5f, 0.6f, 0.6f, 0.7f, 0.7f, 0.8f, 0.8f, 0.9f, 0.9f)
                 val multiplicator = multiplicators[min(multiplicators.size - 1, (event.getTimeLeft().toInt() / 1000))]
                 Logd(TAG, "onSleepTimerAlmostExpired: $multiplicator")
                 setVolume(multiplicator, multiplicator)
@@ -396,9 +361,7 @@ abstract class MediaPlayerBase {
 
     fun onBufferUpdate(event: FlowEvent.BufferUpdateEvent) {
         if (event.episode.id != curEpisode?.id) return
-        if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && getDuration() > 0) upsertBlk(
-            curEpisode!!
-        ) { it.duration = getDuration() }
+        if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && getDuration() > 0) upsertBlk(curEpisode!!) { it.duration = getDuration() }
     }
 
     fun onEpisodeMediaEvent(event: FlowEvent.EpisodeMediaEvent) {
@@ -421,7 +384,7 @@ abstract class MediaPlayerBase {
         cancelPositionSaver()
         positionSaverJob = scope.launch {
             while (isActive) {
-                delay(delayInterval)
+                delay(delayInterval.milliseconds)
                 val curPosition = getPosition()
                 val curDuration = getDuration()
                 Logd(TAG, "positionSaverTick currentPosition: $curPosition")
@@ -463,14 +426,9 @@ abstract class MediaPlayerBase {
     abstract fun getPlayerPosition(): Int
 
     fun getPosition(): Int {
-        var retVal = Episode.INVALID_TIME
-//        showStackTrace()
-        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(
-            TAG,
-            curEpisode?.id,
-            "exoPlayer playbackState ${castPlayer?.playbackState} player status $status"
-        )
-        retVal = getPlayerPosition()
+        //        showStackTrace()
+        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode?.id, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
+        var retVal = getPlayerPosition()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
 //        Logd(TAG, "getPosition final position: $retVal")
@@ -492,57 +450,21 @@ abstract class MediaPlayerBase {
 
     protected abstract fun setCastPlayImmediately()
 
-    /**
-     * Starts or prepares playback of the specified EpisodeMedia object. If another EpisodeMedia object is already being played, the currently playing
-     * episode will be stopped and replaced with the new EpisodeMedia object. If the EpisodeMedia object is already being played, the method will
-     * not do anything.
-     * Whether playback starts immediately depends on the given parameters. See below for more details.
-     *
-     * States:
-     * The end state depends on the given parameters.
-     *
-     * If 'prepareImmediately' is set to true, the method will go into PREPARING state and after that into PREPARED state. If
-     * 'startWhenPrepared' is set to true, the method will additionally go into PLAYING state.
-     *
-     * If an unexpected error occurs while loading the EpisodeMedia's metadata or while setting the MediaPlayers data source, the object
-     * will enter the ERROR state.
-     *
-     * This method is executed on an internal executor service.
-     *
-     * @param playable           The EpisodeMedia object that is supposed to be played. This parameter must not be null.
-     * @param streaming             The type of playback. If false, the EpisodeMedia object MUST provide access to a locally available file via
-     * getLocalMediaUrl. If true, the EpisodeMedia object MUST provide access to a resource that can be streamed by
-     * the Android MediaPlayer via getStreamUrl.
-     * @param startWhenPrepared  Sets the 'startWhenPrepared' flag. This flag determines whether playback will start immediately after the
-     * episode has been prepared for playback. Setting this flag to true does NOT mean that the episode will be prepared
-     * for playback immediately (see 'prepareImmediately' parameter for more details)
-     * @param prepareImmediately Set to true if the method should also prepare the episode for playback.
-     */
-    fun prepareMedia(
-        playable: Episode,
-        streaming: Boolean,
-        startWhenPrepared: Boolean,
-        prepareImmediately: Boolean,
-        forceReset: Boolean = false,
-        doPostPlayback: Boolean = true
-    ) {
-        Logd(
-            TAG,
-            "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} "
-        )
-        //       showStackTrace()
+    var dataSourceJob: Job? = null
+
+    fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = true) {
+        Logd(TAG, "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
+//        showStackTrace()
         if (!forceReset && playable.id == prevMedia?.id && isPlaying) {
             Logd(TAG, "prepareMedia Method call was ignored: media file already playing.")
             return
         }
-        if (curEpisode != null) {
+        dataSourceJob?.cancel()
+        if (curEpisode != null && curEpisode?.id != playable.id) {
             prevMedia = curEpisode
             if (doPostPlayback) {
                 Logd(TAG, "prepareMedia: curEpisode exist status=$status")
-                Logd(
-                    TAG,
-                    "prepareMedia starts new playable:${playable.id} curEpisode:${curEpisode!!.id} prevMedia:${prevMedia?.id}"
-                )
+                Logd(TAG, "prepareMedia starts new playable:${playable.id} curEpisode:${curEpisode!!.id} prevMedia:${prevMedia?.id}")
                 // set temporarily to pause in order to update list with current position
 //                if (isPlaying || isPaused)
                 onPlaybackPause(curEpisode, curEpisode?.position ?: -1)
@@ -555,13 +477,7 @@ abstract class MediaPlayerBase {
 
         if (isCasting) setCastPlayImmediately()
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
-        if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope {
-            upsert(playable) {
-                it.setPlayState(
-                    EpisodeState.PROGRESS
-                )
-            }
-        }
+        if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
         setAsCurEpisode(playable)
 
         this.isStreaming = streaming
@@ -573,7 +489,7 @@ abstract class MediaPlayerBase {
         prefSpeedOf(curEpisode).let { (sp, pi) -> setPlaybackParams(sp, pi) }
         setRepeat(shouldRepeat)
         setSkipSilence()
-        CoroutineScope(Dispatchers.IO).launch {
+        dataSourceJob = CoroutineScope(Dispatchers.IO).launch {
             try {
                 when {
                     streaming -> {
@@ -628,11 +544,6 @@ abstract class MediaPlayerBase {
         }
     }
 
-    /**
-     * Resumes playback if the PSMP object is in PREPARED or PAUSED state. If the PSMP object is in an invalid state.
-     * nothing will happen.
-     * This method is executed on an internal executor service.
-     */
     fun play() {
         Logd(TAG, "play(): status: $status playbackState: ${castPlayer?.playbackState}")
         if (isPaused || isPrepared) {
@@ -653,11 +564,6 @@ abstract class MediaPlayerBase {
         )
     }
 
-    /**
-     * Saves the current position and pauses playback. Note that, if audiofocus is abandoned, the lockscreen controls will also disapear.
-     * This method is executed on an internal executor service.
-     * @param reinit is true if service should reinit after pausing if the media file is being streamed
-     */
     fun pause(reinit: Boolean) {
         if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
@@ -674,10 +580,6 @@ abstract class MediaPlayerBase {
 
     internal abstract fun setSource()
 
-    /**
-     * Prepared media player for playback if the service is in the INITALIZED state.
-     * This method is executed on an internal executor service.
-     */
     internal fun prepare() {
         Logd(TAG, "prepare Preparing media player: status: $status isStartWhenPrepared: $isStartWhenPrepared")
         if (isInitialized) {
@@ -690,31 +592,14 @@ abstract class MediaPlayerBase {
         } else Logt(TAG, "prepare() call ignored with status: $status")
     }
 
-    /**
-     * Resets the media player and moves it into INITIALIZED state.
-     * This method is executed on an internal executor service.
-     */
     fun reinit() {
         Logd(TAG, "reinit() called")
         when {
-            curEpisode != null -> prepareMedia(
-                playable = curEpisode!!,
-                streaming = isStreaming,
-                startWhenPrepared = isStartWhenPrepared,
-                prepareImmediately = false,
-                forceReset = true,
-                doPostPlayback = true
-            )
-
+            curEpisode != null -> prepareMedia(playable = curEpisode!!, streaming = isStreaming, startWhenPrepared = isStartWhenPrepared, prepareImmediately = false, forceReset = true, doPostPlayback = true)
             else -> Logd(TAG, "Call to reinit: media and mediaPlayer were null, ignored")
         }
     }
 
-    /**
-     * Seeks to the specified position. If the PSMP object is in an invalid state, this method will do nothing.
-     * Invalid time values (< 0) will be ignored.
-     * This method is executed on an internal executor service.
-     */
     fun seekTo(t_: Int) {
         var t = t_
         if (t < 0) t = 0
@@ -737,10 +622,6 @@ abstract class MediaPlayerBase {
         }
     }
 
-    /**
-     * Seek a specific position from the current position
-     * @param delta offset from current position (positive or negative)
-     */
     fun seekDelta(delta: Int) {
         val curPosition = getPosition()
         if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
@@ -763,21 +644,6 @@ abstract class MediaPlayerBase {
 
     internal abstract fun notifyWidget()
 
-    /**
-     * Internal method that handles end of playback.
-     * Currently, it has 5 use cases:
-     *  * Media playback has completed: call with (true, false, true, true)
-     *  * User asks to skip to next episode: call with (false, true, true, true)
-     *  * Skipping to next episode due to playback error: call with (false, false, true, true)
-     *  * Stopping the media player: call with (false, false, false, true)
-     *  * We want to change the media player implementation: call with (false, false, false, false)
-     *
-     * @param hasEnded         If true, we assume the current media's playback has ended, for
-     * purposes of post playback processing.
-     * @param wasSkipped       Whether the user chose to skip the episode (by pressing the skip button).
-     * @param shouldContinue   If true, the media player should try to load, and possibly play,
-     * the next item, based on the user preferences and whether such item exists.
-     */
     internal fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true) {
         showStackTrace()
         if (curEpisode == null) {
@@ -818,10 +684,7 @@ abstract class MediaPlayerBase {
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     curSpeed = SPEED_USE_GLOBAL
                     cancelPositionSaver()
-                    Logd(
-                        TAG,
-                        "endPlayback useRingTone: ${appPrefs.useRingTone} ringToneUriString: ${appPrefs.ringToneUriString}"
-                    )
+                    Logd(TAG, "endPlayback useRingTone: ${appPrefs.useRingTone} ringToneUriString: ${appPrefs.ringToneUriString}")
                     if (appPrefs.useRingTone && !appPrefs.ringToneUriString.isNullOrBlank() && (nextMedia.feed?.audioType != AudioType.MUSIC.code || !appPrefs.disableRingToneOnMusic)) playChime()
 
                     val needStreaming = (nextMedia.feed?.isLocal != true && nextMedia.fileUrl.isNullOrBlank())
@@ -831,12 +694,7 @@ abstract class MediaPlayerBase {
                             return
                         }
                     }
-                    prepareMedia(
-                        playable = nextMedia,
-                        streaming = needStreaming,
-                        startWhenPrepared = wasPlayng,
-                        prepareImmediately = wasPlayng
-                    )
+                    prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = wasPlayng, prepareImmediately = wasPlayng)
                     if (widgetId.isNotEmpty()) notifyWidget()
                 }
             }
@@ -855,9 +713,6 @@ abstract class MediaPlayerBase {
         }
     }
 
-    /**
-     * Releases internally used resources. This method should only be called when the object is not used anymore.
-     */
     abstract fun shutdown()
 
     open fun setAudioTrack(track: Int) {}
@@ -869,11 +724,6 @@ abstract class MediaPlayerBase {
         endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
     }
 
-    /**
-     * @param currentPosition  current position in a media file in ms
-     * @param lastPlayedTime  timestamp when was media paused
-     * @return  new rewinded position for playback in milliseconds
-     */
     protected fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
         if (currentPosition > 0 && lastPlayedTime > 0) {
             val elapsedTime = nowInMillis() - lastPlayedTime
@@ -1020,18 +870,6 @@ abstract class MediaPlayerBase {
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
     }
 
-    /**
-     * Sets the player status of the PSMP object. PlayerStatus and media attributes have to be set at the same time
-     * so that getPSMPInfo can't return an invalid state (e.g. status is PLAYING, but media is null).
-     * This method will notify the callback about the change of the player status (even if the new status is the same
-     * as the old one).
-     * It will also call [onPlaybackPause] or [onPlaybackStart]
-     * depending on the status change.
-     * @param newStatus The new PlayerStatus. This must not be null.
-     * @param media  The new playable object of the PSMP object. This can be null.
-     * @param position  The position to be set to the current EpisodeMedia object in case playback started or paused.
-     * Will be ignored if given the value of [Episode.INVALID_TIME].
-     */
     // TODO: this routine can be very problematic!!!
     @Synchronized
     protected fun setPlayerStatus(newStatus: PlayerStatus, media: Episode?, position: Int = Episode.INVALID_TIME) {
@@ -1044,16 +882,10 @@ abstract class MediaPlayerBase {
             if (!isUnknown) {
                 val position_ = if (position == Episode.INVALID_TIME) media.position else position
                 when {
-                    oldStatus == PlayerStatus.PLAYING && !isPlaying && media.id == prevMedia?.id -> onPlaybackPause(
-                        media,
-                        position_
-                    )
+                    oldStatus == PlayerStatus.PLAYING && !isPlaying && media.id == prevMedia?.id -> onPlaybackPause(media, position_)
 
                     oldStatus != PlayerStatus.PLAYING && isPlaying -> onPlaybackStart(media, position_)
-                    else -> Logd(
-                        TAG,
-                        "setPlayerStatus case else, isPlaying: $isPlaying ${media.id == prevMedia?.id} not handled"
-                    )
+                    else -> Logd(TAG, "setPlayerStatus case else, isPlaying: $isPlaying ${media.id == prevMedia?.id} not handled")
                 }
             }
         }
@@ -1065,11 +897,7 @@ abstract class MediaPlayerBase {
             isPrepared -> {
                 savePlayerStatus(curEpisode, status)
                 if (curEpisode != null) runOnIOScope {
-                    try {
-                        loadChapters(curEpisode!!, false)
-                    } catch (e: Throwable) {
-                        LogsFor(TAG, curEpisode?.id, e, "Error loading chapters for: ${curEpisode?.title}")
-                    }
+                    try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { LogsFor(TAG, curEpisode?.id, e, "Error loading chapters for: ${curEpisode?.title}") }
                 }
             }
 
@@ -1128,8 +956,7 @@ abstract class MediaPlayerBase {
         val asl = mutableListOf<AudioSpec>()
 //        Logd(TAG, "useLocale: $useLocale useCodex: $useCodex useABPS: $useABPS audioIndex: $audioIndex")
         Logd(TAG, "setAudioStream media.feed?.preferredLnaguages: ${media.feed?.preferredLnaguages?.joinToString()}")
-        val useLocales = media.feed?.preferredLnaguages?.ifEmpty { appAttribs.langsPreferred }
-            ?.ifEmpty { listOf("en-US", "en-GB", "en") } ?: listOf("en-US", "en-GB", "en")
+        val useLocales = media.feed?.preferredLnaguages?.ifEmpty { appAttribs.langsPreferred }?.ifEmpty { listOf("en-US", "en-GB", "en") } ?: listOf("en-US", "en-GB", "en")
         //        useLocales.forEach { Logd(TAG, "setAudioStream useLocales: [$it]") }
         val langset = mutableSetOf<String>()
         for (s in audioSpecs) {

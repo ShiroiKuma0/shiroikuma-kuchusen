@@ -94,14 +94,14 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
             }
             val comparator: Comparator<Episode> = Comparator { f1: Episode?, f2: Episode? ->
                 when (sortOrder) {
-                    EPISODE_TITLE_ASC -> itemTitle(f1).compareTo(itemTitle(f2))
-                    EPISODE_TITLE_DESC -> itemTitle(f2).compareTo(itemTitle(f1))
+                    EPISODE_TITLE_ASC -> itemTitle(f1).compareToNatural(itemTitle(f2))
+                    EPISODE_TITLE_DESC -> itemTitle(f2).compareToNatural(itemTitle(f1))
                     DATE_ASC -> pubDate(f1).compareTo(pubDate(f2))
                     DATE_DESC -> pubDate(f2).compareTo(pubDate(f1))
                     DURATION_ASC -> duration(f1).compareTo(duration(f2))
                     DURATION_DESC -> duration(f2).compareTo(duration(f1))
-                    EPISODE_FILENAME_ASC -> itemLink(f1).compareTo(itemLink(f2))
-                    EPISODE_FILENAME_DESC -> itemLink(f2).compareTo(itemLink(f1))
+                    EPISODE_FILENAME_ASC -> itemLink(f1).compareToNatural(itemLink(f2))
+                    EPISODE_FILENAME_DESC -> itemLink(f2).compareToNatural(itemLink(f1))
                     PLAYED_DATE_ASC -> playDate(f1).compareTo(playDate(f2))
                     PLAYED_DATE_DESC -> playDate(f2).compareTo(playDate(f1))
                     COMPLETED_DATE_ASC -> completeDate(f1).compareTo(completeDate(f2))
@@ -118,8 +118,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     COMMENT_DATE_DESC -> commentDate(f2).compareTo(commentDate(f1))
                     TRACK_NUMBER_ASC -> trackNumber(f1).compareTo(trackNumber(f2))
                     TRACK_NUMBER_DESC -> trackNumber(f2).compareTo(trackNumber(f1))
-                    FEED_TITLE_ASC -> feedTitle(f1).compareTo(feedTitle(f2))
-                    FEED_TITLE_DESC -> feedTitle(f2).compareTo(feedTitle(f1))
+                    FEED_TITLE_ASC -> feedTitle(f1).compareToNatural(feedTitle(f2))
+                    FEED_TITLE_DESC -> feedTitle(f2).compareToNatural(feedTitle(f1))
                     SIZE_ASC -> size(f1).compareTo(size(f2))
                     SIZE_DESC -> size(f2).compareTo(size(f1))
                 }
@@ -174,7 +174,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 //                }
             }
         }
-
 
         private fun pubDate(item: Episode?): Long = item?.pubDate ?: nowInMillis()
 
@@ -268,6 +267,35 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     }
                 }
             }
+        }
+
+        fun String.compareToNatural(other: String): Int {
+            var i = 0
+            var j = 0
+            while (i < this.length && j < other.length) {
+                val c1 = this[i]
+                val c2 = other[j]
+                if (c1.isDigit() && c2.isDigit()) {
+                    var num1Str = ""
+                    while (i < this.length && this[i].isDigit()) {
+                        num1Str += this[i]
+                        i++
+                    }
+                    var num2Str = ""
+                    while (j < other.length && other[j].isDigit()) {
+                        num2Str += other[j]
+                        j++
+                    }
+                    val n1 = num1Str.toLong()
+                    val n2 = num2Str.toLong()
+                    if (n1 != n2) return n1.compareTo(n2)
+                } else {
+                    if (c1 != c2) return c1.compareTo(c2)
+                    i++
+                    j++
+                }
+            }
+            return (this.length - i).compareTo(other.length - j)
         }
     }
 }

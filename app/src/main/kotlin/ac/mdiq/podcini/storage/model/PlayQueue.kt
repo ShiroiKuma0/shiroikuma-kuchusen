@@ -2,6 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.automation.AutoDownloadAlgorithm
 import ac.mdiq.podcini.automation.AutoEnqueueAlgorithm
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.persistOrdered
@@ -11,8 +12,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.utils.Logd
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList

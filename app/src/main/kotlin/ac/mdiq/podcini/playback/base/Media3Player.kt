@@ -93,14 +93,20 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.LoadControl
 import androidx.media3.exoplayer.SeekParameters
+import androidx.media3.exoplayer.analytics.PlayerId
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
+import androidx.media3.exoplayer.source.TrackGroupArray
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.exoplayer.trackselection.ExoTrackSelection
+import androidx.media3.exoplayer.upstream.Allocator
+import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
 import kotlinx.coroutines.CoroutineScope
@@ -271,8 +277,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         }
                         PlaybackException.ERROR_CODE_IO_UNSPECIFIED -> {
 //                            LogtFor(TAG, curEpisode?.id, "Caught Source Error 2000 (NPE). Attempting a clean recovery...")
-                            val cause = error.cause
-                            when (cause) {
+                            when (val cause = error.cause) {
                                 is HttpDataSource.InvalidResponseCodeException -> LogtFor(TAG, curEpisode?.id, "Server rejected request. HTTP ${cause.responseCode}: ${cause.message}")
                                 is HttpDataSource.HttpDataSourceException -> LogtFor(TAG, curEpisode?.id, "HTTP Error playing media. Response Code: ${cause.message}")
                                 is java.io.FileNotFoundException -> LogtFor(TAG, curEpisode?.id, "Local file or cache source missing.")
@@ -493,17 +498,45 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
     }
 
+    class DynamicLoadControl : LoadControl {
+        private val sharedAllocator = DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE)
+        @Volatile
+        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 40_000, maxBufferMs = 90_000, playbackMs = 3500, rebufferMs = 8000, prioritizeTime = true)
+
+        private fun createDefaultDelegate(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean): DefaultLoadControl {
+            return DefaultLoadControl.Builder()
+                .setAllocator(sharedAllocator)
+                .setBufferDurationsMs(minBufferMs, maxBufferMs, playbackMs, rebufferMs)
+                .setPrioritizeTimeOverSizeThresholds(prioritizeTime)
+                .build()
+        }
+
+        // TODO: use it at play time
+        fun updateBufferParameters(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean) {
+            currentDelegate = createDefaultDelegate(minBufferMs, maxBufferMs, playbackMs, rebufferMs, prioritizeTime)
+        }
+
+        override fun onPrepared(playerId: PlayerId) = currentDelegate.onPrepared(playerId)
+        override fun onStopped(playerId: PlayerId) = currentDelegate.onStopped(playerId)
+        override fun onReleased(playerId: PlayerId) = currentDelegate.onReleased(playerId)
+        override fun getAllocator(playerId: PlayerId): Allocator = sharedAllocator
+        override fun getBackBufferDurationUs(playerId: PlayerId): Long = currentDelegate.getBackBufferDurationUs(playerId)
+        override fun retainBackBufferFromKeyframe(playerId: PlayerId): Boolean = currentDelegate.retainBackBufferFromKeyframe(playerId)
+        override fun onTracksSelected(parameters: LoadControl.Parameters, trackGroups: TrackGroupArray, trackSelections: Array<out ExoTrackSelection?>) = currentDelegate.onTracksSelected(parameters, trackGroups, trackSelections)
+        override fun shouldContinueLoading(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldContinueLoading(parameters)
+        override fun shouldStartPlayback(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldStartPlayback(parameters)
+    }
+
     override fun createNativePlayer() {
         if (exoPlayer != null) return
         timeIt("$TAG createNativePlayer")
 
-        val loadControl = DefaultLoadControl.Builder()
-        loadControl.setBufferDurationsMs(30_000, 60_000, 3_500, 5_000).setPrioritizeTimeOverSizeThresholds(true)
+//        val loadControl = DefaultLoadControl.Builder()
+//        loadControl.setBufferDurationsMs(40_000, 90_000, 3_500, 8_000).setPrioritizeTimeOverSizeThresholds(true)
 
+        val loadControl = DynamicLoadControl()
         val audioOffloadPreferences = AudioOffloadPreferences.Builder()
             .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
-//            .setIsGaplessSupportRequired(true)
-//            .setIsSpeedChangeSupportRequired(true)
             .build()
         Logd(TAG, "createNativePlayer creating exoPlayer lr: $lr")
 
@@ -529,14 +562,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
-            .setUpstreamDataSourceFactory(upstreamFactory) // Pass the factory directly!
+            .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         val recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(recordingFactory)
 
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
-            .setLoadControl(loadControl.build())
+            .setLoadControl(loadControl)
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
@@ -570,50 +603,52 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bufferingUpdateListener = null
     }
 
-    fun formMediaSource(media: Episode, needVideo: Boolean, client:  SourceGatewayClient): MediaSource? {
+    fun mediaSourceFromClient(media: Episode, needVideo: Boolean, client:  SourceGatewayClient): MediaSource? {
         var mSource: MediaSource? = null
         val context = getAppContext()
         val metadata = buildMetadata(media)
 //        if (ytMediaSpecs.media.id != media.id) ytMediaSpecs = YTMediaSpecs(media)
 
-        Logd(TAG, "formMediaSource setting for YouTube source")
+        Logd(TAG, "mediaSourceFromClient setting for YouTube source needVideo: $needVideo media: ${media.title}")
         audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
         var aSource: ProgressiveMediaSource? = null
         if (audioSpecs.isNotEmpty()) {
-            Logd(TAG, "formMediaSource audioSpecs ${audioSpecs.size}")
-            val audioStream = setAudioSpec(audioSpecs, media)
-            if (!audioStream?.url.isNullOrBlank()) {
+            Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
+            val audioSpec = setAudioSpec(audioSpecs, media)
+            if (!audioSpec?.url.isNullOrBlank()) {
                 val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
                 val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
                 aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata)
-                    .setTag(metadata).setUri(audioStream.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
-                Logd(TAG, "formMediaSource aSource set to: ${audioStream.url}")
+                    .setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
+                Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
             } else Loge(TAG, "audioStream or url is null or blank")
-        } else Logt(TAG, "There is no audio stream, trying with composite video stream")
+        } else Logt(TAG, "Client provided no audio stream, trying with composite video stream")
 
         if (aSource == null || needVideo) {
             if (aSource == null) {
                 videoSpecs = client.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
                 if (videoSpecs.isNotEmpty()) {
-                    val videoStream = setVideoStream(videoSpecs, media)
-                    if (!videoStream.url.isNullOrBlank()) {
-                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoStream.url!!.toSafeUri()).build())
+                    val videoSpec = setVideoStream(videoSpecs, media)
+                    if (!videoSpec.url.isNullOrBlank()) {
+                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
                         mSource = MergingMediaSource(true, vSource)
                         Logt(TAG, "Using composite video stream")
                     } else Loge(TAG, "videoStream or url is null or blank")
-                } else Logt(TAG, "videoStreamsList empty")
+                } else Logt(TAG, "Client provided no composite video stream")
             } else {
                 videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+                Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
                 if (videoSpecs.isNotEmpty()) {
-                    val videoStream = setVideoStream(videoSpecs, media)
-                    if (!videoStream.url.isNullOrBlank()) {
-                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoStream.url!!.toSafeUri()).build())
+                    val videoSpec = setVideoStream(videoSpecs, media)
+                    if (!videoSpec.url.isNullOrBlank()) {
+                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
                         val mediaSources: MutableList<MediaSource> = mutableListOf()
                         mediaSources.add(vSource)
                         mediaSources.add(aSource)
                         mSource = MergingMediaSource(true, *mediaSources.toTypedArray<MediaSource>())
+                        Logd(TAG, "mediaSourceFromClient vSource set to: ${videoSpec.url}")
                     } else Loge(TAG, "videoStream or url is null or blank")
-                } else Logt(TAG, "videoStreamsList empty")
+                } else Logt(TAG, "Client provided no video stream")
             }
         } else mSource = aSource
         return mSource
@@ -637,7 +672,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bitrate = 0
         try {
             val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(media.downloadUrl?:"") } == true }
-            mediaSource = if (client != null) formMediaSource(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, client) else null
+            mediaSource = if (client != null) mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, client) else null
             if (mediaSource != null) {
                 Logd(TAG, "prepareDataSource setting with mediaSource")
                 mediaItem = mediaSource?.mediaItem
@@ -1038,7 +1073,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
     }
 
-    // Format adjustments
     private fun adjustMp3Clip(bytes: ByteArray): ByteArray = bytes
     private fun adjustRawAacClip(bytes: ByteArray): ByteArray = bytes
 

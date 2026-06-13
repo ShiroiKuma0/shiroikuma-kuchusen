@@ -591,11 +591,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
                     })
-                data class MenuOption(
-                    @DrawableRes val iconRes: Int,
-                    @StringRes val labelRes: Int,
-                    val onClick: () -> Unit
-                )
+//                data class MenuOption(
+//                    @DrawableRes val iconRes: Int,
+//                    @StringRes val labelRes: Int,
+//                    val onClick: () -> Unit
+//                )
                 @Composable
                 fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
                     var isExpanded by remember { mutableStateOf(false) }

@@ -28,6 +28,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.compareToNatural
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
@@ -224,7 +225,15 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
                     listIdentity += "..${feed.episodeSortOrder.name}"
                     getEpisodesAsFlow(EpisodeFilter(""), feed.episodeSortOrder, feed.id)
                 }
-            }.map { it.list }
+            }.map {
+                val list = it.list
+                when (feed.episodeSortOrder) {
+                    EpisodeSortOrder.EPISODE_TITLE_ASC -> list.sortedWith { episode, episode1 -> episode.title?.compareToNatural(episode1.title?:"") ?: -1 }
+                    EpisodeSortOrder.EPISODE_TITLE_DESC -> list.sortedWith { episode, episode1 -> episode1.title?.compareToNatural(episode.title?:"") ?: -1 }
+                    else -> list
+                }
+
+            }
         }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     var listIdentity by  mutableStateOf("")

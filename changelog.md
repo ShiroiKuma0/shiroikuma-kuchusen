@@ -1,3 +1,16 @@
+# 12.1.4
+
+* adjusted media buffer a bit to mitigate possible YT media hiccups at higher speed
+* ensure to cancel previous data source preparation when new request is launched
+* in PlayerDetailed screen
+	* fixed the defunct force-video button on the top bar (assembling video stream may take a couple seconds)
+	* amended audio-only button on the top video bar (removing video stream and resetting audio stream)
+	* note both buttons reset audio/video streams, taking a pause, 
+	* setting to audio-only is only necessary to save bandwidth, otherwise, video continues to play when screen is off
+* added media title natural sorting algorithm, applied in FeedDetails and Queues screens
+* amended logging levels in callFailed
+* Kotlin upped to 2.4.0 and krdb to 3.3.4, and other dependencies updates
+
 # 12.1.3
 
 * in FeedDetails screen, removed the redundant feed image in the header

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import kotlinx.io.IOException
 import okhttp3.Call
 import okhttp3.Connection
@@ -89,17 +90,22 @@ object OKHTTP {
             override fun connectionAcquired(call: Call, connection: Connection) {
                 Logd(TAG, "acquired: $connection")
             }
-
             override fun connectionReleased(call: Call, connection: Connection) {
                 Logd(TAG, "released: $connection")
             }
-
             override fun callFailed(call: Call, ioe: IOException) {
-                Loge(TAG, "callFailed error ${ioe::class.java.name}: ${ioe.message}")
-                var cause = ioe.cause
-                while (cause != null) {
-                    Loge(TAG, "callFailed Cause: ${cause::class.java.name}: ${cause.message}")
-                    cause = cause.cause
+                when {
+                    call.isCanceled() -> Logd(TAG, "callFailed Cancelled: ${ioe.message}")
+                    ioe is java.net.SocketTimeoutException -> Logt(TAG, "callFailed socket timeout: ${ioe.message}")
+                    ioe is java.net.UnknownHostException || ioe is javax.net.ssl.SSLException || ioe is java.net.ConnectException -> {
+                        Loge(TAG, "callFailed Network failure ${ioe::class.java.name}: ${ioe.message}")
+                        var cause = ioe.cause
+                        while (cause != null) {
+                            Loge(TAG, "callFailed Cause: ${cause::class.java.name}: ${cause.message}")
+                            cause = cause.cause
+                        }
+                    }
+                    else -> Logt(TAG, "callFailed Request failed: ${ioe.message}")
                 }
             }
         })

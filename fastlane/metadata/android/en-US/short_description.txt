@@ -1,1 +1,1 @@
-Modern, feature-rich, extensible. Handles podcasts, local directories. Youtube contents facilitated by external app
+Your two-thumbs-up, hands-down podcast/media instrument for Android, now extensible, capable of YouTubing (via extension)
