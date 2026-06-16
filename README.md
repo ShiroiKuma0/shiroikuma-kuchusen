@@ -342,6 +342,9 @@ For more details of the changes, see the [Changelog](changelog.md)
 
 </details>
 
+## ⭐ Star This Repo!
+If this helped you, please give it a **star** ⭐ - it helps others find this project!
+
 ## Screenshots
 
 ### Settings
