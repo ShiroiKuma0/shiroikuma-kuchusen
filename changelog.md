@@ -1,3 +1,7 @@
+# 12.1.5
+
+* amended short description for f-doird
+
 # 12.1.4
 
 * adjusted media buffer a bit to mitigate possible YT media hiccups at higher speed
