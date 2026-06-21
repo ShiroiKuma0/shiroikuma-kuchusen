@@ -1,6 +1,7 @@
 # 12.1.5
 
 * amended short description for f-doird
+* removed org.gradle.workers.isolation.default from gradle.properties, like a problem for f-droid build
 
 # 12.1.4
 
