@@ -216,7 +216,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                             while (episodes.isNotEmpty()) {
                                 eList.addAll(episodes)
                                 numEpisodes = eList.size
-                                if (numEpisodes > limitEpisodesCount) break
+                                if (limitEpisodesCount in 1..<numEpisodes) break
                                 Logd(TAG, "Subscribing eList: ${eList.size}")
                                 episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                             }
@@ -252,7 +252,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     numEpisodes = eList.size
-                                    if (numEpisodes > limitEpisodesCount) break
+                                    if (limitEpisodesCount in 1..<numEpisodes) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
                                     episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 }
@@ -310,11 +310,11 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             Logd(TAG, "showEpisodes ${episodes.size}")
             if (episodes.isEmpty()) return
             episodes.sortByDescending { it.pubDate }
-            for (i in 0..<episodes.size) {
-                episodes[i].id = getEntityId()
-                episodes[i].origFeedlink = feed!!.link
-                episodes[i].origFeeddownloadUrl = feed!!.downloadUrl
-                episodes[i].origFeedTitle = feed!!.title
+            for (episode in episodes) {
+                episode.id = getEntityId()
+                episode.origFeedlink = feed!!.link
+                episode.origFeeddownloadUrl = feed!!.downloadUrl
+                episode.origFeedTitle = feed!!.title
             }
         }
         showEpisodes = true
@@ -442,7 +442,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     vm.numEpisodes = eList.size
-                                    if (vm.numEpisodes > vm.limitEpisodesCount) break
+                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
                                     episodes = vm.gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
                                 }
@@ -578,12 +578,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
                 }
             }
-//            LaunchedEffect(Unit) {
-//                while (true) {
-//                    delay(1000)
-//                    numEpisodes = vm.feed?.episodes?.size ?: 0
-//                }
-//            }
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
                 val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
                 if (sLog != null) {

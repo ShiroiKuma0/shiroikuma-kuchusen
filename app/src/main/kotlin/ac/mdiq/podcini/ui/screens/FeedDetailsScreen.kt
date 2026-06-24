@@ -327,6 +327,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         vm.listInfoText = buildListInfo(episodes, vm.feedEpisodesSize)
     }
 
+    LaunchedEffect(feedOperationText) {
+        if (feedOperationText.isEmpty()) vm.feedEpisodesSize = realm.query(Episode::class).query("feedId == $feedId").count().find().toInt()
+    }
+
     LaunchedEffect(modeName) { vm.screenModeFlow.value = (FeedScreenMode.valueOf(modeName)) }
 
     @Composable
@@ -511,7 +515,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     }
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(currentHeaderDp)) {
-                    Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(feed?.title ?: "No title", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     if (feed != null) {
                         val ratingIconRes = remember(feed?.rating) {  Rating.fromCode(feed?.rating?:0).res }
                         Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.align(Alignment.BottomEnd).padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer).clickable { showChooseRatingDialog = true })

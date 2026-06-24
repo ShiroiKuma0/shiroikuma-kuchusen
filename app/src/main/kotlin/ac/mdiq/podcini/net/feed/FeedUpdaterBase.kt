@@ -13,6 +13,7 @@ import ac.mdiq.podcini.net.feed.PodcastHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
+import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -59,6 +60,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
 import org.xml.sax.SAXException
 import javax.xml.parsers.ParserConfigurationException
+import kotlin.collections.listOf
 
 class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false, val removeUnlisted: Boolean = false) {
     private val context = getAppContext()
@@ -283,7 +285,26 @@ class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, va
         var feed_: Feed? = null
         val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feed.downloadUrl!!) } == true }
         if (client != null) {
-            val feedIpc = client.withProvider { it.downloadFeed(feed.downloadUrl!!, feed.lastUpdateTime, fullUpdate, feed.limitEpisodesCount) }
+//            val feedIpc = client.withProvider { it.downloadFeed(feed.downloadUrl!!, feed.lastUpdateTime, fullUpdate, feed.limitEpisodesCount) }
+            val feedIpc = client.withProvider { it.feedToUpdate(feed.downloadUrl!!) }
+            if (feedIpc != null) {
+                val eList = mutableListOf<EpisodeIPC>()
+                var episodes = client?.withProvider { it.getEpisodes(100) }?: listOf()
+                while (episodes.isNotEmpty()) {
+                    if (fullUpdate) eList.addAll(episodes)
+                    else {
+                        val eps = mutableListOf<EpisodeIPC>()
+                        for (e in episodes) if (e.pubDate > feed.lastUpdateTime) eps.add(e)
+                        if (eps.isEmpty()) break
+                        eList.addAll(eps)
+                    }
+                    val numEpisodes = eList.size
+                    if (feed.limitEpisodesCount in 1..<numEpisodes) break
+                    Logd(TAG, "Subscribing eList: ${eList.size}")
+                    episodes = client?.withProvider { it.getEpisodes(100) }?: listOf()
+                }
+                feedIpc.episodes = eList
+            }
             feed_ = feedIpc?.toFeed()
         }
         if (feed_ == null) feed_ = downloadFeed(feed)

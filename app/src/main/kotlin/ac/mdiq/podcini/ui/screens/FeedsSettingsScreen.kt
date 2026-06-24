@@ -236,7 +236,7 @@ fun FeedsSettingsScreen() {
                         if (showDialog) RenameOrCreateSyntheticFeed(feedToSet) { showDialog = false }
                         IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit title") }
                     }
-                    Text(text = feedToSet.title!!, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 15.dp))
+                    Text(text = feedToSet.title?: "No title", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 15.dp))
                 }
             } else Text(text = stringResource(R.string.multiple_podcasts), style = MaterialTheme.typography.titleMedium,  maxLines=1)
             //                    parent volume
@@ -949,9 +949,9 @@ fun FeedsSettingsScreen() {
                     @OptIn(ExperimentalLayoutApi::class)
                     @Composable
                     fun AutoDownloadFilterDialog(filter: FeedAutoDownloadFilter, inexcl: ADLIncExc, onDismiss: () -> Unit, onConfirmed: (FeedAutoDownloadFilter) -> Unit) {
-                        fun toFilterString(words: List<String>?): String {
+                        fun toFilterString(words: List<String>): String {
                             val result = StringBuilder()
-                            for (word in words!!) result.append("\"").append(word).append("\" ")
+                            for (word in words) result.append("\"").append(word).append("\" ")
                             return result.toString()
                         }
                         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {

@@ -1,7 +1,18 @@
+# 12.1.6
+
+* fixed null pointer crash in FeedSettings
+* in OnlineFeed, fixed episodes count is capped around 100 when feed is provided by external app,
+* in feed full update
+	* fixed not getting older episodes if limit is set
+	* fixed failure of getting updates from external app
+* in FeedDetails screen, total episodes in info bar is updated after refresh
+* PodciniLib upped to 1.0.6, external app (if used) needs to be updated for compatibility
+* some dependencies update
+
 # 12.1.5
 
 * amended short description for f-doird
-* removed org.gradle.workers.isolation.default from gradle.properties, like a problem for f-droid build
+* removed org.gradle.workers.isolation.default from gradle.properties, likely a problem for f-droid build
 
 # 12.1.4
 

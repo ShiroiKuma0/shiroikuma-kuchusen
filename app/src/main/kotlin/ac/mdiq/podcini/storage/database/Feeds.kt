@@ -402,7 +402,6 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
     var nUpdated = 0
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
-        if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
         val oldItems = savedFeedAssistant.guessDuplicate(episode)
         if (!oldItems.isNullOrEmpty()) {
             if (oldItems.size > 1) {

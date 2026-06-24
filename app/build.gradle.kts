@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 58
-        versionName = "12.1.5"
+        versionCode = 59
+        versionName = "12.1.6"
 
         ndkVersion = "29.0.14206865"
 
@@ -174,7 +174,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.05.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.06.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -187,7 +187,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("androidx.webkit:webkit:1.16.0")
     implementation("androidx.work:work-runtime:2.11.2")
 
@@ -206,16 +206,16 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
 
-    implementation("com.github.XilinJia:PodciniLib:1.0.5")
+    implementation("com.github.XilinJia:PodciniLib:1.0.6")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
-    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
 
-    implementation("androidx.navigation3:navigation3-runtime:1.1.2")
-    implementation("androidx.navigation3:navigation3-ui:1.1.2")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.3")
+    implementation("androidx.navigation3:navigation3-ui:1.1.3")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
@@ -239,7 +239,7 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.11.2")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.3")
     //noinspection GradleDependency
     debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
 
