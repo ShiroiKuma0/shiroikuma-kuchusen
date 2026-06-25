@@ -5,7 +5,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.feed.CombinedSearcher
-import ac.mdiq.podcini.net.feed.FeedBuilderBase
+import ac.mdiq.podcini.net.feed.FeedBuilder
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.feed.subscribe
@@ -15,9 +15,11 @@ import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.getFeed
@@ -50,9 +52,6 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatAbbrev
 import ac.mdiq.podcini.utils.timeIt
 import android.app.Dialog
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -131,7 +130,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var isShared: Boolean = false
 
     internal var urlToLog: String = ""
-    internal var feedBuilder: FeedBuilderBase
+    internal var feedBuilder: FeedBuilder
     internal var showTabsDialog by mutableStateOf(false)
 
     internal var showEpisodes by mutableStateOf(false)
@@ -147,11 +146,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal var selectedDownloadUrl: String? = null
 
-    internal val feedId: Long
-        get() {
-            for (f in allFeeds) if (isSameFeed(f, selectedDownloadUrl, feed?.title, feed?.author)) return f.id
-            return 0
-        }
+    internal var feedId: Long = 0L
 
     internal var infoBarText = mutableStateOf("")
 
@@ -170,7 +165,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     var relatedFeeds by mutableStateOf<List<FeedSearchResult>>(listOf())
 
     internal var showNoPodcastFoundDialog by mutableStateOf(false)
-    internal var showErrorDialog by mutableStateOf(false)
+//    internal var showErrorDialog by mutableStateOf(false)
     internal var errorMessage by mutableStateOf("")
     internal var errorDetails by mutableStateOf("")
 
@@ -183,17 +178,23 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         feedUrl = url
         feedSource = source
         isShared = shared
+        for (f in allFeeds) {
+            if (isSameFeed(f, selectedDownloadUrl, feed?.title, feed?.author)) {
+                feedId = f.id
+                break
+            }
+        }
 
         Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl")
 
         val showError = { message: String?, details: String ->
             errorMessage = message ?: "No message"
             errorDetails = details
-            showErrorDialog = true
+//            showErrorDialog = true
         }
         gatewayClient = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feedUrl) } == true }
         val defaultCapable = gatewayClient != null
-        feedBuilder = FeedBuilderBase(showError )
+        feedBuilder = FeedBuilder(showError)
         if (feedUrl.isEmpty()) {
             Loge(TAG, "feedUrl is null.")
             showNoPodcastFoundDialog = true
@@ -212,13 +213,13 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                         if (fipc != null) {
                             val eList = mutableListOf<EpisodeIPC>()
-                            var episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                            var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                             while (episodes.isNotEmpty()) {
                                 eList.addAll(episodes)
                                 numEpisodes = eList.size
-                                if (limitEpisodesCount in 1..<numEpisodes) break
+                                if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
                                 Logd(TAG, "Subscribing eList: ${eList.size}")
-                                episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                             }
                             fipc.episodes = eList
                             val feed_ = fipc.toFeed()
@@ -248,13 +249,13 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                             val fipc = gatewayClient?.withProvider { it.buildFeed(url, "", 0) }
                             if (fipc != null) {
                                 val eList = mutableListOf<EpisodeIPC>()
-                                var episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     numEpisodes = eList.size
-                                    if (limitEpisodesCount in 1..<numEpisodes) break
+                                    if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                                    episodes = gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                    episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                                 }
                                 fipc.episodes = eList
                                 val feed_ = fipc.toFeed()
@@ -278,6 +279,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         Logd(TAG, "handleFeed feed_.title: ${feed_.title}")
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
         feed = feed_
+        numEpisodes = feed_.episodes.size
         if (isShared) {
             val log = realm.query(ShareLog::class).query("url == $0", urlToLog).first().find()
             if (log != null) upsertBlk(log) {
@@ -438,13 +440,13 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                             val fipc = vm.gatewayClient?.withProvider { it.buildFeed(url, ytTabsMap[i]!!, i) }
                             if (fipc != null) {
                                 val eList = mutableListOf<EpisodeIPC>()
-                                var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     vm.numEpisodes = eList.size
-                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes) break
+                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes || vm.numEpisodes > EPISODES_LIMIT) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                                    episodes = vm.gatewayClient?.withProvider { it.getEpisodes(100) }?: listOf()
+                                    episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                                 }
                                 fipc.episodes = eList
                                 handleFeed(fipc)
@@ -467,28 +469,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         text = { Text(stringResource(R.string.null_value_podcast_error)) },
         confirmButton = { TextButton(onClick = { vm.showNoPodcastFoundDialog = false }) { Text("OK") } })
 
-    @Composable
-    fun FoundDialog(errorMsg: String?, details: String, onDismiss: () -> Unit) {
-        val errorMessage = if (errorMsg != null) {
-            val total = """
-                    $errorMsg
-                    
-                    $details
-                    """.trimIndent()
-            val msg = SpannableString(total)
-            msg.setSpan(ForegroundColorSpan(-0x77777778), errorMsg.length, total.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-            msg
-        } else { context.getString(R.string.download_error_error_unknown) }
-        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.error_label)) },
-            text = { Text(errorMessage.toString()) },
-            confirmButton = { TextButton(onClick = { onDismiss() }) { Text("OK") } })
-    }
-    if (vm.showErrorDialog) FoundDialog(vm.errorMessage, vm.errorDetails) { vm.showErrorDialog = false}
+    if (vm.errorMessage.isNotBlank()) Loge(TAG, "${vm.errorMessage}\n${vm.errorDetails}")
 
-    
-    @Composable
-    fun MyTopAppBar() {
+    swipeActions.ActionOptionsDialog()
+
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    else Scaffold(topBar = {
         Box {
             TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back or drawer",  modifier = Modifier.padding(7.dp).clickable {
                 if (vm.showEpisodes) vm.showEpisodes = false
@@ -496,12 +482,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             }) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
-    }
-
-    swipeActions.ActionOptionsDialog()
-
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
-    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    }) { innerPadding ->
         if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 5.dp, end = 5.dp).background(MaterialTheme.colorScheme.surface)) {
             InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(vm.episodes.toList(), isExternal = true, swipeActions = swipeActions,
@@ -546,7 +527,9 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                     if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.ordinal }
                                 }
                                 withContext(Dispatchers.Main) {
+                                    vm.feedId = vm.feed?.id ?: 0L
                                     vm.enableSubscribe = true
+                                    vm.subButTextRes = R.string.open
                                     vm.didPressSubscribe = true
                                     vm.handleUpdatedFeedStatus()
                                 }

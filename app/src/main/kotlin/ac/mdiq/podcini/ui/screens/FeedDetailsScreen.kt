@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase
+import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.nowInMillis
@@ -499,11 +499,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                                    runOnIOScope { FeedUpdaterBase(listOf(feed!!), doItAnyway = true).start() }
+                                    runOnIOScope { FeedUpdater(listOf(feed!!), doItAnyway = true).start() }
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                    runOnIOScope { FeedUpdaterBase(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).start() }
+                                    runOnIOScope { FeedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).start() }
                                     expanded = false
                                 })
                                 DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {

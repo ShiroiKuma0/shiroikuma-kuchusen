@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.sources
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.R
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
@@ -31,6 +32,8 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "GatewayClient"
 
+const val EPISODE_BATCH_SIZE = 100
+
 var sourceClients: List<SourceGatewayClient> = listOf()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
@@ -45,13 +48,11 @@ fun isExtFeed(url: String?): Boolean {
     return false
 }
 fun clientsHaveMultiQ(): Boolean {
-//    for (client in sourceClients) if (client.withProviderBlocking { it.hasMultiQualities() } == true) return true
     for (client in sourceClients) if (client.attributes?.hasMultiQualities == true) return true
     return false
 }
 
 fun clientshaveViewCounts(): Boolean {
-//    for (client in sourceClients) if (client.withProviderBlocking { it.hasViewCount() } == true) return true
     for (client in sourceClients) if (client.attributes?.hasViewCount == true) return true
     return false
 }
@@ -79,7 +80,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
     val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
     val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
     if (resolveInfos.isEmpty()) {
-        Loge(TAG, "No external source provider is available. Ignored")
+        Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_app)}' is turned off")
         upsert(appPrefs) { p-> p.loadExternalApp = false }
         return listOf()
     }
@@ -107,9 +108,9 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     val aidlSearchProvider = client.gateway?.getSearchProvider()
                     if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
                     typeClientMap[attr.name] = client
-                    Logt(TAG, "onServiceConnected Service ${attr.name} connected")
+                    Logt(TAG, "External service ${attr.name} connected")
                 } else {
-                    Logt(TAG, "onServiceConnected Service ${attr.name} not qualified, rejected.")
+                    Logt(TAG, "External service ${attr.name} not qualified, rejected.")
                     clients.remove(client)
                 }
             }
@@ -122,7 +123,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 client.connection = null
             }
             override fun onBindingDied(name: ComponentName) {
-                Logt(TAG, "Binding died, trying to rebind")
+                Logt(TAG, "Binding died, trying to rebind service")
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null
@@ -134,7 +135,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 if (success) clients.add(client)
             }
             override fun onNullBinding(name: ComponentName) {
-                Logt(TAG, "Null binding")
+                Logt(TAG, "Service not bond: null binding")
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null

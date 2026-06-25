@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.net.download.RequestTye
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase
+import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.shared.ShareType
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
@@ -415,7 +415,7 @@ fun LogsScreen() {
                                             Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
-                                        runOnIOScope { FeedUpdaterBase(listOf(feed)).start() }
+                                        runOnIOScope { FeedUpdater(listOf(feed)).start() }
                                     }
                                     RequestTye.FEEDMEDIA.ordinal -> {
                                         showAction = false

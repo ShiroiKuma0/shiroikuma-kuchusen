@@ -1,3 +1,13 @@
+# 12.1.7
+
+* in OnlineFeed
+	* fixed number of episodes showing 0 for normal podcast
+	* after subscribe, "Subscribe" button turns to "Open"
+	* error message is shown on reopen of an erroneous feed
+* in feed full update, enhanced getting episodes in external app
+* getting episodes from external app is limited by 5000
+* minor code refactoring
+
 # 12.1.6
 
 * fixed null pointer crash in FeedSettings

@@ -40,6 +40,8 @@ import kotlin.math.min
 
 private const val TAG: String = "Episodes"
 
+const val EPISODES_LIMIT = 5000
+
 /**
  * @param offset The first episode that should be loaded.
  * @param limit The maximum number of episodes that should be loaded.

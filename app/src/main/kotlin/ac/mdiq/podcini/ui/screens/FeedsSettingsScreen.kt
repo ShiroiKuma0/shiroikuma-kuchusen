@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase
+import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -1180,7 +1180,7 @@ fun FeedsSettingsScreen() {
                                                     it.username = newName
                                                     it.password = newPW
                                                 } } }
-                                                FeedUpdaterBase(feedsToSet).start()
+                                                FeedUpdater(feedsToSet).start()
                                             }
                                             onDismiss()
                                         }
@@ -1216,7 +1216,7 @@ fun FeedsSettingsScreen() {
                                     TextButton(onClick = {
                                         runOnIOScope {
                                             feedToSet = upsert(feedToSet) { it.downloadUrl = url }
-                                            FeedUpdaterBase(listOf(feedToSet)).start()
+                                            FeedUpdater(listOf(feedToSet)).start()
                                         }
                                         onDismiss()
                                     }) { Text("OK") }

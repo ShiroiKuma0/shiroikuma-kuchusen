@@ -27,9 +27,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.min
 
-private const val TAG = "FeedBuilderBase"
+private const val TAG = "FeedBuilder"
 
-class FeedBuilderBase(val showError: (String?, String)->Unit) {
+class FeedBuilder(val showError: (String?, String)->Unit) {
     var selectedDownloadUrl: String? = null
     private var downloader: Downloader? = null
 
@@ -93,28 +93,6 @@ class FeedBuilderBase(val showError: (String?, String)->Unit) {
             withContext(Dispatchers.Main) { showError("buildPodcast ${e.message}", "") }
         }
     }
-
-//    suspend fun subscribe(feed: FeedIPC) {
-//        subscribe(feed.toFeed())
-//    }
-//
-//    suspend fun subscribe(feed: Feed) {
-//        while (feed.isBuilding) delay(200)
-//        feed.id = 0L
-//        if (feed.limitEpisodesCount > 0) {
-//            val sz = feed.episodes.size
-//            if (sz > 0) feed.episodes = feed.episodes.subList(0, min(sz, feed.limitEpisodesCount)).toRealmList()
-//        }
-//        for (item in feed.episodes) {
-//            item.id = 0L
-//            item.feedId = null
-//            item.origFeedlink = null
-//            item.origFeeddownloadUrl = null
-//            item.origFeedTitle = null
-//        }
-//        if (feedByIdentityOrID(feed) == null) addNewFeed(feed)
-//        else Logt(TAG, "feed already exists: ${feed.title}")
-//    }
 }
 
 suspend fun subscribe(feed: FeedIPC) {

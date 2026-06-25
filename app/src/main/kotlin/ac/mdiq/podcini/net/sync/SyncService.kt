@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase
+import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.hosturl
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.password
@@ -141,7 +141,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                     feed.episodes.clear()
                     updateFeedFull(feed, removeUnlistedItems = false)
                     val f = feedsMap[feed.id]
-                    if (f != null) FeedUpdaterBase(listOf(f)).start()
+                    if (f != null) FeedUpdater(listOf(f)).start()
                 }
             }
 

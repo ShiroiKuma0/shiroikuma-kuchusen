@@ -14,7 +14,9 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.shared.EpisodeIPC
+import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.compileLanguages
@@ -62,7 +64,7 @@ import org.xml.sax.SAXException
 import javax.xml.parsers.ParserConfigurationException
 import kotlin.collections.listOf
 
-class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false, val removeUnlisted: Boolean = false) {
+class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false, val removeUnlisted: Boolean = false) {
     private val context = getAppContext()
     private val notificationManager = NotificationManagerCompat.from(context)
 
@@ -282,14 +284,12 @@ class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, va
     suspend fun refreshFeed(feed: Feed) {
         if (feed.downloadUrl.isNullOrBlank()) return
 
-        var feed_: Feed? = null
         val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feed.downloadUrl!!) } == true }
-        if (client != null) {
-//            val feedIpc = client.withProvider { it.downloadFeed(feed.downloadUrl!!, feed.lastUpdateTime, fullUpdate, feed.limitEpisodesCount) }
+        val feed_ = if (client != null) {
             val feedIpc = client.withProvider { it.feedToUpdate(feed.downloadUrl!!) }
             if (feedIpc != null) {
                 val eList = mutableListOf<EpisodeIPC>()
-                var episodes = client?.withProvider { it.getEpisodes(100) }?: listOf()
+                var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                 while (episodes.isNotEmpty()) {
                     if (fullUpdate) eList.addAll(episodes)
                     else {
@@ -299,15 +299,15 @@ class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, va
                         eList.addAll(eps)
                     }
                     val numEpisodes = eList.size
-                    if (feed.limitEpisodesCount in 1..<numEpisodes) break
+                    if (feed.limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                    episodes = client?.withProvider { it.getEpisodes(100) }?: listOf()
+                    episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                 }
                 feedIpc.episodes = eList
             }
-            feed_ = feedIpc?.toFeed()
-        }
-        if (feed_ == null) feed_ = downloadFeed(feed)
+            feedIpc?.toFeed()
+        } else downloadFeed(feed)
+
         if (feed_ != null) {
             val downloadStatus = DownloadResult(feed_, DownloadError.SUCCESS, true, "")
             if (fullUpdate) updateFeedFull(feed_, removeUnlistedItems = removeUnlisted, downloadStatus = downloadStatus)
@@ -327,7 +327,7 @@ class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, va
     class InvalidFeedException(message: String?) : Exception(message)
 
     companion object {
-        private const val TAG = "FeedUpdaterBase"
+        private const val TAG = "FeedUpdater"
 
         fun createNotification(titles: List<String>?): Notification {
             val context = getAppContext()

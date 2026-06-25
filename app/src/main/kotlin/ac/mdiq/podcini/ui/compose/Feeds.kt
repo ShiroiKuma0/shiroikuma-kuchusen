@@ -2,14 +2,16 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.OpmlTransporter
-import ac.mdiq.podcini.net.feed.FeedBuilderBase
+import ac.mdiq.podcini.net.feed.FeedBuilder
 import ac.mdiq.podcini.net.feed.subscribe
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
@@ -171,14 +173,14 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             runOnIOScope {
                 val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
                 val fipc = client?.withProvider { it.buildFeed(url, result.source, 0) }
-//                val feed = defaultProvider.buildFeed(url, result.source, 0)
                 if (fipc != null) {
                     val eList = mutableListOf<EpisodeIPC>()
-                    var episodes = client.withProvider { it.getEpisodes(100) }?: listOf()
+                    var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
                     while (episodes.isNotEmpty()) {
                         eList.addAll(episodes)
                         Logd(TAG, "subscribeFeed eList: ${eList.size}")
-                        episodes = client.withProvider { it.getEpisodes(100) } ?: listOf()
+                        if (eList.size > EPISODES_LIMIT) break
+                        episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
                     }
                     fipc.episodes = eList
                     subscribe(fipc)
@@ -187,7 +189,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             }
         } else {
             runOnIOScope {
-                val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
+                val fbb = FeedBuilder { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
                 fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
             }
         }
