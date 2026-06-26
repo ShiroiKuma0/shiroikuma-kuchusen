@@ -1,3 +1,8 @@
+# 12.1.8
+
+* in OnlineFeed, before subscribe, allows selecting a YT channel tab, currently default or live (streams)
+* PodciniLib upped to 1.0.7, external app (if used) needs to be updated for compatibility
+
 # 12.1.7
 
 * in OnlineFeed

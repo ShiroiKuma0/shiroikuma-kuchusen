@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 60
-        versionName = "12.1.7"
+        versionCode = 61
+        versionName = "12.1.8"
 
         ndkVersion = "29.0.14206865"
 
@@ -206,7 +206,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.8.0")
     implementation("org.jetbrains.kotlinx:atomicfu:0.33.0")
 
-    implementation("com.github.XilinJia:PodciniLib:1.0.6")
+    implementation("com.github.XilinJia:PodciniLib:1.0.7")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
     implementation("io.coil-kt.coil3:coil-compose:3.5.0")

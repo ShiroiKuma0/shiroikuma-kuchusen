@@ -172,7 +172,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
         if (isYT(url, result.source)) {
             runOnIOScope {
                 val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
-                val fipc = client?.withProvider { it.buildFeed(url, result.source, 0) }
+                val fipc = client?.withProvider { it.buildFeed(url, 0) }
                 if (fipc != null) {
                     val eList = mutableListOf<EpisodeIPC>()
                     var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
@@ -184,8 +184,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
                     }
                     fipc.episodes = eList
                     subscribe(fipc)
-                }
-                else Loge(TAG, "Subscribe feed failed")
+                } else Loge(TAG, "Subscribe feed failed")
             }
         } else {
             runOnIOScope {
