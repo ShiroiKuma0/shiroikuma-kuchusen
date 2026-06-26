@@ -55,3 +55,5 @@ libs
 .kotlin
 
 *.hprof
+# fork signing config (real credentials — never commit)
+keystore.properties
