@@ -36,7 +36,8 @@
     </style>
 
     <style name="Theme.Podcini.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/background_light</item>
+        <!-- shiroikuma-kuchusen: black splash with our yellow line-art glyph (see launcher_animate). -->
+        <item name="windowSplashScreenBackground">@android:color/black</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/launcher_animate</item>
         <item name="postSplashScreenTheme">@style/Theme.Podcini.Light</item>
         <item name="android:windowLightStatusBar">false</item>
