@@ -25,7 +25,10 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.WindowCompat
@@ -39,10 +42,21 @@ val CustomTypography = Typography(
 )
 
 object CustomTextStyles {
-    val titleCustom = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium)
+    // Reactive: picks up the fork's chosen font family / scale / weight live. Reading the KuchusenUi
+    // state inside this getter makes every call site that uses it during composition recompose on change.
+    val titleCustom: TextStyle
+        get() = TextStyle(
+            fontSize = 18.sp * KuchusenUi.fontScale,
+            fontWeight = if (KuchusenUi.fontWeight > 0) FontWeight(KuchusenUi.fontWeight) else FontWeight.Medium,
+            fontFamily = KuchusenUi.fontFamily)
 }
 
-val borderColor = Color(0xDDFFD700)
+// App-wide accent border colour & thickness, driven by the 白い熊 空中線 UI page.
+val borderColor: Color
+    get() = KuchusenUi.borderColor
+
+val borderWidthDp: Dp
+    get() = KuchusenUi.borderWidth.dp
 
 val textColor: Color
     @Composable
@@ -93,6 +107,49 @@ var appTheme: AppThemes
         upsertBlk(appPrefs) { it.theme = t }
     }
 
+private fun TextUnit.scaled(scale: Float): TextUnit = if (isSpecified) this * scale else this
+
+private fun TextStyle.themed(family: FontFamily, scale: Float, weight: Int): TextStyle {
+    var s = copy(fontFamily = family)
+    if (scale != 1f) s = s.copy(fontSize = s.fontSize.scaled(scale), lineHeight = s.lineHeight.scaled(scale))
+    if (weight > 0) s = s.copy(fontWeight = FontWeight(weight))
+    return s
+}
+
+// Rebuild the whole Material type scale with the fork's font family / size scale / weight applied.
+private fun kuchusenTypography(family: FontFamily, scale: Float, weight: Int): Typography {
+    val b = Typography()
+    return b.copy(
+        displayLarge = b.displayLarge.themed(family, scale, weight),
+        displayMedium = b.displayMedium.themed(family, scale, weight),
+        displaySmall = b.displaySmall.themed(family, scale, weight),
+        headlineLarge = b.headlineLarge.themed(family, scale, weight),
+        headlineMedium = b.headlineMedium.themed(family, scale, weight),
+        headlineSmall = b.headlineSmall.themed(family, scale, weight),
+        titleLarge = b.titleLarge.themed(family, scale, weight),
+        titleMedium = b.titleMedium.themed(family, scale, weight),
+        titleSmall = b.titleSmall.themed(family, scale, weight),
+        bodyLarge = b.bodyLarge.themed(family, scale, weight),
+        bodyMedium = b.bodyMedium.themed(family, scale, weight),
+        bodySmall = b.bodySmall.themed(family, scale, weight),
+        labelLarge = b.labelLarge.themed(family, scale, weight),
+        labelMedium = b.labelMedium.themed(family, scale, weight),
+        labelSmall = b.labelSmall.themed(family, scale, weight),
+    )
+}
+
+// Corner radii scaled from a single roundness value (default 12 reproduces upstream's 4/8/12/16/28).
+private fun kuchusenShapes(r: Int): Shapes {
+    fun rc(v: Float) = RoundedCornerShape(v.coerceAtLeast(0f).dp)
+    return Shapes(
+        extraSmall = rc(r / 3f),
+        small = rc(r * 2 / 3f),
+        medium = rc(r.toFloat()),
+        large = rc(r * 4 / 3f),
+        extraLarge = rc(r * 7 / 3f),
+    )
+}
+
 @Composable
 fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit) {
     val appThemes: AppThemes = if (forceTheme != null) forceTheme else appTheme
@@ -121,7 +178,24 @@ fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit)
         isDark -> DarkColors
         else -> LightColors
     }
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    // Lay the 白い熊 空中線 house colours over whatever base scheme was chosen. This is the single source
+    // of truth for background / text / accent, so the app reads black-yellow by default and live-updates
+    // the instant any value is changed on the UI page.
+    val themedScheme = colorScheme.copy(
+        surface = KuchusenUi.backgroundColor,
+        background = KuchusenUi.backgroundColor,
+        onSurface = KuchusenUi.textColor,
+        onBackground = KuchusenUi.textColor,
+        onSurfaceVariant = KuchusenUi.secondaryTextColor,
+        primary = KuchusenUi.accentColor,
+        secondary = KuchusenUi.accentColor,
+        tertiary = KuchusenUi.accentColor,
+    )
+    MaterialTheme(
+        colorScheme = themedScheme,
+        typography = kuchusenTypography(KuchusenUi.fontFamily, KuchusenUi.fontScale, KuchusenUi.fontWeight),
+        shapes = kuchusenShapes(KuchusenUi.cornerRoundness),
+        content = content)
 }
 
 fun isLightTheme(): Boolean {
