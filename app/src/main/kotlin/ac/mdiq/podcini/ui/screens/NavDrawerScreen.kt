@@ -14,10 +14,14 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.screens.prefscreens.PFNav
+import ac.mdiq.podcini.ui.screens.prefscreens.pfBackStack
 import ac.mdiq.podcini.utils.Logd
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,6 +76,7 @@ data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 val LocalDrawerController = staticCompositionLocalOf<DrawerController?> { null }
 val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerState not provided") }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NavDrawerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -137,15 +142,23 @@ fun NavDrawerScreen() {
                 }
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
-                navTo(Settings, PopMode.Clear)
-                drawerCtrl?.close()
-            }) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().combinedClickable(
+                onClick = {
+                    navTo(Settings, PopMode.Clear)
+                    drawerCtrl?.close()
+                },
+                onLongClick = {
+                    // Long-press jumps straight to the fork's 白い熊 空中線 UI page.
+                    pfBackStack.clear()
+                    pfBackStack.add(PFNav.Portal)
+                    pfBackStack.add(PFNav.KuchusenUI)
+                    navTo(Settings, PopMode.Clear)
+                    drawerCtrl?.close()
+                })) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
                 Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
                 Spacer(Modifier.weight(1f))
-                val playersRes = remember(activeTheatres) { if (activeTheatres == 1) R.drawable.teaser else R.drawable.ic_launcher_foreground }
-                AsyncImage(model = playersRes, contentDescription = "Players", modifier = Modifier.height(24.dp).clickable {
+                AsyncImage(model = R.drawable.ic_launcher_sk_foreground, contentDescription = "Players", contentScale = ContentScale.Fit, modifier = Modifier.height(24.dp).clickable {
                     activeTheatres = if (activeTheatres == 1) 2 else 1
                     playerMinHeight = if (activeTheatres == 1) 100 else 210
                     playbackService?.switchPlayersMode()
@@ -165,7 +178,7 @@ fun NavDrawerScreen() {
             }
             if (psState == PSState.Hidden) {
                 Spacer(Modifier.height(50.dp))
-                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable { psState = PSState.PartiallyExpanded })
+                AsyncImage(model = R.drawable.ic_launcher_sk_foreground, contentDescription = "PlayerUI", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxWidth().height(60.dp).clickable { psState = PSState.PartiallyExpanded })
             }
         }
     }
