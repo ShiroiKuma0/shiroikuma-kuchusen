@@ -74,9 +74,9 @@ anti-tamper, and `com.github.XilinJia:PodciniLib` is consumed straight from jitp
    `buildFork` and report `BUILD SUCCESSFUL`.
 
 6. **Build the new `+1`** via the **build-apk** skill
-   (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork < /dev/null`), then ask (via
-   `AskUserQuestion`) how to transfer — scp to skhw / adb push / no. This is the first build of the
-   new upstream line (`<newVersion>+1`).
+   (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork < /dev/null`); build-apk then
+   delivers the APK automatically via `/after-build` (adb push if a phone is connected, else scp to
+   skhw — no prompt). This is the first build of the new upstream line (`<newVersion>+1`).
 
 7. **Stop.** Let 白い熊 test. Commit/push only on their explicit **"Push"** (force-push needed for
    `custom` since rebasing rewrites history: `git push --force-with-lease origin custom`; `main` is a
