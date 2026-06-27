@@ -14,8 +14,8 @@ import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.toastMessages
+import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -223,7 +223,8 @@ fun MainScreen() {
                 navTo(defPage)
             }
             openDrawer -> drawerCtrl.open()
-            else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
+            // Nothing left to go back to on the home screen — back out of the app cleanly.
+            else -> (context as? Activity)?.finish()
         }
     }
 }
