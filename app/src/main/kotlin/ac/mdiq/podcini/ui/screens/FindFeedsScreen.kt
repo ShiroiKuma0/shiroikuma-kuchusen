@@ -148,7 +148,6 @@ class FindFeedsVM: ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         searchJob?.cancel()
         searchJob = null
     }

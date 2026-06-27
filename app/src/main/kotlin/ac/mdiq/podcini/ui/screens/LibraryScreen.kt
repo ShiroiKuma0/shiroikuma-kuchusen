@@ -19,10 +19,10 @@ import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
 import ac.mdiq.podcini.net.sync.transceive.sendCatalog
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
+import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.storage.database.loadLocalFolder
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -186,6 +186,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
@@ -209,6 +211,7 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "LibraryScreen"
 
@@ -217,8 +220,8 @@ var feedIdsToUse by mutableStateOf<List<Long>>(listOf())
 class LibraryVM : ViewModel() {
     var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
 
-    val prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow().map { it.obj }
-        .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = subPrefs)
+//    val prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow().map { it.obj }
+//        .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = subPrefs)
 
     var showAllFeeds by mutableStateOf(feedIdsToUse.isNotEmpty())
     var isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())   // TODO, check
@@ -242,10 +245,12 @@ class LibraryVM : ViewModel() {
 
     fun preparePropertySort(feeds: List<Feed>, subIndex: FeedPropertySortIndex? = null) {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.propertySortIndex
+        Logd(TAG, "preparePropertySort subIndexOrdinal: $subIndexOrdinal")
         runOnIOScope {
             realm.write {
                 for (f_ in feeds) {
                     val f = findLatest(f_) ?: continue
+                    Logd(TAG, "preparePropertySort f: ${f.title}")
                     f.sortInfo = when(subIndexOrdinal) {
                         FeedPropertySortIndex.Rating.ordinal -> Rating.fromCode(f.rating).name
                         FeedPropertySortIndex.Score.ordinal -> "${f.score}(${f.scoreCount})"
@@ -258,23 +263,23 @@ class LibraryVM : ViewModel() {
                     }
                 }
             }
-            upsert(subPrefs) {
+            subPrefs = upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Feed.ordinal
                 it.propertySortIndex = subIndexOrdinal
                 it.sortProperty =
-                    when(subIndex) {
-                        FeedPropertySortIndex.Title -> "eigenTitle"
-                        FeedPropertySortIndex.Author -> "author"
-                        FeedPropertySortIndex.Rating -> "rating"
-                        FeedPropertySortIndex.Score -> "score"
-                        FeedPropertySortIndex.ScoreCount -> "scoreCount"
-                        FeedPropertySortIndex.Updated -> "lastUpdateTime"
-                        FeedPropertySortIndex.FullUpdate -> "lastFullUpdateTime"
-                        FeedPropertySortIndex.TotleDuration -> "totleDuration"
-                        FeedPropertySortIndex.Commented -> "commentTime"
+                    when(subIndexOrdinal) {
+                        FeedPropertySortIndex.Title.ordinal -> "eigenTitle"
+                        FeedPropertySortIndex.Author.ordinal -> "author"
+                        FeedPropertySortIndex.Rating.ordinal -> "rating"
+                        FeedPropertySortIndex.Score.ordinal -> "score"
+                        FeedPropertySortIndex.ScoreCount.ordinal -> "scoreCount"
+                        FeedPropertySortIndex.Updated.ordinal -> "lastUpdateTime"
+                        FeedPropertySortIndex.FullUpdate.ordinal -> "lastFullUpdateTime"
+                        FeedPropertySortIndex.TotleDuration.ordinal -> "totleDuration"
+                        FeedPropertySortIndex.Commented.ordinal -> "commentTime"
                         else -> "eigenTitle"
                     }
-                it.feedsSorted++
+                it.feedsSortedInc()
             }
         }
     }
@@ -282,11 +287,11 @@ class LibraryVM : ViewModel() {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
         Logd(TAG, "prepareDateSort")
         suspend fun persistDateSort() {
-            upsert(subPrefs) {
+            subPrefs = upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Date.ordinal
                 it.dateSortIndex = subIndexOrdinal
                 it.sortProperty = "sortValue"
-                it.feedsSorted++
+                it.feedsSortedInc()
             }
         }
         runOnIOScope {
@@ -354,12 +359,12 @@ class LibraryVM : ViewModel() {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.timeSortIndex
         Logd(TAG, "prepareTimeSort")
         suspend fun persistTimeSort() {
-            upsert(subPrefs) {
+            subPrefs = upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Time.ordinal
                 it.timeSortIndex = subIndexOrdinal
                 it.sortProperty = "sortValue"
                 //                it.timeAscending = !it.timeAscending
-                it.feedsSorted++
+                it.feedsSortedInc()
             }
         }
         runOnIOScope {
@@ -435,17 +440,17 @@ class LibraryVM : ViewModel() {
                     f.sortInfo = "Sort value: $c"
                 }
             }
-            upsert(subPrefs) {
+            subPrefs = upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Count.ordinal
                 it.sortProperty = "sortValue"
                 //                it.countAscending = !it.countAscending
-                it.feedsSorted++
+                it.feedsSortedInc()
             }
         }
     }
 
     suspend fun feedsRealmFlows(): Flow<RealmResults<Feed>> {
-        Logd(TAG, "buildFeedsFlows")
+        Logd(TAG, "feedsRealmFlows subPrefs.sortProperty: ${subPrefs.sortProperty}")
 
         fun languagesQS() : String {
             var qrs  = ""
@@ -521,7 +526,9 @@ class LibraryVM : ViewModel() {
     )
 
     val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { Pair(feedIdsToUse.size, FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived)) }
-        .distinctUntilChanged().flatMapLatest { feedsRealmFlows() }
+        .distinctUntilChanged().flatMapLatest {
+            Logd(TAG, "feedsFlow ${feedIdsToUse.size} ${curVolume?.id} $showAllFeeds ${subPrefs.feedsFiltered} ${subPrefs.feedsSorted} ${subPrefs.showArchived}")
+            feedsRealmFlows() }
         .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     init {
@@ -535,12 +542,6 @@ class LibraryVM : ViewModel() {
             }
         }
 
-        runOnIOScope {
-            subPrefs = upsert(subPrefs) {
-                it.feedsSorted = 0
-                it.feedsFiltered = 0
-            }
-        }
         viewModelScope.launch(Dispatchers.IO) {
             queuesFlow.collect { changes ->
                 Logd(TAG, "queuesFlow.collect")
@@ -592,7 +593,6 @@ class LibraryVM : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         Logd(TAG, "VM onCleared")
         curVolume = null
         queueIds = listOf()
@@ -613,7 +613,13 @@ fun LibraryScreen() {
     
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
-    val vm: LibraryVM = viewModel()
+//    val vm: LibraryVM = viewModel()
+
+//    val scopedOwner = remember(feedIdsToUse) { object : ViewModelStoreOwner { override val viewModelStore = ViewModelStore(); } }
+//    DisposableEffect(scopedOwner) { onDispose { scopedOwner.viewModelStore.clear() } }
+//    val vm: LibraryVM = viewModel(viewModelStoreOwner = scopedOwner, factory = viewModelFactory { initializer { LibraryVM() } })
+
+    val vm: LibraryVM = viewModel(key = feedIdsToUse.hashCode().toString(), factory = viewModelFactory { initializer { LibraryVM() } })
 
     val connectLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -735,8 +741,8 @@ fun LibraryScreen() {
             Text(stringResource(id = R.string.opml_export_label)) } }
     ) }
 
-    val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
-    if (prefsState != null) vm.subPrefs = prefsState!!
+//    val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
+//    if (prefsState != null) vm.subPrefs = prefsState!!
 
     val feedList by vm.feedsFlow.collectAsStateWithLifecycle()
     val volumes by vm.subVolumesFlow.collectAsStateWithLifecycle()
@@ -771,7 +777,7 @@ fun LibraryScreen() {
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.curVolume = realm.query(Volume::class).query("id == ${vm.curVolume?.parentId ?: -1L}").first().find() }
 
     LaunchedEffect(vm.subPrefs.sortIndex, feedOperationText, feedList.size, vm.curVolume?.id) {
-        Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
+        Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText}) sortIndex: ${vm.subPrefs.sortIndex}")
         if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
             FeedSortIndex.Feed.ordinal -> vm.preparePropertySort(feedList)
             FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feedList)
@@ -805,7 +811,7 @@ fun LibraryScreen() {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
-                        runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
+                        runOnIOScope { vm.subPrefs = upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
                         expanded = false
                     })
                     if (!vm.isViewGarden) {
@@ -850,7 +856,7 @@ fun LibraryScreen() {
                                     val rootUri =  findRootForUri(uri)
                                     if (rootUri != null && uri != rootUri) {
                                         Logt(TAG, "Loading from root folder: $rootUri")
-                                        uri = rootUri!!
+                                        uri = rootUri
                                     }
                                     loadLocalFolder(uri, vm.curVolume!!.allFeeds.filter { it.isLocal })
                                 }
@@ -889,7 +895,7 @@ fun LibraryScreen() {
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Feed.ordinal)
                                         runOnIOScope {
-                                            upsert(vm.subPrefs) {
+                                            vm.subPrefs = upsert(vm.subPrefs) {
                                                 if (it.sortIndex == FeedSortIndex.Feed.ordinal) {
                                                     it.propertyAscending = !it.propertyAscending
                                                     it.sortDirCode = if (it.propertyAscending) 0 else 1
@@ -897,7 +903,7 @@ fun LibraryScreen() {
                                                     it.sortIndex = FeedSortIndex.Feed.ordinal
                                                     it.sortProperty = "eigenTitle"
                                                 }
-                                                it.feedsSorted += 1
+                                                it.feedsSortedInc()
                                             }
                                         }
                                     else vm.preparePropertySort(feedList)
@@ -907,10 +913,10 @@ fun LibraryScreen() {
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal)
                                         runOnIOScope {
-                                            upsert(vm.subPrefs) {
+                                            vm.subPrefs = upsert(vm.subPrefs) {
                                                 it.dateAscending = !it.dateAscending
                                                 it.sortDirCode = if (it.dateAscending) 0 else 1
-                                                it.feedsSorted += 1
+                                                it.feedsSortedInc()
                                             }
                                         }
                                     else vm.prepareDateSort(feedList)
@@ -920,10 +926,10 @@ fun LibraryScreen() {
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Time.ordinal)
                                         runOnIOScope {
-                                            upsert(vm.subPrefs) {
+                                            vm.subPrefs = upsert(vm.subPrefs) {
                                                 it.timeAscending = !it.timeAscending
                                                 it.sortDirCode = if (it.timeAscending) 0 else 1
-                                                it.feedsSorted += 1
+                                                it.feedsSortedInc()
                                             }
                                         }
                                     else vm.prepareTimeSort(feedList)
@@ -933,10 +939,10 @@ fun LibraryScreen() {
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal)
                                         runOnIOScope {
-                                            upsert(vm.subPrefs) {
+                                            vm.subPrefs = upsert(vm.subPrefs) {
                                                 it.countAscending = !it.countAscending
                                                 it.sortDirCode = if (it.countAscending) 0 else 1
-                                                it.feedsSorted += 1
+                                                it.feedsSortedInc()
                                             }
                                         }
                                     else vm.prepareCountSort(feedList)
@@ -977,7 +983,7 @@ fun LibraryScreen() {
                                             fun persistDLSort(i: Int) {
                                                 runOnIOScope {
                                                     val downlaodedSortIndex = if (vm.subPrefs.downlaodedSortIndex != i) i else -1
-                                                    upsert(vm.subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
+                                                    vm.subPrefs = upsert(vm.subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
                                                     vm.downloadedQuery = when (downlaodedSortIndex) {
                                                         0 -> " fileUrl != nil "
                                                         1 -> " fileUrl == nil "
@@ -1004,7 +1010,7 @@ fun LibraryScreen() {
                                             fun persistCommentSort(i: Int) {
                                                 runOnIOScope {
                                                     val commentedSortIndex = if (vm.subPrefs.commentedSortIndex != i) i else -1
-                                                    upsert(vm.subPrefs) { it.commentedSortIndex = commentedSortIndex }
+                                                    vm.subPrefs = upsert(vm.subPrefs) { it.commentedSortIndex = commentedSortIndex }
                                                     vm.commentedQuery = when (vm.subPrefs.commentedSortIndex) {
                                                         0 -> " comment != '' "
                                                         1 -> " comment == '' "
@@ -1048,7 +1054,7 @@ fun LibraryScreen() {
                                                     }
                                                 }
                                                 vm.playStateQueries = sb.toString()
-                                                upsert(vm.subPrefs) {
+                                                vm.subPrefs = upsert(vm.subPrefs) {
                                                     it.playStateCodeSet.clear()
                                                     it.playStateCodeSet.addAll(playStateCodeSet)
                                                 }
@@ -1149,7 +1155,7 @@ fun LibraryScreen() {
                                                     }
                                                 }
                                                 vm.ratingQueries = sb.toString()
-                                                upsert(vm.subPrefs) {
+                                                vm.subPrefs = upsert(vm.subPrefs) {
                                                     it.ratingCodeSet.clear()
                                                     it.ratingCodeSet.addAll(ratingCodeSet)
                                                 }
@@ -1246,9 +1252,9 @@ fun LibraryScreen() {
             var queuesFull by remember(vm.subPrefs.queueSelIds.size) { mutableStateOf(vm.subPrefs.queueSelIds.size == vm.queueNames.size) }
             fun onFilterChanged(newFilterValues: Set<String>) {
                 runOnIOScope {
-                    upsert(vm.subPrefs) {
+                    vm.subPrefs = upsert(vm.subPrefs) {
                         it.feedsFilter = newFilterValues.joinToString(",")
-                        it.feedsFiltered++
+                        it.feedsFilteredInc()
                     }
                 }
                 Logd(TAG, "onFilterChanged: ${vm.subPrefs.feedsFilter}")
@@ -1279,9 +1285,9 @@ fun LibraryScreen() {
                                                 runOnIOScope {
                                                     val langsSel = mutableSetOf<String>()
                                                     for (i in langs.indices) if (selectedList[i].value) langsSel.add(langs[i])
-                                                    upsert(vm.subPrefs) {
+                                                    vm.subPrefs = upsert(vm.subPrefs) {
                                                         it.langsSel = langsSel.toRealmSet()
-                                                        it.feedsFiltered += 1
+                                                        it.feedsFilteredInc()
                                                     }
                                                 }
                                                 Logd(TAG, "langsSel: ${vm.subPrefs.langsSel.size} ${langs.size}")
@@ -1297,9 +1303,9 @@ fun LibraryScreen() {
                                                     val langsSel = vm.subPrefs.langsSel.toMutableSet()
                                                     if (selectedList[index].value) langsSel.add(langs[index])
                                                     else langsSel.remove(langs[index])
-                                                    upsert(vm.subPrefs) {
+                                                    vm.subPrefs = upsert(vm.subPrefs) {
                                                         it.langsSel = langsSel.toRealmSet()
-                                                        it.feedsFiltered += 1
+                                                        it.feedsFilteredInc()
                                                     }
                                                 }
                                             },
@@ -1324,9 +1330,9 @@ fun LibraryScreen() {
                                             runOnIOScope {
                                                 val qSelIds = mutableSetOf<Long>()
                                                 for (i in vm.queueNames.indices) if (selectedList[i].value) qSelIds.add(vm.queueIds[i])
-                                                upsert(vm.subPrefs) {
+                                                vm.subPrefs = upsert(vm.subPrefs) {
                                                     it.queueSelIds = qSelIds.toRealmSet()
-                                                    it.feedsFiltered += 1
+                                                    it.feedsFilteredInc()
                                                 }
                                             }
                                             Unit
@@ -1342,9 +1348,9 @@ fun LibraryScreen() {
                                                 val qSelIds = vm.subPrefs.queueSelIds.toMutableSet()
                                                 if (selectedList[index].value) qSelIds.add(vm.queueIds[index])
                                                 else qSelIds.remove(vm.queueIds[index])
-                                                upsert(vm.subPrefs) {
+                                                vm.subPrefs = upsert(vm.subPrefs) {
                                                     it.queueSelIds = qSelIds.toRealmSet()
-                                                    it.feedsFiltered += 1
+                                                    it.feedsFilteredInc()
                                                 }
                                             }
                                         },
@@ -1370,9 +1376,9 @@ fun LibraryScreen() {
                                                 runOnIOScope {
                                                     val tagsSel = mutableSetOf<String>()
                                                     for (i in tagList.indices) if (selectedList[i].value) tagsSel.add(tagList[i])
-                                                    upsert(vm.subPrefs) {
+                                                    vm.subPrefs = upsert(vm.subPrefs) {
                                                         it.tagsSel = tagsSel.toRealmSet()
-                                                        it.feedsFiltered += 1
+                                                        it.feedsFilteredInc()
                                                     }
                                                 }
                                                 Unit
@@ -1388,9 +1394,9 @@ fun LibraryScreen() {
                                                     val tagsSel = vm.subPrefs.tagsSel.toMutableSet()
                                                     if (selectedList[index].value) tagsSel.add(tagList[index])
                                                     else tagsSel.remove(tagList[index])
-                                                    upsert(vm.subPrefs) {
+                                                    vm.subPrefs = upsert(vm.subPrefs) {
                                                         it.tagsSel = tagsSel.toRealmSet()
-                                                        it.feedsFiltered += 1
+                                                        it.feedsFilteredInc()
                                                     }
                                                 }
                                             },
@@ -1496,11 +1502,11 @@ fun LibraryScreen() {
                                 Spacer(Modifier.weight(0.3f))
                                 Button(onClick = {
                                     runOnIOScope {
-                                        upsert(vm.subPrefs) {
+                                        vm.subPrefs = upsert(vm.subPrefs) {
                                             it.tagsSel = appAttribs.feedTagSet.toRealmSet()
                                             it.queueSelIds = vm.queueIds.toRealmSet()
                                             it.langsSel = appAttribs.langSet.toRealmSet()
-                                            it.feedsFiltered += 1
+                                            it.feedsFilteredInc()
                                         }
                                     }
                                     selectNone = true
@@ -1764,7 +1770,7 @@ fun LibraryScreen() {
                 for (feed in feedsSelected) {
                     sendFeed(host, port, feed.id) { }
                     Logt(TAG, "feeds transferred ${++i} / $num, waiting 5 seconds to do next")
-                    delay(10000)
+                    delay(10000.milliseconds)
                 }
                 showToDeviceDialog = false
             }

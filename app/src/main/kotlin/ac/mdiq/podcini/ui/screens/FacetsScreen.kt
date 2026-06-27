@@ -437,7 +437,6 @@ class FacetsVM(modeName_: String): ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         facetsPrefsJob?.cancel()
         facetsPrefsJob = null
     }

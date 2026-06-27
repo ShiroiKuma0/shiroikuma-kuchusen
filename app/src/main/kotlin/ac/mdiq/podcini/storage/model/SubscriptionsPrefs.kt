@@ -45,8 +45,14 @@ class SubscriptionsPrefs: RealmObject {
     var sortDirCode: Int = 0
 
     var feedsSorted: Int = 0
+    fun feedsSortedInc() {
+        feedsSorted = if (feedsSorted > 1000) 0 else feedsSorted+1
+    }
 
     var feedsFiltered: Int = 0
+    fun feedsFilteredInc() {
+        feedsFiltered = if (feedsFiltered > 1000) 0 else feedsFiltered+1
+    }
 
     var positionIndex: Int = 0
 

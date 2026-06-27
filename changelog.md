@@ -1,3 +1,14 @@
+# 12.1.9
+
+* on topbar of FeedDetails screen, 
+	* enabled History icon in Info mode
+	* border is added to feed image 
+* in OnlineFeed screen
+	* ensure feed options dialog popup only with multiple options
+	* episodes limit input is no longer instant (tap on "Setting" is needed)
+* ensure viewmodels are cleared on back-press
+* in Library screen, fixed strange feeds sorting behavior on feed properties
+
 # 12.1.8
 
 * in OnlineFeed, before subscribe, allows selecting a YT channel tab, currently default or live (streams)

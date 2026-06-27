@@ -201,24 +201,29 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
             suspend fun handleClientFeeds() {
                 feedOptions = gatewayClient?.withProvider { it.feedsTitlesAtUrl(url) } ?: listOf()
-                if (feedOptions.size > 1) {
-                    showTabsDialog = true
-                    feedOptions.forEach { Logd(TAG, "feedOptions: $it") }
-                } else {
-                    val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
-                    if (fipc != null) {
-                        val eList = mutableListOf<EpisodeIPC>()
-                        var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
-                        while (episodes.isNotEmpty()) {
-                            eList.addAll(episodes)
-                            numEpisodes = eList.size
-                            if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
-                            Logd(TAG, "Subscribing eList: ${eList.size}")
-                            episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
-                        }
-                        fipc.episodes = eList
-                        handleFeed(fipc.toFeed())
-                    } else Loge(TAG, "Subscribe feed failed")
+                val feedOptions_ = feedOptions.filter { it != "playlists" && it != "shorts" }
+                when {
+                    feedOptions_.size > 1 -> {
+                        showTabsDialog = true
+                        feedOptions.forEach { Logd(TAG, "feedOptions: $it") }
+                    }
+                    feedOptions_.size == 1 -> {
+                        val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
+                        if (fipc != null) {
+                            val eList = mutableListOf<EpisodeIPC>()
+                            var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
+                            while (episodes.isNotEmpty()) {
+                                eList.addAll(episodes)
+                                numEpisodes = eList.size
+                                if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
+                                Logd(TAG, "Subscribing eList: ${eList.size}")
+                                episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
+                            }
+                            fipc.episodes = eList
+                            handleFeed(fipc.toFeed())
+                        } else Loge(TAG, "Building feed failed")
+                    }
+                    else -> Loge(TAG, "No feed found")
                 }
             }
             viewModelScope.launch(Dispatchers.IO) {
@@ -370,9 +375,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     DisposableEffect(vm.showEpisodes, episodeForInfo) {
@@ -530,7 +533,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 //                    TODO: alternate_urls_spinner
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
-                    NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = true, modifier = Modifier.weight(0.5f)) {
+                    NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = false, modifier = Modifier.weight(0.5f)) {
                         Logd(TAG, "limitEpisodesCount: $it")
                         vm.limitEpisodesCount = it
                     }

@@ -168,11 +168,10 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
     val showSubscribeDialog = remember { mutableStateOf(false) }
     fun subscribeFeed(result: FeedSearchResult) {
         val url = result.feedUrl ?: return
-        fun isYT(url: String, feedSource: String): Boolean = (feedSource == "VistaGuide" || url.contains("youtube.com"))
-        if (isYT(url, result.source)) {
+        val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
+        if (client != null) {
             runOnIOScope {
-                val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
-                val fipc = client?.withProvider { it.buildFeed(url, 0) }
+                val fipc = client.withProvider { it.buildFeed(url, 0) }
                 if (fipc != null) {
                     val eList = mutableListOf<EpisodeIPC>()
                     var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()

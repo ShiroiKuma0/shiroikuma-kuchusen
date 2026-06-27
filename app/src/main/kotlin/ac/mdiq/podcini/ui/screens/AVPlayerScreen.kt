@@ -241,7 +241,6 @@ class AVPlayerVM0: ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         eventSink?.cancel()
         eventSink = null
     }
@@ -320,7 +319,6 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         stop()
     }
 }

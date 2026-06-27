@@ -9,6 +9,8 @@ import ac.mdiq.podcini.utils.Logd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateSetOf
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import kotlinx.serialization.Serializable
@@ -103,7 +105,7 @@ val defaultNavKey: NavKey
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
-val myEntryProvider = entryProvider {
+val myEntryProvider = entryProvider<NavKey> {
     entry<Library>{ LibraryScreen() }
     entry<Queues>{ k-> QueuesScreen(k.id) }
     entry<FeedDetails>{ k-> FeedDetailsScreen(k.feedId, k.modeName) }
@@ -117,10 +119,6 @@ val myEntryProvider = entryProvider {
     entry<Logs>{ LogsScreen() }
     entry<Statistics>{ StatisticsScreen() }
     entry<Settings>{ PrefsScreen() }
-}
-
-val anyEntryProvider: (Any) -> NavEntry<Any> = { key ->
-    myEntryProvider(key as NavKey) as NavEntry<Any>
 }
 
 enum class DefaultPages(val res: Int) {

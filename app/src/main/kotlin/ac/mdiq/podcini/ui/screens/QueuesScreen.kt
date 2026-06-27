@@ -242,7 +242,6 @@ class QueuesVM(id_: Long): ViewModel() {
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     override fun onCleared() {
-        super.onCleared()
         Logd(TAG, "VM onCleared")
     }
 }

@@ -78,6 +78,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -245,11 +246,15 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     val logs: List<DownloadResult>
 
     init {
-        Logd(TAG, "FeedDetailsVM init")
+        Logd(TAG, "FeedDetailsVM init feedId: $feedId")
         timeIt("$TAG start of init")
         feedEpisodesSize = realm.query(Episode::class).query("feedId == $feedId").count().find().toInt()
         logs = realm.query(DownloadResult::class).query("feedfileId == $feedId AND feedfileType == ${RequestTye.FEED.ordinal}").sort("completionTime",  Sort.DESCENDING).find()
         timeIt("$TAG end of init")
+    }
+
+    override fun onCleared() {
+        Logd(TAG, "FeedDetailsVM onCleared")
     }
 }
 
@@ -423,8 +428,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)))
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(ImageVector.vectorResource(R.drawable.outline_square_dot_24), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 7.dp).clickable { drawerController?.open() } )
-                    AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).combinedClickable(
+                    Icon(ImageVector.vectorResource(R.drawable.outline_square_dot_24), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() } )
+                    AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(24.dp).height(24.dp).border(2.dp, MaterialTheme.colorScheme.tertiary).combinedClickable(
                         onClick = { if (feed != null) vm.screenModeFlow.value = if (screenMode == FeedScreenMode.List) FeedScreenMode.Info else FeedScreenMode.List },
                         onLongClick = { onImgLongClick() }))
                     Spacer(Modifier.weight(1f))
@@ -438,12 +443,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         )
                     }
                     val histColor = if (screenMode != FeedScreenMode.History) textColor else buttonAltColor
-                    if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History) && feed != null) IconButton(onClick = {
+                    if (feed != null) IconButton(onClick = {
                         vm.cameBack = false
                         vm.screenModeFlow.value = when(screenMode) {
                             FeedScreenMode.List -> FeedScreenMode.History
                             FeedScreenMode.History -> FeedScreenMode.List
-                            else -> FeedScreenMode.List
+                            else -> FeedScreenMode.History
                         }
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                     if (feed?.queue != null) IconButton(onClick = {

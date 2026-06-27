@@ -62,12 +62,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "MainScreen"
 
@@ -177,7 +179,7 @@ fun MainActivityUI() {
     }
 
     LaunchedEffect(Unit) {
-        snapshotFlow { backStack.toList() }.debounce(200).collect { stack ->
+        snapshotFlow { backStack.toList() }.debounce(200.milliseconds).collect { stack ->
             val json = Json.encodeToString(stack)
             withContext(Dispatchers.IO) { upsert(appAttribs) { it.backstack = json } }
         }
@@ -190,7 +192,7 @@ fun MainActivityUI() {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + playerMinHeight.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
-                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = anyEntryProvider)
+                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = myEntryProvider, entryDecorators = listOf(rememberViewModelStoreNavEntryDecorator()))
                 }
             }
         }
@@ -205,14 +207,12 @@ fun MainActivityUI() {
             drawerState.isOpen -> drawerCtrl.close()
             psState == PSState.Expanded -> psState = PSState.PartiallyExpanded
             backStack.size > 1 -> {
-                Logd(TAG, "nav to back")
+                Logd(TAG, "BackHandler nav to back")
                 navBack()
-                Logd(TAG, "BackHandler curruntRoute: ")
             }
             backStack.size == 1 && defPage != backStack[0] -> {
-                Logd(TAG, "nav to defPage: $defPage")
+                Logd(TAG, "BackHandler nav to defPage: $defPage")
                 navTo(defPage)
-                Logd(TAG, "BackHandler curruntRoute1: ")
             }
             openDrawer -> drawerCtrl.open()
             else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
