@@ -241,6 +241,7 @@ class AVPlayerVM0: ViewModel() {
     }
 
     override fun onCleared() {
+        Logd(TAG, "VM onCleared")
         eventSink?.cancel()
         eventSink = null
     }
@@ -319,6 +320,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
     }
 
     override fun onCleared() {
+        Logd(TAG, "VM onCleared")
         stop()
     }
 }

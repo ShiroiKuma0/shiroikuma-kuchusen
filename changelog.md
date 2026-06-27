@@ -1,3 +1,8 @@
+# 12.1.10
+
+* simplified scroll position handling
+* fixed list scroll position not stable on return
+
 # 12.1.9
 
 * on topbar of FeedDetails screen, 

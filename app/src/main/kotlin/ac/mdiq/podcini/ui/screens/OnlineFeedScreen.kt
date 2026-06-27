@@ -346,6 +346,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     }
 
     override fun onCleared() {
+        Logd(TAG, "VM onCleared")
         episodes.clear()
     }
 }

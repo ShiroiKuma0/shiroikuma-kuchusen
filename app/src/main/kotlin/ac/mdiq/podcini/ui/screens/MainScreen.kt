@@ -63,6 +63,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.debounce
@@ -192,7 +193,9 @@ fun MainActivityUI() {
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AVPlayerScreen() }, scaffoldState = sheetState, sheetMaxWidth = screenWidth, sheetPeekHeight = bottomInsetPadding + playerMinHeight.dp, sheetDragHandle = {}, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), bottom = dynamicBottomPadding)) {
-                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = myEntryProvider, entryDecorators = listOf(rememberViewModelStoreNavEntryDecorator()))
+                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = myEntryProvider,
+                        entryDecorators = listOf(rememberSaveableStateHolderNavEntryDecorator(), rememberViewModelStoreNavEntryDecorator()))
+//                    NavDisplay(backStack = backStack, onBack = { navBack() }, entryProvider = myEntryProvider)
                 }
             }
         }

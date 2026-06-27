@@ -451,7 +451,6 @@ class LibraryVM : ViewModel() {
 
     suspend fun feedsRealmFlows(): Flow<RealmResults<Feed>> {
         Logd(TAG, "feedsRealmFlows subPrefs.sortProperty: ${subPrefs.sortProperty}")
-
         fun languagesQS() : String {
             var qrs  = ""
             when {

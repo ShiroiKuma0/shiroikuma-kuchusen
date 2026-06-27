@@ -148,6 +148,7 @@ class FindFeedsVM: ViewModel() {
     }
 
     override fun onCleared() {
+        Logd(TAG, "VM onCleared")
         searchJob?.cancel()
         searchJob = null
     }

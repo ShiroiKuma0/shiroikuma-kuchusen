@@ -1,0 +1,2 @@
+* simplified scroll position handling
+* fixed list scroll position not stable on return

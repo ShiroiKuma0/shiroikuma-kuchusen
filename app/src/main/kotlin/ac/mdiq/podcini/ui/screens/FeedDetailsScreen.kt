@@ -195,7 +195,6 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     val screenModeFlow = MutableStateFlow(FeedScreenMode.valueOf(modeName))
 
     var enableFilter by  mutableStateOf(true)
-    var cameBack by mutableStateOf(false)
 
     val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { f -> f.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
 
@@ -444,7 +443,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     }
                     val histColor = if (screenMode != FeedScreenMode.History) textColor else buttonAltColor
                     if (feed != null) IconButton(onClick = {
-                        vm.cameBack = false
                         vm.screenModeFlow.value = when(screenMode) {
                             FeedScreenMode.List -> FeedScreenMode.History
                             FeedScreenMode.History -> FeedScreenMode.List
@@ -669,10 +667,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
         Logd(TAG, "BackHandler")
         when {
-            episodeForInfo != null -> {
-                vm.cameBack = true
-                episodeForInfo = null
-            }
+            episodeForInfo != null -> episodeForInfo = null
             !vm.enableFilter -> vm.enableFilter = true
             vm.screenModeFlow.value != FeedScreenMode.List -> vm.screenModeFlow.value = FeedScreenMode.List
         }
@@ -684,10 +679,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     else Scaffold(topBar = { TopHeader() }) { innerPadding ->
         if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
-                val scrollToOnStart = remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, vm.cameBack, screenMode) {
+                val scrollToOnStart = remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, screenMode) {
                     when {
                         screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
-                        vm.cameBack -> -1
                         theatres[0].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
                         theatres[1].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[1].mPlayer?.curEpisode?.id }
                         else -> -1

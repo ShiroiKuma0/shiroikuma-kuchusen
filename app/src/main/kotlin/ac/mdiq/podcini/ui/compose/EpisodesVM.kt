@@ -9,6 +9,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -24,8 +26,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
@@ -41,8 +41,6 @@ import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.stripDateTimeLines
 import androidx.activity.compose.BackHandler
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -258,10 +256,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                //                Logd(TAG, "DisposableEffect lifecycleOwner onDispose")
-                lifecycleOwner.lifecycle.removeObserver(observer)
-            }
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
         LaunchedEffect(episodes.size, scrollToOnStart) {
@@ -475,7 +470,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         Row(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             if (showCoverImage && (feed == null || !useFeedImage)) {
                                 Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable {
-                                    Logd(TAG, "icon clicked!")
                                     when {
                                         selectMode -> toggleSelected(episode)
                                         feed == null && episode.feed?.isSynthetic() != true -> navTo(FeedDetails(feedId = episode.feed!!.id, modeName = FeedScreenMode.Info.name))

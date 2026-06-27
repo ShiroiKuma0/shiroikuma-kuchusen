@@ -63,6 +63,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -145,7 +146,6 @@ private val TAG = Screens.Facets.name
 
 class FacetsVM(modeName_: String): ViewModel() {
     val modeName = modeName_
-    var cameBack by mutableStateOf(false)
 
     var tag = TAG+QuickAccess.entries[0]
 
@@ -437,6 +437,7 @@ class FacetsVM(modeName_: String): ViewModel() {
     }
 
     override fun onCleared() {
+        Logd(TAG, "VM onCleared")
         facetsPrefsJob?.cancel()
         facetsPrefsJob = null
     }
@@ -489,7 +490,6 @@ fun FacetsScreen(modeName: String = "") {
     }
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
-        vm.cameBack = true
         if (episodeForInfo != null) episodeForInfo = null
         else vm.showFeeds = false
     }
@@ -576,7 +576,6 @@ fun FacetsScreen(modeName: String = "") {
                         for (index in vm.spinnerTexts.indices) {
                             FilterChip(label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index),
                                 onClick = {
-                                    vm.cameBack = false
                                     vm.curIndex = index
                                     facetsMode = QuickAccess.valueOf(vm.spinnerTexts[vm.curIndex])
                                     vm.tag = TAG + QuickAccess.entries[vm.curIndex]
@@ -598,6 +597,8 @@ fun FacetsScreen(modeName: String = "") {
 
     OpenDialogs()
 
+    val lazyListState = rememberLazyListState()
+
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     else Scaffold(topBar = { TopBar() }) { innerPadding ->
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
@@ -618,7 +619,7 @@ fun FacetsScreen(modeName: String = "") {
                 Spacer(modifier = Modifier.weight(0.1f))
                 PlayRandom(episodes)
             }
-            EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType,
+            EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType, lazyListState = lazyListState,
                 actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
         }
     }
