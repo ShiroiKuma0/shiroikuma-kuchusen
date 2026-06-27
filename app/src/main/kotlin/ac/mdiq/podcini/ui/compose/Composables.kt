@@ -179,8 +179,11 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
 
     if (isForeground) {
         Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
-            val color = if (message.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
-            Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp)) {
+            val color = if (message.contains("Error:")) Color.Red else textColor
+            val shape = RoundedCornerShape(8.dp)
+            Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface, shape)
+                .border(borderWidthDp.coerceAtLeast(1.dp), borderColor, shape)
+                .padding(horizontal = 16.dp, vertical = 10.dp)) {
                 Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
             }
         }
