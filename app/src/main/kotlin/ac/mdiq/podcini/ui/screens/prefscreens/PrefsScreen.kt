@@ -104,6 +104,9 @@ object PFNav {
     data object Portal : PFNavKey()
 
     @Serializable
+    data object KuchusenUI : PFNavKey()
+
+    @Serializable
     data object Interface : PFNavKey()
 
     @Serializable
@@ -128,6 +131,7 @@ object PFNav {
 @OptIn(ExperimentalMaterial3Api::class)
 val pfEntryProvider = entryProvider {
     entry<PFNav.Portal>{ PrefPortalScreen() }
+    entry<PFNav.KuchusenUI>{ KuchusenUiScreen() }
     entry<PFNav.Interface>{ UserInterfaceScreen() }
     entry<PFNav.NetworkStorage>{ NetworkStorageScreen() }
     entry<PFNav.ImportExport>{ ImportExportScreen() }
@@ -194,6 +198,7 @@ fun PrefPortalScreen() {
                 Text(copyrightNoticeText, color = textColor)
             }
         }
+        IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.kuchusen_ui_label, R.string.kuchusen_ui_sum, PFNav.KuchusenUI)
         IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, PFNav.Interface)
         IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, PFNav.Playback)
         IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_storage_pref, R.string.downloads_pref_sum, PFNav.NetworkStorage)

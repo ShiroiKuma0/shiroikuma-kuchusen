@@ -284,7 +284,10 @@ fun CommonToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
     }
     if (isForeground && commonConfirms.isEmpty()) {
         Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }, properties = PopupProperties(focusable = false, clippingEnabled = false)) {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val shape = RoundedCornerShape(8.dp)
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface, shape)
+                .border(borderWidthDp.coerceAtLeast(1.dp), borderColor, shape)
+                .padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 var onHold by remember { mutableStateOf(false) }
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
                     Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(start = 8.dp).clickable { toasts.removeAll(toasts.take(3)) })
@@ -299,7 +302,7 @@ fun CommonToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
                             toasts.remove(toast)
                         }
                     }
-                    val color = if (toast.m.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
+                    val color = if (toast.m.contains("Error:")) Color.Red else textColor
                     Text(text = toast.m, color = color, style = MaterialTheme.typography.bodyMedium)
                 }
             }
