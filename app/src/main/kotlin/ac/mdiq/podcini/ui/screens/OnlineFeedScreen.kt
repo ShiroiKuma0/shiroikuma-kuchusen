@@ -201,7 +201,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
             suspend fun handleClientFeeds() {
                 feedOptions = gatewayClient?.withProvider { it.feedsTitlesAtUrl(url) } ?: listOf()
-                val feedOptions_ = feedOptions.filter { it != "playlists" && it != "shorts" }
+                val feedOptions_ = feedOptions.filter { it != null && it != "playlists" && it != "shorts" }
                 when {
                     feedOptions_.size > 1 -> {
                         showTabsDialog = true
@@ -458,140 +458,141 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 
     swipeActions.ActionOptionsDialog()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
-    else Scaffold(topBar = {
-        Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back or drawer",  modifier = Modifier.padding(7.dp).clickable {
-                if (vm.showEpisodes) vm.showEpisodes = false
-                else if (!navBack()) drawerController?.open()
-            }) } )
-            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }) { innerPadding ->
-        if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 5.dp, end = 5.dp).background(MaterialTheme.colorScheme.surface)) {
-            InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-            EpisodeLazyColumn(vm.episodes.toList(), isExternal = true, swipeActions = swipeActions,
-                actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
-        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
-            ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface)) {
-                val (coverImage, taColumn, buttons) = createRefs()
-                AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.drawable.ic_launcher_foreground),
-                    modifier = Modifier.width(80.dp).height(80.dp).constrainAs(coverImage) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(topBar = {
+            Box {
+                TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back or drawer", modifier = Modifier.padding(7.dp).clickable {
+                        if (vm.showEpisodes) vm.showEpisodes = false
+                        else if (!navBack()) drawerController?.open()
+                    })
+                })
+                HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+            }
+        }) { innerPadding ->
+            if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 5.dp, end = 5.dp).background(MaterialTheme.colorScheme.surface)) {
+                InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
+                EpisodeLazyColumn(vm.episodes.toList(), isExternal = true, swipeActions = swipeActions, actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+            } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
+                ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface)) {
+                    val (coverImage, taColumn, buttons) = createRefs()
+                    AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.drawable.ic_launcher_foreground), modifier = Modifier.width(80.dp).height(80.dp).constrainAs(coverImage) {
                         centerVerticallyTo(parent)
                         start.linkTo(parent.start)
                     })
-                Column(Modifier.padding(start = 5.dp).constrainAs(taColumn) {
-                    top.linkTo(parent.top)
-                    start.linkTo(coverImage.end)
-                }) {
-                    Text(vm.feed?.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(vm.feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-                Row(Modifier.constrainAs(buttons) {
-                    start.linkTo(coverImage.end)
-                    bottom.linkTo(parent.bottom)
-                    end.linkTo(parent.end)
-                }) {
-                    Spacer(modifier = Modifier.weight(0.2f))
-                    if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
-                        if (vm.feed == null) return@Button
-                        if (vm.feedId != 0L) {
-                            if (vm.isShared) {
-                                val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
-                                if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
-                            }
-                            navTo(FeedDetails(feedId=vm.feedId, modeName=FeedScreenMode.Info.name))
-                        } else {
-                            vm.enableSubscribe = false
-                            vm.enableEpisodes = false
-                            CoroutineScope(Dispatchers.IO).launch {
-                                if (vm.limitEpisodesCount > 0) vm.feed?.limitEpisodesCount = vm.limitEpisodesCount
-                                subscribe(vm.feed!!)
+                    Column(Modifier.padding(start = 5.dp).constrainAs(taColumn) {
+                        top.linkTo(parent.top)
+                        start.linkTo(coverImage.end)
+                    }) {
+                        Text(vm.feed?.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(vm.feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    Row(Modifier.constrainAs(buttons) {
+                        start.linkTo(coverImage.end)
+                        bottom.linkTo(parent.bottom)
+                        end.linkTo(parent.end)
+                    }) {
+                        Spacer(modifier = Modifier.weight(0.2f))
+                        if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
+                            if (vm.feed == null) return@Button
+                            if (vm.feedId != 0L) {
                                 if (vm.isShared) {
                                     val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
-                                    if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.ordinal }
+                                    if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                                 }
-                                withContext(Dispatchers.Main) {
-                                    vm.feedId = vm.feed?.id ?: 0L
-                                    vm.enableSubscribe = true
-                                    vm.subButTextRes = R.string.open
-                                    vm.didPressSubscribe = true
-                                    vm.handleUpdatedFeedStatus()
+                                navTo(FeedDetails(feedId = vm.feedId, modeName = FeedScreenMode.Info.name))
+                            } else {
+                                vm.enableSubscribe = false
+                                vm.enableEpisodes = false
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    if (vm.limitEpisodesCount > 0) vm.feed?.limitEpisodesCount = vm.limitEpisodesCount
+                                    subscribe(vm.feed!!)
+                                    if (vm.isShared) {
+                                        val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
+                                        if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.ordinal }
+                                    }
+                                    withContext(Dispatchers.Main) {
+                                        vm.feedId = vm.feed?.id ?: 0L
+                                        vm.enableSubscribe = true
+                                        vm.subButTextRes = R.string.open
+                                        vm.didPressSubscribe = true
+                                        vm.handleUpdatedFeedStatus()
+                                    }
                                 }
                             }
+                        }) { Text(stringResource(vm.subButTextRes)) }
+                        Spacer(modifier = Modifier.weight(0.1f))
+                        when {
+                            vm.showEpisodes -> Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
+                            vm.enableEpisodes && vm.feed != null -> Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
+                            else -> {}
                         }
-                    }) { Text(stringResource(vm.subButTextRes)) }
-                    Spacer(modifier = Modifier.weight(0.1f))
-                    when {
-                        vm.showEpisodes -> Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
-                        vm.enableEpisodes && vm.feed != null -> Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
-                        else -> {}
-                    }
-                    Spacer(modifier = Modifier.weight(0.2f))
-                }
-            }
-            Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) {
-//                    TODO: alternate_urls_spinner
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
-                    NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = false, modifier = Modifier.weight(0.5f)) {
-                        Logd(TAG, "limitEpisodesCount: $it")
-                        vm.limitEpisodesCount = it
+                        Spacer(modifier = Modifier.weight(0.2f))
                     }
                 }
-                val isAudoDL = remember(vm.feed) { vm.feed?.type in listOf(FeedType.RSS.name, FeedType.ATOM.name) }
-                if (appPrefs.enableAutoDl && isAudoDL) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                    Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
-                }
-            }
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-                val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
-                if (sLog != null) {
-                    val commentTextState = remember(sLog.comment) { TextFieldValue(sLog.comment) }
-                    val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
-                    val ratingRes = remember { fromCode(sLog.rating).res }
-                    if (commentTextState.text.isNotEmpty()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                            Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
-                            Text(stringResource(R.string.comments), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
+                Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) { //                    TODO: alternate_urls_spinner
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
+                        NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = false, modifier = Modifier.weight(0.5f)) {
+                            Logd(TAG, "limitEpisodesCount: $it")
+                            vm.limitEpisodesCount = it
                         }
-                        Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                        Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                    }
+                    val isAudoDL = remember(vm.feed) { vm.feed?.type in listOf(FeedType.RSS.name, FeedType.ATOM.name) }
+                    if (appPrefs.enableAutoDl && isAudoDL) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
+                        Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
-                Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                if (!vm.feed?.episodes.isNullOrEmpty()) {
-                    Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                }
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
+                    val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
+                    if (sLog != null) {
+                        val commentTextState = remember(sLog.comment) { TextFieldValue(sLog.comment) }
+                        val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
+                        val ratingRes = remember { fromCode(sLog.rating).res }
+                        if (commentTextState.text.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
+                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                                Text(stringResource(R.string.comments), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
+                            }
+                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        }
+                    }
+                    Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (!vm.feed?.episodes.isNullOrEmpty()) {
+                        Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                        Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    }
 
-                Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 10.dp).clickable {
+                    Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp).clickable {
                         searchOnline(query = "${vm.feed?.author} podcasts")
                         navTo(FindFeeds)
                     })
-                LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    items(vm.relatedFeeds) { feed ->
-                        AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                            navTo(OnlineFeed(url=feed.feedUrl?:"", source=feed.source)) })
+                    LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        items(vm.relatedFeeds) { feed ->
+                            AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
+                                navTo(OnlineFeed(url = feed.feedUrl ?: "", source = feed.source))
+                            })
+                        }
                     }
+                    val info = remember(vm.feed) {
+                        if (vm.feed == null) return@remember ""
+                        val languageString = vm.feed!!.langSet.joinToString(" ")
+                        "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
+                    }
+                    Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                    Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                 }
-                val info = remember(vm.feed) {
-                    if (vm.feed == null) return@remember ""
-                    val languageString = vm.feed!!.langSet.joinToString(" ")
-                    "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
-                }
-                Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
-                Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+            }
+            if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
             }
         }
-        if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
-        }
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
     }
 }
 

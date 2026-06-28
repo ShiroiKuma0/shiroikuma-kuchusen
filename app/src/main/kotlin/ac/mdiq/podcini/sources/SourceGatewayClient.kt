@@ -2,6 +2,7 @@ package ac.mdiq.podcini.sources
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searcherInfos
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.FeedSearcher
 import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
@@ -77,6 +78,7 @@ fun discoverSources(loadExternal: Boolean) {
 
 suspend fun getSourceClients(): List<SourceGatewayClient> {
     val context = getAppContext()
+    searcherInfos.clear()
     val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
     val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
     if (resolveInfos.isEmpty()) {
@@ -101,6 +103,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 val remote = IPodciniGateway.Stub.asInterface(service)
                 val attr = remote.attributes
                 Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
+                searcherInfos.clear()
                 if (attr.feedType in FeedType.entries.map { it.name } && attr.apiVersion == PROVIDER_API_VERSION) {
                     client.attributes = attr
                     client.gateway = remote
@@ -116,6 +119,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
             }
             override fun onServiceDisconnected(name: ComponentName) {
                 Logt(TAG, "Service disconnected")
+                searcherInfos.clear()
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null
@@ -124,6 +128,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
             }
             override fun onBindingDied(name: ComponentName) {
                 Logt(TAG, "Binding died, trying to rebind service")
+                searcherInfos.clear()
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null
@@ -136,6 +141,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
             }
             override fun onNullBinding(name: ComponentName) {
                 Logt(TAG, "Service not bond: null binding")
+                searcherInfos.clear()
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null

@@ -599,29 +599,30 @@ fun FacetsScreen(modeName: String = "") {
 
     val lazyListState = rememberLazyListState()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
-    else Scaffold(topBar = { TopBar() }) { innerPadding ->
-        if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
-        else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            val statusMode = remember(facetsMode) {
-                when (facetsMode) {
-                    QuickAccess.Commented -> StatusRowMode.Comment
-                    QuickAccess.Tagged -> StatusRowMode.Tags
-                    QuickAccess.Todos -> StatusRowMode.Todos
-                    else -> StatusRowMode.Normal
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(topBar = { TopBar() }) { innerPadding ->
+            if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
+            else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                val statusMode = remember(facetsMode) {
+                    when (facetsMode) {
+                        QuickAccess.Commented -> StatusRowMode.Comment
+                        QuickAccess.Tagged -> StatusRowMode.Tags
+                        QuickAccess.Todos -> StatusRowMode.Todos
+                        else -> StatusRowMode.Normal
+                    }
                 }
+                val info = remember(vm.infoBarText, vm.progressing, facetsMode) {
+                    (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "")
+                }
+                InforBar(swipeActions) {
+                    Text(info, style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.weight(0.1f))
+                    PlayRandom(episodes)
+                }
+                EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType, lazyListState = lazyListState, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
             }
-            val info = remember(vm.infoBarText, vm.progressing, facetsMode) {
-                (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "")
-             }
-            InforBar(swipeActions) {
-                Text(info, style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.weight(0.1f))
-                PlayRandom(episodes)
-            }
-            EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType, lazyListState = lazyListState,
-                actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
         }
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     }
 }
 

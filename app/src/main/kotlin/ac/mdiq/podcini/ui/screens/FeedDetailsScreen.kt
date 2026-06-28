@@ -675,62 +675,64 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     OpenDialogs()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
-    else Scaffold(topBar = { TopHeader() }) { innerPadding ->
-        if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
-                val scrollToOnStart = remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, screenMode) {
-                    when {
-                        screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
-                        theatres[0].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
-                        theatres[1].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[1].mPlayer?.curEpisode?.id }
-                        else -> -1
-                    }
-                }
-//                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
-                val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
-                    when {
-                        feed == null -> null
-                        feed?.isLocal == true -> ButtonTypes.PLAY.name
-                        feed?.prefActionType != null -> feed!!.prefActionType!!
-                        feed?.downloadUrl == null -> null
-                        else -> {
-                            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feed!!.downloadUrl!!) } == true }
-                            if (client != null) ButtonTypes.STREAM.name else null
-                        }
-                    } }
-                EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
-                    swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
-                    refreshCB = {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(topBar = { TopHeader() }) { innerPadding ->
+            if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
+                Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface).nestedScroll(nestedScrollConnection)) {
+                    val scrollToOnStart = remember(episodes.size, theatres[0].mPlayer?.curEpisode?.id, theatres[1].mPlayer?.curEpisode?.id, screenMode) {
                         when {
-                            feed == null -> Logt(TAG, "feed is null, can not refresh")
-                            feed!!.isSynthetic() -> {
-                                val eps = realm.query(Episode::class).query("feedId == ${feed!!.id}").find()
-                                val count = eps.size
-                                val dur = eps.sumOf { it.duration }
-                                upsertBlk(feed!!) {
-                                    it.episodesCount = count
-                                    it.totleDuration = dur.toLong()
-                                }
-                                Logt(TAG, "episode count updated for synthetic feed: $count")
+                            screenMode == FeedScreenMode.History || screenMode == FeedScreenMode.Info -> -1
+                            theatres[0].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
+                            theatres[1].mPlayer?.curEpisode?.feedId == feedId -> episodes.indexOfFirst { it.id == theatres[1].mPlayer?.curEpisode?.id }
+                            else -> -1
+                        }
+                    } //                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
+                    val actionButtonName = remember(feed?.prefActionType, feed?.downloadUrl) {
+                        when {
+                            feed == null -> null
+                            feed?.isLocal == true -> ButtonTypes.PLAY.name
+                            feed?.prefActionType != null -> feed!!.prefActionType!!
+                            feed?.downloadUrl == null -> null
+                            else -> {
+                                val client = sourceClients.find { it.withProviderBlocking { p -> p.canHandleFeed(feed!!.downloadUrl!!) } == true }
+                                if (client != null) ButtonTypes.STREAM.name else null
                             }
-                            feed!!.inNormalVolume -> runOnceOrAsk(feeds = listOf(feed!!))
-                            else -> Logt(TAG, "feed is archived, can not refresh")
                         }
-                    },
-                    selectModeCB = { vm.showHeader = !it },
-                    actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName) else null,
-                    actionButtonCB = { e, type ->
-                        Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
-                        if (e.feed?.id == feed?.id) {
-                            if (type in streamActions + playActions + listOf(ButtonTypes.PLAY_LOCAL)) runOnIOScope { upsert(feed!!) { it.lastPlayed = nowInMillis() } }
-                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, feed!!.episodeSortOrder, true) }
-                        }
-                    },
-                )
-            }
-        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) { DetailUI() }
+                    }
+                    EpisodeLazyColumn(
+                        episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
+                        swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
+                        refreshCB = {
+                            when {
+                                feed == null -> Logt(TAG, "feed is null, can not refresh")
+                                feed!!.isSynthetic() -> {
+                                    val eps = realm.query(Episode::class).query("feedId == ${feed!!.id}").find()
+                                    val count = eps.size
+                                    val dur = eps.sumOf { it.duration }
+                                    upsertBlk(feed!!) {
+                                        it.episodesCount = count
+                                        it.totleDuration = dur.toLong()
+                                    }
+                                    Logt(TAG, "episode count updated for synthetic feed: $count")
+                                }
+                                feed!!.inNormalVolume -> runOnceOrAsk(feeds = listOf(feed!!))
+                                else -> Logt(TAG, "feed is archived, can not refresh")
+                            }
+                        },
+                        selectModeCB = { vm.showHeader = !it },
+                        actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName) else null,
+                        actionButtonCB = { e, type ->
+                            Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
+                            if (e.feed?.id == feed?.id) {
+                                if (type in streamActions + playActions + listOf(ButtonTypes.PLAY_LOCAL)) runOnIOScope { upsert(feed!!) { it.lastPlayed = nowInMillis() } }
+                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, feed!!.episodeSortOrder, true) }
+                            }
+                        },
+                    )
+                }
+            } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) { DetailUI() }
+        }
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     }
 }
 

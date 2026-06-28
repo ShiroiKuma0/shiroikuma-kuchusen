@@ -684,41 +684,39 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
-    else Scaffold(topBar = { TopBar() }) { innerPadding ->
-        when (vm.queuesMode) {
-            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
-            QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
-            else -> {
-                LaunchedEffect(episodes.size) {
-                    Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
-                    withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
-                }
-                if (vm.queuesMode == QueuesScreenMode.Bin) {
-                    Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(topBar = { TopBar() }) { innerPadding ->
+            when (vm.queuesMode) {
+                QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
+                QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
+                else -> {
+                    LaunchedEffect(episodes.size) {
+                        Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
+                        withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
+                    }
+                    if (vm.queuesMode == QueuesScreenMode.Bin) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions, lazyListState = lazyListStateBin)
                     }
-                } else {
-                    val dragDropEnabled = remember(vm.curQueue.id, vm.curQueue.isLocked) {!vm.curQueue.isLocked }
-                    if (dragDropEnabled) {
-                        val episodes_ = remember(episodes) { episodes.toMutableStateList() }
-                        val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-                        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            itemsIndexed(episodes_, key = { _, e -> e.id }) { index, episode_ ->
-                                val episode by rememberUpdatedState(episode_)
-                                fun <T> MutableList<T>.move(from: Int, to: Int) {
-                                    if (from == to) return
-                                    val item = removeAt(from)
-                                    add(to, item)
-                                }
-                                val imageWidth = 56.dp
-                                val imageHeight = 56.dp
-                                var yOffset by remember(index) { mutableFloatStateOf(0f) }
-                                var draggedIndex by remember { mutableStateOf<Int?>(null) }
-                                Row(Modifier.background(MaterialTheme.colorScheme.surface).zIndex(if (draggedIndex == index) 1f else 0f).offset { IntOffset(0, if (draggedIndex == index) yOffset.roundToInt() else 0) }) {
-                                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_drag_darktheme), tint = buttonColor, contentDescription = "drag handle", modifier = Modifier.width(30.dp).align(Alignment.CenterVertically).padding(start = 5.dp, end = 5.dp).zIndex(if (draggedIndex == index) 1f else 0f)
-                                        .draggable(orientation = Orientation.Vertical,
-                                            state = rememberDraggableState { delta ->
+                    else {
+                        val dragDropEnabled = remember(vm.curQueue.id, vm.curQueue.isLocked) { !vm.curQueue.isLocked }
+                        if (dragDropEnabled) {
+                            val episodes_ = remember(episodes) { episodes.toMutableStateList() }
+                            val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
+                            LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                itemsIndexed(episodes_, key = { _, e -> e.id }) { index, episode_ ->
+                                    val episode by rememberUpdatedState(episode_)
+                                    fun <T> MutableList<T>.move(from: Int, to: Int) {
+                                        if (from == to) return
+                                        val item = removeAt(from)
+                                        add(to, item)
+                                    }
+
+                                    val imageWidth = 56.dp
+                                    val imageHeight = 56.dp
+                                    var yOffset by remember(index) { mutableFloatStateOf(0f) }
+                                    var draggedIndex by remember { mutableStateOf<Int?>(null) }
+                                    Row(Modifier.background(MaterialTheme.colorScheme.surface).zIndex(if (draggedIndex == index) 1f else 0f).offset { IntOffset(0, if (draggedIndex == index) yOffset.roundToInt() else 0) }) {
+                                        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_drag_darktheme), tint = buttonColor, contentDescription = "drag handle", modifier = Modifier.width(30.dp).align(Alignment.CenterVertically).padding(start = 5.dp, end = 5.dp).zIndex(if (draggedIndex == index) 1f else 0f).draggable(orientation = Orientation.Vertical, state = rememberDraggableState { delta ->
                                                 yOffset += delta
                                                 val from = draggedIndex ?: return@rememberDraggableState
                                                 while (yOffset > rowHeightPx) {
@@ -735,71 +733,58 @@ fun QueuesScreen(id: Long = -1L) {
                                                     draggedIndex = to
                                                     yOffset += rowHeightPx
                                                 }
-                                            },
-                                            onDragStarted = { draggedIndex = index },
-                                            onDragStopped = {
+                                            }, onDragStarted = { draggedIndex = index }, onDragStopped = {
                                                 persistOrdered(episodes_, queueEntries)
                                                 draggedIndex = null
                                                 yOffset = 0f
                                             }))
-                                    Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
-                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
-                                    }
-                                    Text(episode.title?: "No title")
-                                }
-                            }
-                        }
-                    } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        LaunchedEffect(lazyListState) {
-                            snapshotFlow { lazyListState.isScrollInProgress }.collect { isScrolling ->
-                                if (!isScrolling) {
-                                    val index = lazyListState.firstVisibleItemIndex
-                                    if (index != vm.curQueuePosition) {
-                                        Logd(TAG, "Scroll settled at: $index")
-                                        vm.curQueuePosition = index
-                                    }
-                                }
-                            }
-                        }
-                        var scrollToOnStart by remember { mutableIntStateOf(-1) }
-                        LaunchedEffect(vm.curQueue.id, episodes.size, theatres[0].mPlayer?.curEpisode?.id) {
-                            scrollToOnStart = when {
-                                vm.curQueue.id == actQueue.id -> {
-                                    val index = episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
-                                    if (index < 0) -1 else index
-                                }
-                                else -> -1
-                            }
-                        }
-                        Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart ${vm.curQueuePosition}")
-                        EpisodeLazyColumn(episodes,  curQueue = vm.curQueue, swipeActions = swipeActions,
-                            lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
-                            refreshCB = {
-                                commonConfirm = CommonConfirmAttrib(
-                                    title = context.getString(R.string.refresh_associates) + "?",
-                                    message = "",
-                                    cancelRes = R.string.cancel_label,
-                                    confirmRes = R.string.enqueue,
-                                    onConfirm = {
-                                        CoroutineScope(Dispatchers.IO).launch {
-                                            val feeds = vm.curQueue.normalFeeds
-                                            AutoEnqueueAlgorithm().run(feeds, true)
-                                            if (vm.curQueue.launchAutoEQDlWhenEmpty && appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true)
+                                        Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
+                                            AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                         }
-                                    },
-                                    neutralRes = R.string.refresh_label,
-                                    onNeutral = { runOnceOrAsk(feeds = vm.curQueue.normalFeeds)  }
-                                )
-                            },
-                            actionButtonCB = { _, type ->
-                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM) && actQueue.id != vm.curQueue.id)
-                                    queuesLive.find { it.id == vm.curQueue.id }?.let { actQueue = it }
+                                        Text(episode.title ?: "No title")
+                                    }
+                                }
                             }
-                        )
+                        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                            LaunchedEffect(lazyListState) {
+                                snapshotFlow { lazyListState.isScrollInProgress }.collect { isScrolling ->
+                                    if (!isScrolling) {
+                                        val index = lazyListState.firstVisibleItemIndex
+                                        if (index != vm.curQueuePosition) {
+                                            Logd(TAG, "Scroll settled at: $index")
+                                            vm.curQueuePosition = index
+                                        }
+                                    }
+                                }
+                            }
+                            var scrollToOnStart by remember { mutableIntStateOf(-1) }
+                            LaunchedEffect(vm.curQueue.id, episodes.size, theatres[0].mPlayer?.curEpisode?.id) {
+                                scrollToOnStart = when {
+                                    vm.curQueue.id == actQueue.id -> {
+                                        val index = episodes.indexOfFirst { it.id == theatres[0].mPlayer?.curEpisode?.id }
+                                        if (index < 0) -1 else index
+                                    }
+                                    else -> -1
+                                }
+                            }
+                            Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart ${vm.curQueuePosition}")
+                            EpisodeLazyColumn(episodes, curQueue = vm.curQueue, swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart, refreshCB = {
+                                commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.refresh_associates) + "?", message = "", cancelRes = R.string.cancel_label, confirmRes = R.string.enqueue, onConfirm = {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val feeds = vm.curQueue.normalFeeds
+                                        AutoEnqueueAlgorithm().run(feeds, true)
+                                        if (vm.curQueue.launchAutoEQDlWhenEmpty && appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true)
+                                    }
+                                }, neutralRes = R.string.refresh_label, onNeutral = { runOnceOrAsk(feeds = vm.curQueue.normalFeeds) })
+                            }, actionButtonCB = { _, type ->
+                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM) && actQueue.id != vm.curQueue.id) queuesLive.find { it.id == vm.curQueue.id }?.let { actQueue = it }
+                            })
+                        }
                     }
                 }
             }
         }
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
     }
 }
 

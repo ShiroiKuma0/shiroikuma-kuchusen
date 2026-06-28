@@ -223,118 +223,117 @@ fun SearchScreen() {
     val tabCounts = remember(episodes.size, assFeeds.size, vm.feeds.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size + assFeeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
-    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            if (vm.showAdvanced) {
-                var showSearchBy by remember { mutableStateOf(false) }
-                Row {
-                    Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showSearchBy = !showSearchBy })
-                    Spacer(Modifier.weight(1f))
-                    Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
-                        val query = curSearchString
-                        if (query.matches("http[s]?://.*".toRegex())) {
-                            navTo(OnlineFeed(url=query))
-                            return@clickable
-                        }
-                        searchOnline(query = query)
-                        navTo(FindFeeds)
-                    })
-                }
-                if (showSearchBy) vm.algo.SearchByGrid()
-            }
-            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                vm.tabTitles.forEachIndexed { index, titleRes ->
-                    Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
-                        color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }), selected = vm.selectedTabIndex.intValue == index,
-                        onClick = { vm.selectedTabIndex.intValue = index },
-                        text = { Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
-                    )
-                }
-            }
-            @Composable
-            fun FeedsColumn() {
-                val context = LocalContext.current
-                @Composable
-                fun FeedRow(feed: Feed) {
-                    Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
-                        AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                            modifier = Modifier.width(80.dp).height(80.dp).clickable {
-                                Logd(TAG, "icon clicked!")
-                                if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
-                            })
-                        
-                        Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (!feed.isBuilding) navTo(FeedDetails(feedId=feed.id)) }) {
-                            Row {
-                                if (feed.rating != Rating.UNRATED.code)
-                                    Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
-                                Text(feed.title ?: "No title", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                if (vm.showAdvanced) {
+                    var showSearchBy by remember { mutableStateOf(false) }
+                    Row {
+                        Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { showSearchBy = !showSearchBy })
+                        Spacer(Modifier.weight(1f))
+                        Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
+                            val query = curSearchString
+                            if (query.matches("http[s]?://.*".toRegex())) {
+                                navTo(OnlineFeed(url = query))
+                                return@clickable
                             }
-                            Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                            Row(Modifier.padding(top = 5.dp)) {
-                                val measureString = remember { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration / 1000) }
-                                Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                                Spacer(modifier = Modifier.weight(1f))
-                                var feedSortInfo by remember { mutableStateOf(feed.sortInfo) }
-                                Text(feedSortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                        //                                TODO: need to use state
-                        if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
-                    }
-                }
-                LazyColumn(modifier = Modifier.padding(horizontal = 10.dp), contentPadding = PaddingValues(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (vm.feeds.isNotEmpty()) {
-                        item { Text(text = stringResource(R.string.feeds_from_search), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
-                        items(items = vm.feeds, key = { "vm_${it.id}" }) { feed -> FeedRow(feed) }
-                    }
-                    item { HorizontalDivider(modifier = Modifier.fillMaxWidth()) }
-                    if (assFeeds.isNotEmpty()) {
-                        item { Text(stringResource(R.string.associated_feeds_from_episodes), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center ) }
-                        items(items = assFeeds, key = { "ass_${it.id}" }) { feed -> FeedRow(feed) }
-                    }
-                }
-            }
-
-            @Composable
-            fun PAFeedsColumn() {
-                val context = LocalContext.current
-                val lazyListState = rememberLazyListState()
-                LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover",
-                                modifier = Modifier.width(60.dp).height(60.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) })
-                            
-                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url=feed.feedUrl)) }) {
-                                Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                                Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                                Text(feed.category.joinToString(","), color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text("Episodes: ${feed.episodesNb} Average duration: ${feed.aveDuration} minutes", color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(formatLargeInteger(feed.subscribers) + " subscribers", color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
-            }
-
-            when (vm.selectedTabIndex.intValue) {
-                0 -> {
-                    InforBar(swipeActions) {
-                        Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.weight(0.1f))
-                        PlayRandom(episodes)
-                    }
-                    EpisodeLazyColumn(episodes, swipeActions = swipeActions,
-                        actionButtonCB = { e, type ->
-                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
+                            searchOnline(query = query)
+                            navTo(FindFeeds)
                         })
+                    }
+                    if (showSearchBy) vm.algo.SearchByGrid()
                 }
-                1 -> FeedsColumn()
-                2 -> PAFeedsColumn()
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    vm.tabTitles.forEachIndexed { index, titleRes ->
+                        Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp), color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else {
+                            Color.Transparent
+                        }), selected = vm.selectedTabIndex.intValue == index, onClick = { vm.selectedTabIndex.intValue = index }, text = {
+                            Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else {
+                                MaterialTheme.colorScheme.onSurface
+                            })
+                        })
+                    }
+                }
+                @Composable
+                fun FeedsColumn() {
+                    val context = LocalContext.current
+
+                    @Composable
+                    fun FeedRow(feed: Feed) {
+                        Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
+                            AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(80.dp).height(80.dp).clickable {
+                                Logd(TAG, "icon clicked!")
+                                if (!feed.isBuilding) navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
+                            })
+
+                            Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (!feed.isBuilding) navTo(FeedDetails(feedId = feed.id)) }) {
+                                Row {
+                                    if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
+                                    Text(feed.title ?: "No title", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                }
+                                Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                                Row(Modifier.padding(top = 5.dp)) {
+                                    val measureString = remember { formatWithGrouping(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration / 1000) }
+                                    Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    var feedSortInfo by remember { mutableStateOf(feed.sortInfo) }
+                                    Text(feedSortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                                }
+                            } //                                TODO: need to use state
+                            if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
+                        }
+                    }
+                    LazyColumn(modifier = Modifier.padding(horizontal = 10.dp), contentPadding = PaddingValues(vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (vm.feeds.isNotEmpty()) {
+                            item { Text(text = stringResource(R.string.feeds_from_search), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                            items(items = vm.feeds, key = { "vm_${it.id}" }) { feed -> FeedRow(feed) }
+                        }
+                        item { HorizontalDivider(modifier = Modifier.fillMaxWidth()) }
+                        if (assFeeds.isNotEmpty()) {
+                            item { Text(stringResource(R.string.associated_feeds_from_episodes), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center) }
+                            items(items = assFeeds, key = { "ass_${it.id}" }) { feed -> FeedRow(feed) }
+                        }
+                    }
+                }
+
+                @Composable
+                fun PAFeedsColumn() {
+                    val context = LocalContext.current
+                    val lazyListState = rememberLazyListState()
+                    LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(60.dp).height(60.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url = feed.feedUrl)) })
+
+                                Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url = feed.feedUrl)) }) {
+                                    Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                                    Text(feed.category.joinToString(","), color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text("Episodes: ${feed.episodesNb} Average duration: ${feed.aveDuration} minutes", color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(formatLargeInteger(feed.subscribers) + " subscribers", color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                when (vm.selectedTabIndex.intValue) {
+                    0 -> {
+                        InforBar(swipeActions) {
+                            Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.weight(0.1f))
+                            PlayRandom(episodes)
+                        }
+                        EpisodeLazyColumn(episodes, swipeActions = swipeActions, actionButtonCB = { e, type ->
+                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
+                        })
+                    }
+                    1 -> FeedsColumn()
+                    2 -> PAFeedsColumn()
+                }
             }
         }
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     }
 }
 
