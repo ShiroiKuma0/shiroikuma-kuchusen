@@ -900,13 +900,10 @@ abstract class MediaPlayerBase {
                     try { loadChapters(curEpisode!!, false) } catch (e: Throwable) { LogsFor(TAG, curEpisode?.id, e, "Error loading chapters for: ${curEpisode?.title}") }
                 }
             }
-
             isPaused -> savePlayerStatus(null, status)
             isStopped -> {}
             isPlaying -> {
                 savePlayerStatus(null, status)
-                // TODO: testing
-//                persistCurrentPosition(true, null, Episode.INVALID_TIME)
                 // set sleep timer if auto-enabled
                 fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
                     return when {
@@ -915,7 +912,6 @@ abstract class MediaPlayerBase {
                         else -> current < to
                     }
                 }
-
                 var autoEnableByTime = true
                 val fromSetting = autoEnableFrom
                 val toSetting = autoEnableTo
@@ -930,12 +926,10 @@ abstract class MediaPlayerBase {
 //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { sleepManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }
             }
-
             isError -> {
                 savePlayerStatus(null, null)
                 pause(reinit = false)
             }
-
             else -> {}
         }
         notifySystem()

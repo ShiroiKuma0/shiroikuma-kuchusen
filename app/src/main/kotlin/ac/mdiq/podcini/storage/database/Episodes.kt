@@ -228,7 +228,7 @@ fun canCheckMediaSize(episode: Episode): Boolean {
     if (episode.feed?.isLocal == true) return true
     if (episode.downloadUrl != null) {
         val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(episode.downloadUrl!!) } == true }
-        return client != null
+        return client == null
     }
     return false
 }

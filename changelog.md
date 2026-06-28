@@ -1,3 +1,9 @@
+# 12.1.12
+
+* fixed wrongly fetching chapters on YT media but not on normal podcast
+* added player error handling on corrupted streams
+* added extractor factory in player creation pipeline
+
 # 12.1.11
 
 * improved efficiency of opening EpisodeInfo from a list

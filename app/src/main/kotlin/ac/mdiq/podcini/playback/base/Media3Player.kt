@@ -107,6 +107,11 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.exoplayer.upstream.Allocator
 import androidx.media3.exoplayer.upstream.DefaultAllocator
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mkv.MatroskaExtractor
+import androidx.media3.extractor.mp3.Mp3Extractor
+import androidx.media3.extractor.mp4.Mp4Extractor
+import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
 import kotlinx.coroutines.CoroutineScope
@@ -262,6 +267,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     }
                     Loge(TAG, "exoplayerListener onPlayerError ${error.message}")
                     when (error.errorCode) {
+                        PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED -> {
+                            if (curEpisode != null) getCache().removeResource(curEpisode!!.id.toString())
+                            Logt(TAG, "corrupted cache is cleared, try playing it again")
+                        }
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
                         PlaybackException.ERROR_CODE_TIMEOUT -> {
@@ -558,6 +567,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         }
 
+        //        val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        //        val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
+        //        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(upstreamFactory)
+
+        val extractorsFactory = DefaultExtractorsFactory()
+            .setConstantBitrateSeekingEnabled(true)
+            .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+//            .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
         val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
         val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
@@ -565,7 +582,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         val recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
-        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(recordingFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory).setDataSourceFactory(recordingFactory)
 
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
