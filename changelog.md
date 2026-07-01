@@ -3,6 +3,7 @@
 * when getting episodes from external app, break out early when number of episodes returned is smaller than requested
 * PodciniLib upped to 1.0.8, external app (if used) needs to be updated to 1.0.10 for compatibility
 	* feed simple updates breaks out more efficiently 
+* amended toasts on external connection
 * some code refactoring
 
 # 12.1.12
@@ -36,7 +37,7 @@
 # 12.1.8
 
 * in OnlineFeed, before subscribe, allows selecting a YT channel tab, currently default or live (streams)
-* PodciniLib upped to 1.0.7, external app (if used) needs to be updated for compatibility
+* PodciniLib upped to 1.0.7, external app (if used) needs to be updated to 1.0.9 for compatibility
 
 # 12.1.7
 
@@ -56,7 +57,7 @@
 	* fixed not getting older episodes if limit is set
 	* fixed failure of getting updates from external app
 * in FeedDetails screen, total episodes in info bar is updated after refresh
-* PodciniLib upped to 1.0.6, external app (if used) needs to be updated for compatibility
+* PodciniLib upped to 1.0.6, external app (if used) needs to be updated 1.0.8 for compatibility
 * some dependencies update
 
 # 12.1.5

@@ -104,7 +104,9 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 val attr = remote.attributes
                 Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
                 searcherInfos.clear()
-                if (attr.feedType in FeedType.entries.map { it.name } && attr.apiVersion == PROVIDER_API_VERSION) {
+                val recognized = attr.feedType in FeedType.entries.map { it.name }
+                val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
+                if (recognized && versionMatched) {
                     client.attributes = attr
                     client.gateway = remote
                     client.connection = this
@@ -113,7 +115,8 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     typeClientMap[attr.name] = client
                     Logt(TAG, "External service ${attr.name} connected")
                 } else {
-                    Logt(TAG, "External service ${attr.name} not qualified, rejected.")
+                    if (recognized && !versionMatched) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
+                    else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
                     clients.remove(client)
                 }
             }
