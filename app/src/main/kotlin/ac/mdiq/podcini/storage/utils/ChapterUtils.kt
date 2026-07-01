@@ -80,23 +80,15 @@ suspend fun fetchChapters(episode: Episode): List<Chapter> {
 
 suspend fun loadChapters(episode: Episode, forceReload: Boolean) {
     if (!canCheckMediaSize(episode)) return
-
     Logd(TAG, "loadChapters chaptersLoaded: ${episode.chaptersLoaded} forceReload: $forceReload")
     if (episode.chaptersLoaded && !forceReload) return
-
     val chapters = fetchChapters(episode)
     Logd(TAG, "loadChapters chapters size: ${chapters.size} ${episode.getEpisodeTitle()}")
     upsert(episode) { it.setChapters(chapters) }
 }
 
-/**
- * This method might modify the input data.
- */
 private fun mergeChapters(chapters1: List<Chapter>?, chapters2: List<Chapter>?): List<Chapter>? {
     Logd(TAG, "Merging chapters")
-    /**
-     * Tries to give a score that can determine which list of chapters a user might want to see.
-     */
     fun score(chapters: List<Chapter>): Int {
         var score = 0
         for (chapter in chapters) {
@@ -110,8 +102,6 @@ private fun mergeChapters(chapters1: List<Chapter>?, chapters2: List<Chapter>?):
         chapters2.size > chapters1.size -> return chapters2
         chapters2.size < chapters1.size -> return chapters1
         else -> {
-            // Merge chapter lists of same length. Store in chapters2 array.
-            // In case the lists can not be merged, return chapters1 array.
             for (i in chapters2.indices) {
                 val chapterTarget = chapters2[i]
                 val chapterOther = chapters1[i]

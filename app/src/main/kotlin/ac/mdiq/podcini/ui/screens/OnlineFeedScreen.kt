@@ -211,13 +211,13 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
                         if (fipc != null) {
                             val eList = mutableListOf<EpisodeIPC>()
-                            var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
+                            var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
                             while (episodes.isNotEmpty()) {
                                 eList.addAll(episodes)
                                 numEpisodes = eList.size
-                                if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT) break
+                                if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
                                 Logd(TAG, "Subscribing eList: ${eList.size}")
-                                episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
+                                episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
                             }
                             fipc.episodes = eList
                             handleFeed(fipc.toFeed())
@@ -427,13 +427,13 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                             if (fipc != null) {
                                 fipc.title = "${fipc.title}: $endUrl"
                                 val eList = mutableListOf<EpisodeIPC>()
-                                var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
+                                var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     vm.numEpisodes = eList.size
-                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes || vm.numEpisodes > EPISODES_LIMIT) break
+                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes || vm.numEpisodes > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
-                                    episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
+                                    episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
                                 }
                                 fipc.episodes = eList
                                 handleFeed(fipc.toFeed())

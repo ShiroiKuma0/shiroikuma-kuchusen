@@ -166,37 +166,33 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
     val TAG = "OnlineFeedItem"
     val context = LocalContext.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
-    fun subscribeFeed(result: FeedSearchResult) {
+    suspend fun subscribeFeed(result: FeedSearchResult) {
         val url = result.feedUrl ?: return
-        val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(url) } == true }
+        val client = sourceClients.find { it.withProvider { p-> p.canHandleFeed(url) } == true }
         if (client != null) {
-            runOnIOScope {
-                val fipc = client.withProvider { it.buildFeed(url, 0) }
-                if (fipc != null) {
-                    val eList = mutableListOf<EpisodeIPC>()
-                    var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) }?: listOf()
-                    while (episodes.isNotEmpty()) {
-                        eList.addAll(episodes)
-                        Logd(TAG, "subscribeFeed eList: ${eList.size}")
-                        if (eList.size > EPISODES_LIMIT) break
-                        episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE) } ?: listOf()
-                    }
-                    fipc.episodes = eList
-                    subscribe(fipc)
-                } else Loge(TAG, "Subscribe feed failed")
-            }
+            val fipc = client.withProvider { it.buildFeed(url, 0) }
+            if (fipc != null) {
+                val eList = mutableListOf<EpisodeIPC>()
+                var episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
+                while (episodes.isNotEmpty()) {
+                    eList.addAll(episodes)
+                    Logd(TAG, "subscribeFeed eList: ${eList.size}")
+                    if (eList.size > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
+                    episodes = client.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
+                }
+                fipc.episodes = eList
+                subscribe(fipc)
+            } else Loge(TAG, "Subscribe feed failed")
         } else {
-            runOnIOScope {
-                val fbb = FeedBuilder { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-                fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> runOnIOScope { subscribe(feed) } }
-            }
+            val fbb = FeedBuilder { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
+            fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> subscribe(feed) }
         }
     }
     if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
             Text("Subscribe: \"${result.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
             Button(onClick = {
-                subscribeFeed(result)
+                runOnIOScope { subscribeFeed(result) }
                 showSubscribeDialog.value = false
             }) { Text(stringResource(R.string.confirm_label)) }
         }

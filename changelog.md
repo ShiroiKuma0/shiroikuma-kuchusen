@@ -1,3 +1,10 @@
+# 12.1.13
+
+* when getting episodes from external app, break out early when number of episodes returned is smaller than requested
+* PodciniLib upped to 1.0.8, external app (if used) needs to be updated to 1.0.10 for compatibility
+	* feed simple updates breaks out more efficiently 
+* some code refactoring
+
 # 12.1.12
 
 * fixed wrongly fetching chapters on YT media but not on normal podcast

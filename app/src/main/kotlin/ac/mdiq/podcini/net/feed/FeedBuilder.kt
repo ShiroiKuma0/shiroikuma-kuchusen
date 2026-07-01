@@ -33,7 +33,7 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
     var selectedDownloadUrl: String? = null
     private var downloader: Downloader? = null
 
-    suspend fun buildPodcast(url: String, username: String?, password: String?, handleFeed: (Feed, Map<String, String>)->Unit) {
+    suspend fun buildPodcast(url: String, username: String?, password: String?, handleFeed: suspend (Feed, Map<String, String>)->Unit) {
         Logd(TAG, "buildPodcast: $url")
         suspend fun detectPodcastFeedType(url: String): String? {
             return try {

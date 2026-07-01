@@ -712,7 +712,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         ytUrls.clear()
                                         for (e in selected) {
                                             // TODO: may have issues
-                                            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(e.downloadUrl ?: "") } == true }
+                                            val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(e.downloadUrl ?: "") } == true }
                                             if (client != null) ytUrls.add(e.downloadUrl!!)
                                             else addRemoteToMiscSyndicate(e)
                                         }

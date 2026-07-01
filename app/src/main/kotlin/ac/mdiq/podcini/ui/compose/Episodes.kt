@@ -359,7 +359,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             if (url?.contains("youtube.com") == true && curItem_.description?.startsWith("Short:") == true) {
                 Logd(TAG, "buildCleanedNotes getting extended description: ${curItem_.title}")
                 try {
-                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(url) } == true }
+                    val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) } == true }
                     val desc = client?.withProvider { it.getEpisodeDescription(url) }
                     cleanedNotes = if (!desc.isNullOrBlank()) {
                         curItem_ = upsertBlk(curItem_) { it.description = desc }
@@ -1413,7 +1413,7 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                             for (url in sharedUrls) {
                                 val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
                                 try {
-                                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(url) } == true }
+                                    val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) } == true }
                                     val episode = client?.withProvider { it.buildEpisode(url)?.toEpisode() } ?: continue
                                     val existing = realm.query(Episode::class).query("title == $0 AND duration > $1 AND duration < $2", episode.title, (0.98*episode.duration).toInt(), (1.02*episode.duration).toInt()).first().find()
                                     if (existing == null) {

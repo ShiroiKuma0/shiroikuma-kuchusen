@@ -47,14 +47,14 @@ class FeedFilter(vararg properties_: String) {
             properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR isLocal == false ")
         }
 
-        val providerMomains = mutableListOf<String>()
+        val providerDomains = mutableListOf<String>()
         for (client in sourceClients) {
             val ds = client.attributes?.feedDomains
-            if (!ds.isNullOrEmpty()) providerMomains.addAll(ds)
+            if (!ds.isNullOrEmpty()) providerDomains.addAll(ds)
         }
-        if (providerMomains.isNotEmpty()) {
+        if (providerDomains.isNotEmpty()) {
             val sb = StringBuilder("( ")
-            for (d in providerMomains) {
+            for (d in providerDomains) {
                 if (sb.isNotEmpty()) sb.append(" OR ")
                 sb.append(" downloadUrl CONTAINS[c] '$d' OR link CONTAINS[c] '$d' ")
             }
