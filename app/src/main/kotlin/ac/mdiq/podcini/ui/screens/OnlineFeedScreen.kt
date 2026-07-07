@@ -207,7 +207,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                         showTabsDialog = true
                         feedOptions.forEach { Logd(TAG, "feedOptions: $it") }
                     }
-                    feedOptions_.size == 1 -> {
+                    feedOptions_.size <= 1 -> {
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
                         if (fipc != null) {
                             val eList = mutableListOf<EpisodeIPC>()

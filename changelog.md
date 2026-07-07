@@ -1,3 +1,7 @@
+# 12.2.1
+
+* in OnlineFeed, fixed shared YT playlist not handled properly 
+
 # 12.2.0
 
 * in EpisodeInfo view, when Related is clicked, ensure EpisodeInfo is closed
