@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.min
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "FeedBuilder"
 
@@ -100,7 +101,7 @@ suspend fun subscribe(feed: FeedIPC) {
 }
 
 suspend fun subscribe(feed: Feed) {
-    while (feed.isBuilding) delay(200)
+    while (feed.isBuilding) delay(200.milliseconds)
     feed.id = 0L
     if (feed.limitEpisodesCount > 0) {
         val sz = feed.episodes.size

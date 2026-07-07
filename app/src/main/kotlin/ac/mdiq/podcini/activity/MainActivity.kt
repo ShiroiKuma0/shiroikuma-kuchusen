@@ -383,8 +383,8 @@ class MainActivity : BaseActivity() {
                 if (!facetName.isNullOrEmpty()) QuickAccess.entries.find { it.name == facetName }?.let { navTo(Facets(modeName = it.name)) }
                 psState = PSState.PartiallyExpanded
             }
-            intent.hasExtra(Extras.fragment_feed_url.name) -> {
-                val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
+            intent.hasExtra(Extras.feed_url.name) -> {
+                val feedurl = intent.getStringExtra(Extras.feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
                 Logd(TAG, "handleNavIntent feedurl: $feedurl")
                 if (feedurl != null) navTo(OnlineFeed(url = feedurl, shared = isShared))
@@ -451,7 +451,7 @@ class MainActivity : BaseActivity() {
         queue_id,
         facet_name,
         feed_id,
-        fragment_feed_url,
+        feed_url,
         refresh_on_start,
         generated_view_id,
         search_string,

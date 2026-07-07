@@ -92,7 +92,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
         } else CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
             Logd("SwipeActions", "SwipeActions tag: $tag")
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                val forFragment = remember(tag) {
+                val forScreen = remember(tag) {
                     if (tag != Screens.Queues.name) keys = keys.filter { a: EpisodeAction -> a !is RemoveFromAllQueues && a !is RemoveFromCurQueue }
                     when (tag) {
                         Screens.Facets.name -> context.getString(R.string.facets)
@@ -108,7 +108,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
                         }
                         else -> { tag }
                     } }
-                Text(stringResource(R.string.swipeactions_label) + " - " + forFragment)
+                Text(stringResource(R.string.swipeactions_label) + " - " + forScreen)
                 Text(stringResource(R.string.swipe_left))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                     Spacer(Modifier.weight(0.1f))

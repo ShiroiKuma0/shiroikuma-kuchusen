@@ -320,7 +320,7 @@ fun Context.findActivity(): Activity? = when (this) {
 }
 
 @Composable
-fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
+fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false, onDismiss: ()->Unit) {
     val context by rememberUpdatedState(LocalContext.current)
     val activity = context.findActivity() ?: error("WebView requires an Activity context")
 
@@ -502,7 +502,10 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         if (episode.related.isNotEmpty()) {
             var showTodayStats by remember { mutableStateOf(false) }
             if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
-            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable { showTodayStats = true })
+            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable {
+                showTodayStats = true
+                onDismiss()
+            })
         }
 
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
@@ -1366,18 +1369,6 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
 fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
     val YTSyndMap = remember { mutableStateMapOf<Int, Boolean>() }
     var synthetics by remember { mutableStateOf(allFeeds.filter { it.id in 1..1000 }) }
-    fun addToSyndicate(episode: Episode, feed: Feed) : Int {
-        Logd(TAG, "addToYoutubeSyndicate: feed: ${feed.title}")
-        val episodes = feed.episodes
-        if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return Status.EXISTING.ordinal
-
-        Logd(TAG, "addToSyndicate adding new episode: ${episode.title}")
-        episode.id = getEntityId()
-        episode.feedId = feed.id
-        upsertBlk(episode) {}
-        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-        return 1
-    }
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(modifier = Modifier.height(350.dp).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             var toFeed by remember { mutableStateOf<Feed?>(null) }
@@ -1392,7 +1383,7 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
 //                }
                 if (synthetics.isNotEmpty()) {
                     LaunchedEffect(synthetics) { synthetics.forEach { f-> if (f.id <= 4) YTSyndMap[f.id.toInt()] = true } }
-                    LazyColumn(modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.Center) {
+                    LazyColumn(modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.Top) {
                         items(synthetics, key = { it.id }) { f ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(selected = toFeed == f, onClick = {
@@ -1410,26 +1401,35 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                         showComfirmButton = false
                         showProgress = true
                         CoroutineScope(Dispatchers.IO).launch {
+                            fun addToSyndicate(episode: Episode, feed: Feed) : Int {
+                                Logd(TAG, "addToYoutubeSyndicate: feed: ${feed.title}")
+                                val episodes = feed.episodes
+                                if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return Status.EXISTING.ordinal
+                                Logd(TAG, "addToSyndicate adding new episode: ${episode.title}")
+                                episode.id = getEntityId()
+                                episode.feedId = feed.id
+                                upsertBlk(episode) {}
+                                EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
+                                return 1
+                            }
                             for (url in sharedUrls) {
                                 val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
                                 try {
                                     val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) } == true }
-                                    val episode = client?.withProvider { it.buildEpisode(url)?.toEpisode() } ?: continue
-                                    val existing = realm.query(Episode::class).query("title == $0 AND duration > $1 AND duration < $2", episode.title, (0.98*episode.duration).toInt(), (1.02*episode.duration).toInt()).first().find()
-                                    if (existing == null) {
+                                    val episode = client?.withProvider { it.buildEpisode(url)?.toEpisode() }
+                                    if (episode != null) {
                                         val status = addToSyndicate(episode, toFeed!!)
                                         if (log != null) upsert(log) {
                                             it.title = episode.title
                                             it.status = status
                                         }
                                     } else {
-                                        upsert(existing) { it.setPlayState(EpisodeState.SOON) }
-                                        Logt(TAG, "set episode to Soon instead: ${existing.title}")
+                                        Loge(TAG, "Error adding media at url: $url")
+                                        if (log != null) upsert(log) { it.details = "Can not build episode" }
                                     }
                                 } catch (e: Throwable) {
                                     Loge(TAG, "Receive share error: ${e.message}")
                                     if (log != null) upsert(log) { it.details = e.message ?: "error" }
-                                    //                                            withContext(Dispatchers.Main) { showToast = true }
                                 }
                             }
                             withContext(Dispatchers.Main) { onDismissRequest() }

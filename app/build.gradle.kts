@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 66
-        versionName = "12.1.13"
+        versionCode = 67
+        versionName = "12.2.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -174,7 +174,7 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.06.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.06.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -214,24 +214,24 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
 
-    implementation("androidx.navigation3:navigation3-runtime:1.1.3")
-    implementation("androidx.navigation3:navigation3-ui:1.1.3")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.4")
+    implementation("androidx.navigation3:navigation3-ui:1.1.4")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
-    implementation("io.ktor:ktor-http:3.5.0")
-    implementation("io.ktor:ktor-client-core:3.5.0")
-    implementation("io.ktor:ktor-client-okhttp:3.5.0")
-    implementation("io.ktor:ktor-client-cio:3.5.0")
-    implementation("io.ktor:ktor-utils:3.5.0")
+    implementation("io.ktor:ktor-http:3.5.1")
+    implementation("io.ktor:ktor-client-core:3.5.1")
+    implementation("io.ktor:ktor-client-okhttp:3.5.1")
+    implementation("io.ktor:ktor-client-cio:3.5.1")
+    implementation("io.ktor:ktor-utils:3.5.1")
 
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
 
-    implementation("io.github.pdvrieze.xmlutil:core:1.0.0-rc3")
-    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0-rc3")
-    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0-rc3")
+    implementation("io.github.pdvrieze.xmlutil:core:1.0.0")
+    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0")
+    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0")
 
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.4.0")
@@ -239,7 +239,7 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.11.3")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.11.4")
     //noinspection GradleDependency
     debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
 

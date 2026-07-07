@@ -1,9 +1,15 @@
+# 12.2.0
+
+* in EpisodeInfo view, when Related is clicked, ensure EpisodeInfo is closed
+* when an external media is shared, if it already exists, show the existing media or a list of existing duplicates
+* some dependencies update
+
 # 12.1.13
 
 * when getting episodes from external app, break out early when number of episodes returned is smaller than requested
 * PodciniLib upped to 1.0.8, external app (if used) needs to be updated to 1.0.10 for compatibility
 	* feed simple updates breaks out more efficiently 
-* amended toasts on external connection
+* amended toasts on external app connection
 * some code refactoring
 
 # 12.1.12

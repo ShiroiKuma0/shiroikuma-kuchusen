@@ -1019,7 +1019,7 @@ fun AVPlayerScreen() {
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
-            if (theatres[vm.playerId].mPlayer?.curEpisode != null) EpisodeDetails(theatres[vm.playerId].mPlayer?.curEpisode!!, psState == PSState.Expanded, true)
+            if (theatres[vm.playerId].mPlayer?.curEpisode != null) EpisodeDetails(theatres[vm.playerId].mPlayer?.curEpisode!!, psState == PSState.Expanded, true) { psState = PSState.PartiallyExpanded }
 
             if (theatres[vm.playerId].mPlayer?.curEpisode != null) {
                 val imgLarge = remember(theatres[vm.playerId].mPlayer?.curEpisode!!.id, displayedChapterIndex) {
