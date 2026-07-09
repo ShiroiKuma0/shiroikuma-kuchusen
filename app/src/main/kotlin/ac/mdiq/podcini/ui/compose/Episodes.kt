@@ -504,7 +504,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
             Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable {
                 showTodayStats = true
-                onDismiss()
+//                onDismiss()   // TODO: can't close the composable here
             })
         }
 
@@ -585,7 +585,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = {
             Logd(TAG, "episode.related: ${episode.related.size}")
-            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
+            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true, showActionButtons = false,
                 actionButtonCB = {e1, _ ->
                     runOnIOScope {
                         realm.write {

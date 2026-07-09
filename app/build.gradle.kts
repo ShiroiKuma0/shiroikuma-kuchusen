@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 68
-        versionName = "12.2.1"
+        versionCode = 69
+        versionName = "12.2.2"
 
         ndkVersion = "29.0.14206865"
 
@@ -229,9 +229,9 @@ dependencies {
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")
     implementation("com.fleeksoft.ksoup:ksoup-network:0.2.6")
 
-    implementation("io.github.pdvrieze.xmlutil:core:1.0.0")
-    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.0")
-    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.0")
+    implementation("io.github.pdvrieze.xmlutil:core:1.0.1")
+    implementation("io.github.pdvrieze.xmlutil:serialization:1.0.1")
+    implementation("io.github.pdvrieze.xmlutil:core-android:1.0.1")
 
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.4.0")

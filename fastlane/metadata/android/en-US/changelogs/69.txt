@@ -1,0 +1,2 @@
+* in EpisodeInfo view, when Related is clicked, undo closing EpisodeInfo from 12.2.0
+* in duplicate list, action button is not shown

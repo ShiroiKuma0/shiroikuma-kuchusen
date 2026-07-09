@@ -1,19 +1,15 @@
 package ac.mdiq.podcini.playback
 
-import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
-import ac.mdiq.podcini.playback.base.MediaPlayerBase
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.div
-import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.LogeFor
 import android.net.Uri
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.TransferListener
-import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.CacheSpan
 import kotlinx.coroutines.runBlocking
 import okio.BufferedSink
 import okio.buffer

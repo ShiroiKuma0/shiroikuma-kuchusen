@@ -1,3 +1,8 @@
+# 12.2.2
+
+* in EpisodeInfo view, when Related is clicked, undo closing EpisodeInfo from 12.2.0
+* in duplicate list, action button is not shown
+
 # 12.2.1
 
 * in OnlineFeed, fixed shared YT playlist not handled properly 
