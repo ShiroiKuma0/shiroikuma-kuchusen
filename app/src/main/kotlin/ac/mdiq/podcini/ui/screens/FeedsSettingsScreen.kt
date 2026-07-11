@@ -2,8 +2,11 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdater
+import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.clientByFeed
 import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
+import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -133,6 +136,7 @@ fun FeedsSettingsScreen() {
 
     var feedFlow by remember { mutableStateOf<Flow<SingleQueryChange<Feed>>>(emptyFlow()) }
     var feedToSet by remember { mutableStateOf(if (feedsToSet.size == 1) feedsToSet[0] else Feed()) }
+    val extClient: SourceGatewayClient? = remember(feedToSet.id) { if (feedToSet.type.isNullOrBlank()) null else typeClientMap[feedToSet.type!!] }
 
     var audioType by remember { mutableStateOf(feedToSet.audioTypeSetting.tag) }
 
@@ -469,9 +473,9 @@ fun FeedsSettingsScreen() {
             }
             // qualities
             val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && clientsHaveMultiQ()) }
-            if (feedToSet.type == FeedType.YouTube.name || hasMultiQ) {
+            if (extClient?.attributes?.hasMultiQualities == true || hasMultiQ) {
                 //                    audio quality
-                Column {
+                if (extClient?.attributes?.hasSeparateAVs == true || hasMultiQ) Column {
                     var showDialog by remember { mutableStateOf(false) }
                     @Composable
                     fun SetAudioQuality(selectedOption: String, onDismissRequest: () -> Unit) {
@@ -486,11 +490,14 @@ fun FeedsSettingsScreen() {
                                                 if (isChecked) Logd(TAG, "$option is checked")
                                                 val type = Feed.AVQuality.fromTag(selected)
                                                 audioQuality = type.tag
-                                                runOnIOScope { realm.write { for (f in feedsToSet) {
-                                                    if (f.type == FeedType.YouTube.name) findLatest(f)?.let {
-                                                        if (!it.hasVideoMedia) it.hasVideoMedia = true
-                                                        it.audioQuality = type.code
-                                                    } } } }
+                                                runOnIOScope { realm.write {
+                                                    for (f in feedsToSet) {
+                                                        val client = clientByFeed(f)
+                                                        if (client?.attributes?.hasSeparateAVs == true) findLatest(f)?.let {
+                                                            if (!it.hasVideoMedia) it.hasVideoMedia = true
+                                                            it.audioQuality = type.code
+                                                        }
+                                                    } } }
                                                 onDismissRequest()
                                             })
                                         Text(option.tag)
@@ -514,7 +521,7 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.pref_feed_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
                 val hasMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && clientsHaveMultiQ()) }
-                if (feedToSet.videoModePolicy != VideoMode.AUDIO_ONLY || hasMultiQ) {
+                if (feedToSet.videoModePolicy != VideoMode.AUDIO_ONLY || extClient?.attributes?.hasSeparateAVs == false || hasMultiQ) {
                     //                    video quality
                     Column {
                         var showDialog by remember { mutableStateOf(false) }
@@ -531,7 +538,10 @@ fun FeedsSettingsScreen() {
                                                     if (isChecked) Logd(TAG, "$option is checked")
                                                     val type = Feed.AVQuality.fromTag(selected)
                                                     videoQuality = type.tag
-                                                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.type == FeedType.YouTube.name && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code } } }
+                                                    runOnIOScope { realm.write { for (f in feedsToSet) {
+                                                        val client = clientByFeed(f)
+                                                        if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
+                                                    } } }
                                                     onDismissRequest()
                                                 })
                                             Text(option.tag)
@@ -572,7 +582,7 @@ fun FeedsSettingsScreen() {
             //                    prefer streaming
             var autoDownloadChecked by remember { mutableStateOf(feedToSet.autoDownload) }
             var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
-            if (feedToSet.type != FeedType.YouTube.name || !preferStreaming || feedsToSet.size > 1) {
+            if (extClient?.attributes?.supportDonwload != false || !preferStreaming || feedsToSet.size > 1) {
                 TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
                     preferStreaming = it
                     if (preferStreaming) {
@@ -580,15 +590,18 @@ fun FeedsSettingsScreen() {
                         autoDownloadChecked = false
                     }
                     runOnIOScope {
-                        realm.write { for (f in feedsToSet) { if (f.type != FeedType.YouTube.name || preferStreaming) findLatest(f)?.let { f ->
-                            f.prefStreamOverDownload = preferStreaming
-                            if (preferStreaming) f.autoDownload = false
-                        } } }
+                        realm.write { for (f in feedsToSet) {
+                            val client = clientByFeed(f)
+                            if (client?.attributes?.supportDonwload == true || preferStreaming) findLatest(f)?.let { f ->
+                                f.prefStreamOverDownload = preferStreaming
+                                if (preferStreaming) f.autoDownload = false
+                            }
+                        } }
                     }
                 }
             }
             //                    preferred action
-            val actions = remember { listOf("Auto") + (if (feedToSet.type != FeedType.YouTube.name) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
+            val actions = remember { listOf("Auto") + (if (extClient?.attributes?.supportDonwload != false) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
             val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
             var showChooseAction by remember { mutableStateOf(false) }
             if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
@@ -810,7 +823,7 @@ fun FeedsSettingsScreen() {
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.inNormalVolume && feedToSet.type != FeedType.YouTube.name) || feedsToSet.size > 1) {
+                if ((feedToSet.inNormalVolume && extClient?.attributes?.supportDonwload != false) || feedsToSet.size > 1) {
                     if (appPrefs.enableAutoDl && !preferStreaming) {
                         //                    auto download
                         Spacer(modifier = Modifier.width(10.dp))
@@ -819,10 +832,13 @@ fun FeedsSettingsScreen() {
                                 autoDownloadChecked = it
                                 if (autoDownloadChecked) autoEnqueueChecked = false
                                 runOnIOScope {
-                                    realm.write { for (f in feedsToSet) { if (f.type != FeedType.YouTube.name) findLatest(f)?.let { f ->
-                                        f.autoDownload = autoDownloadChecked
-                                        f.autoEnqueue = autoEnqueueChecked
-                                    } } }
+                                    realm.write { for (f in feedsToSet) {
+                                        val client = clientByFeed(f)
+                                        if (client?.attributes?.supportDonwload != false) findLatest(f)?.let { f ->
+                                            f.autoDownload = autoDownloadChecked
+                                            f.autoEnqueue = autoEnqueueChecked
+                                        }
+                                    } }
                                 }
                             })
                     }
@@ -1116,7 +1132,7 @@ fun FeedsSettingsScreen() {
             }
 
             //                    auto delete
-            if (feedToSet.type != FeedType.YouTube.name || feedsToSet.size > 1) {
+            if (extClient?.attributes?.supportDonwload != false || feedsToSet.size > 1) {
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
@@ -1138,7 +1154,10 @@ fun FeedsSettingsScreen() {
                                                             AutoDeleteAction.NEVER.tag -> AutoDeleteAction.NEVER
                                                             else -> AutoDeleteAction.GLOBAL
                                                         }
-                                                        runOnIOScope { realm.write { for (f in feedsToSet) { if (f.type != FeedType.YouTube.name) findLatest(f)?.autoDeleteAction = action_ } } }
+                                                        runOnIOScope { realm.write { for (f in feedsToSet) {
+                                                            val client = clientByFeed(f)
+                                                            if (client?.attributes?.supportDonwload != false) findLatest(f)?.autoDeleteAction = action_
+                                                        } } }
                                                         onDismissRequest()
                                                     }
                                                 }

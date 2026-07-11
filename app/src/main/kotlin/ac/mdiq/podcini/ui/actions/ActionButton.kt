@@ -23,14 +23,13 @@ import ac.mdiq.podcini.playback.base.TTSEngine.tts
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsJob
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsTmpFiles
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
+import ac.mdiq.podcini.storage.database.isMediaDownloadable
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -333,7 +332,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             return when {
                 item.downloadUrl.isNullOrBlank() -> ButtonTypes.TTS
-                item.feed == null || item.feedId == null || item.feed?.type == FeedType.YouTube.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
+                item.feed == null || item.feedId == null || !isMediaDownloadable(item) || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                 isDownloadingMedia() -> ButtonTypes.CANCEL
                 else -> ButtonTypes.DOWNLOAD
             }
@@ -354,7 +353,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                         if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! in playActions.map { it.name }) ButtonTypes.valueOf(item.feed!!.prefActionType!!)
                         else ButtonTypes.PLAY
                     }
-                    item.feed == null || item.feedId == null || item.feed?.type == FeedType.YouTube.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
+                    item.feed == null || item.feedId == null || !isMediaDownloadable(item) || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                     else -> ButtonTypes.DOWNLOAD
                 }
             }

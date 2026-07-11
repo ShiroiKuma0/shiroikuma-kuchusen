@@ -13,6 +13,8 @@ import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
+import ac.mdiq.podcini.sources.clientByEpisode
+import ac.mdiq.podcini.sources.clientByFeed
 import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -752,8 +754,8 @@ fun AVPlayerScreen() {
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = theatres[vm.playerId].mPlayer?.curEpisode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
-                val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
-                if (!vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) IconButton(onClick = {
+                val client = remember(vm.episodeFeed?.id) { if (vm.episodeFeed != null) clientByFeed(vm.episodeFeed!!) else null }
+                if (client?.attributes?.hasSeparateAVs == true) IconButton(onClick = {
                     if (theatres[vm.playerId].mPlayer?.curEpisode != null) {
                         val media = upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = false }
                         PlaybackStarter(media).shouldStreamThisTime(null).start(force = true)
@@ -818,7 +820,7 @@ fun AVPlayerScreen() {
         val mediaType = remember(theatres[vm.playerId].mPlayer?.curEpisode?.id) { theatres[vm.playerId].mPlayer?.curEpisode?.getMediaType() }
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
-            val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed?.downloadUrl) }
+            val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed) }
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     val media = upsertBlk(theatres[vm.playerId].mPlayer?.curEpisode!!) { it.forceVideo = true }
@@ -875,7 +877,8 @@ fun AVPlayerScreen() {
         @Composable
         fun PlayerDetailedGearPanel(curItem: Episode, reset: Boolean, cb: (Boolean)->Unit) {
             val TAG = "PlayerDetailedYTPanel"
-            if (curItem.feed?.type == FeedType.YouTube.name) {
+            val client = remember(curItem.id) { clientByEpisode(curItem) }
+            if (client?.attributes?.hasMultiQualities == true) {
                 var locales by remember { mutableStateOf<List<String>>(listOf()) }
                 var locale by remember { mutableStateOf("") }
                 var codecs by remember { mutableStateOf<List<String>>(listOf()) }

@@ -1,3 +1,12 @@
+# 12.3.0
+
+* removed hard-coded checks on youtube type
+* added PeerTube support via external app PeerPop
+* Feed origin filter is amended
+* adopted improved API in PodciniLib 1.0.9 in handling external source
+	* external app (if used) needs to be updated to 1.0.11 for compatibility
+* ensure ShareReceiverActivity exits properly when done and when failed parsing shared external media
+
 # 12.2.2
 
 * in EpisodeInfo view, when Related is clicked, undo closing EpisodeInfo from 12.2.0

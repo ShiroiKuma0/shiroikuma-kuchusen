@@ -203,12 +203,12 @@ fun LogsScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
                 Row (modifier = Modifier.clickable {
-                    if (log.status < ShareLog.Status.SUCCESS.ordinal) receiveShared(log.url!!, context as MainActivity, false, log) { sharedUrl = log.url!! }
+                    if (log.status < ShareLog.Status.SUCCESS.ordinal) receiveShared(log.url!!, context as MainActivity, false, log) { _, _ ->  sharedUrl = log.url!! }
                     else {
                         Logd(TAG, "shared log url: ${log.url}")
                         var hasError = false
                         when(log.type) {
-                            ShareType.YTMedia.name, "youtube media" -> {
+                            ShareType.YTMedia.name, ShareType.PeerTubeMedia.name, "youtube media" -> {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
                                 if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
                                 else hasError = true

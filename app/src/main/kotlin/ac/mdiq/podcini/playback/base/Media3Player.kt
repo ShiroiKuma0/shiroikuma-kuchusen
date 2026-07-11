@@ -13,6 +13,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -623,48 +624,54 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val metadata = buildMetadata(media)
 //        if (ytMediaSpecs.media.id != media.id) ytMediaSpecs = YTMediaSpecs(media)
 
-        Logd(TAG, "mediaSourceFromClient setting for YouTube source needVideo: $needVideo media: ${media.title}")
-        audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
-        var aSource: ProgressiveMediaSource? = null
-        if (audioSpecs.isNotEmpty()) {
-            Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
-            val audioSpec = setAudioSpec(audioSpecs, media)
-            if (!audioSpec?.url.isNullOrBlank()) {
-                val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-                val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
-                aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata)
-                    .setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
-                Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
-            } else Loge(TAG, "audioStream or url is null or blank")
-        } else Logt(TAG, "Client provided no audio stream, trying with composite video stream")
+        fun setMuxedVideo() {
+            videoSpecs = client.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
+            if (videoSpecs.isNotEmpty()) {
+                val videoSpec = setVideoStream(videoSpecs, media)
+                if (!videoSpec.url.isNullOrBlank()) {
+                    val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
+                    mSource = MergingMediaSource(true, vSource)
+                    Logt(TAG, "Using muxed video stream")
+                } else Loge(TAG, "videoStream or url is null or blank")
+            } else Logt(TAG, "Client provided no muxed video stream")
+        }
 
-        if (aSource == null || needVideo) {
-            if (aSource == null) {
-                videoSpecs = client.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
-                if (videoSpecs.isNotEmpty()) {
-                    val videoSpec = setVideoStream(videoSpecs, media)
-                    if (!videoSpec.url.isNullOrBlank()) {
-                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
-                        mSource = MergingMediaSource(true, vSource)
-                        Logt(TAG, "Using composite video stream")
-                    } else Loge(TAG, "videoStream or url is null or blank")
-                } else Logt(TAG, "Client provided no composite video stream")
-            } else {
-                videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
-                Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
-                if (videoSpecs.isNotEmpty()) {
-                    val videoSpec = setVideoStream(videoSpecs, media)
-                    if (!videoSpec.url.isNullOrBlank()) {
-                        val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
-                        val mediaSources: MutableList<MediaSource> = mutableListOf()
-                        mediaSources.add(vSource)
-                        mediaSources.add(aSource)
-                        mSource = MergingMediaSource(true, *mediaSources.toTypedArray<MediaSource>())
-                        Logd(TAG, "mediaSourceFromClient vSource set to: ${videoSpec.url}")
-                    } else Loge(TAG, "videoStream or url is null or blank")
-                } else Logt(TAG, "Client provided no video stream")
-            }
-        } else mSource = aSource
+        Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
+        audioSpecs = listOf()
+        videoSpecs = listOf()
+        if (client.attributes?.hasSeparateAVs == true) {
+            audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
+            var aSource: ProgressiveMediaSource? = null
+            if (audioSpecs.isNotEmpty()) {
+                Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
+                val audioSpec = setAudioSpec(audioSpecs, media)
+                if (!audioSpec?.url.isNullOrBlank()) {
+                    val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                    val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
+                    aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
+                    Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
+                } else Loge(TAG, "audioStream or url is null or blank")
+            } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
+
+            if (aSource == null || needVideo) {
+                if (aSource == null) setMuxedVideo()
+                else {
+                    videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+                    Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
+                    if (videoSpecs.isNotEmpty()) {
+                        val videoSpec = setVideoStream(videoSpecs, media)
+                        if (!videoSpec.url.isNullOrBlank()) {
+                            val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
+                            val mediaSources: MutableList<MediaSource> = mutableListOf()
+                            mediaSources.add(vSource)
+                            mediaSources.add(aSource)
+                            mSource = MergingMediaSource(true, *mediaSources.toTypedArray<MediaSource>())
+                            Logd(TAG, "mediaSourceFromClient vSource set to: ${videoSpec.url}")
+                        } else Loge(TAG, "videoStream or url is null or blank")
+                    } else Logt(TAG, "Client provided no video stream")
+                }
+            } else mSource = aSource
+        } else setMuxedVideo()
         return mSource
     }
 
@@ -685,7 +692,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val password = feed?.password
         bitrate = 0
         try {
-            val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(media.downloadUrl?:"") } == true }
+            val client = clientByEpisode(media)
             mediaSource = if (client != null) mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, client) else null
             if (mediaSource != null) {
                 Logd(TAG, "prepareDataSource setting with mediaSource")

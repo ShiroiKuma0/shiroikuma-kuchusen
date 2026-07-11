@@ -7,10 +7,9 @@ import ac.mdiq.podcini.net.feed.subscribe
 import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
-import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
-import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.sources.clientBySearcher
 import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
@@ -20,6 +19,7 @@ import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
@@ -168,7 +168,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
     val showSubscribeDialog = remember { mutableStateOf(false) }
     suspend fun subscribeFeed(result: FeedSearchResult) {
         val url = result.feedUrl ?: return
-        val client = sourceClients.find { it.withProvider { p-> p.canHandleFeed(url) } == true }
+        val client = clientBySearcher(result.source)
         if (client != null) {
             val fipc = client.withProvider { it.buildFeed(url, 0) }
             if (fipc != null) {
@@ -185,7 +185,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             } else Loge(TAG, "Subscribe feed failed")
         } else {
             val fbb = FeedBuilder { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-            fbb.buildPodcast(result.feedUrl!!, "", "") { feed, _ -> subscribe(feed) }
+            fbb.buildPodcast(result.feedUrl, "", "") { feed, _ -> subscribe(feed) }
         }
     }
     if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
@@ -203,7 +203,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             if (result.feedUrl != null) {
                 Logd(TAG, "feed.feedId: ${result.feedId}")
                 if (result.feedId > 0) navTo(FeedDetails(feedId = result.feedId))
-                else navTo(OnlineFeed(url = result.feedUrl!!, source = result.source))
+                else navTo(OnlineFeed(url = result.feedUrl, source = result.source))
             } },
         onLongClick = { showSubscribeDialog.value = true })) {
         
@@ -220,16 +220,16 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
                 Text(result.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
                 val authorText = remember(result.author, result.feedUrl) {
                     when {
-                        !result.author.isNullOrBlank() -> result.author!!.trim { it <= ' ' }
-                        result.feedUrl != null && !result.feedUrl!!.contains("itunes.apple.com") -> result.feedUrl
+                        !result.author.isNullOrBlank() -> result.author.trim { it <= ' ' }
+                        result.feedUrl != null && !result.feedUrl.contains("itunes.apple.com") -> result.feedUrl
                         else -> ""
                     } }
-                if (!authorText.isNullOrBlank()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                if (authorText.isNotBlank()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (result.subscriberCount > 0) Text(formatLargeInteger(result.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
-                    if (result.count != null && result.count!! > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.count != null && result.count > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.weight(1f))
-                    if (result.update != null) Text(result.update!!, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    if (result.update != null) Text(result.update, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
                 Text(result.source + ": " + result.feedUrl, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
             }
@@ -245,15 +245,17 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
             var name by remember { mutableStateOf(feed_?.title ?:"") }
             TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
             var hasVideo by remember { mutableStateOf(true) }
-            var isYoutube by remember { mutableStateOf(false) }
+            var feedType by remember { mutableStateOf(FeedType.RSS) }
             if (feed_ == null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
                     Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isYoutube, onCheckedChange = { isYoutube = it })
-                    Text(text = stringResource(R.string.youtube), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
+                for (type in FeedType.entries) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
+                        Text(text = type.name, style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
+                    }
                 }
             }
             Row {
@@ -262,7 +264,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                 Button({
                     val feed = feed_ ?: createSynthetic(0, name, hasVideo)
                     if (feed_ == null) {
-                        feed.type = if (isYoutube) FeedType.YouTube.name else FeedType.RSS.name
+                        feed.type = feedType.name
                         if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
                     }
                     upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }

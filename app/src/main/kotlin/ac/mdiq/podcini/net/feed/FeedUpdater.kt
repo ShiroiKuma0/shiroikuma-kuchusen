@@ -16,6 +16,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -284,7 +285,7 @@ class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val do
     suspend fun refreshFeed(feed: Feed) {
         if (feed.downloadUrl.isNullOrBlank()) return
 
-        val client = sourceClients.find { it.withProvider { p-> p.canHandleFeed(feed.downloadUrl!!) } == true }
+        val client = if (feed.type != null) typeClientMap.get(feed.type) else null
         val feed_ = if (client != null) {
             val feedIpc = client.withProvider { it.feedToUpdate(feed.downloadUrl!!) }
             if (feedIpc != null) {

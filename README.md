@@ -13,7 +13,9 @@ An open source extensible media instrument, attuned to Puccini ![Puccini](./imag
 ### A fork of [Podcini.X](<https://github.com/XilinJia/Podcini.X>) as of May 29 2026, this project inherits all functionalities of Podcini.X.
 
 ### A major milestone is this project can handle sources provided by external apps.
-One such app is [UT.urn](<https://github.com/XilinJia/UT.urn>)
+Two such apps are available: 
+[UT.urn](<https://github.com/XilinJia/UT.urn>) and
+[PeerPop](<https://github.com/XilinJia/PeerPop>)
 
 ## Notable features
 

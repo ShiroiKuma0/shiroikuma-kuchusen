@@ -9,6 +9,8 @@ import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
 import ac.mdiq.podcini.shared.ProviderAttrs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -39,17 +41,34 @@ var sourceClients: List<SourceGatewayClient> = listOf()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
 
-fun getSourceClient(name: String): SourceGatewayClient? {
-    return typeClientMap[name]
+fun clientByFeed(feed: Feed): SourceGatewayClient? {
+    if (feed.type.isNullOrBlank()) return null
+    return typeClientMap[feed.type!!]
 }
 
-fun isExtFeed(url: String?): Boolean {
-    if (url.isNullOrBlank()) return false
-    for (client in sourceClients) if (client.withProviderBlocking { it.canHandleFeed(url) } == true) return true
-    return false
+fun clientByEpisode(episode: Episode): SourceGatewayClient? {
+//    Logd(TAG, "clientByEpisode episode.feed?.type: ${episode.feed?.type}")
+    if (episode.feed?.type.isNullOrBlank()) return null
+    return typeClientMap[episode.feed!!.type!!]
 }
+
+fun clientBySearcher(name: String?): SourceGatewayClient? {
+    if (name.isNullOrBlank()) return null
+    return sourceClients.firstOrNull { it.feedSearcher?.name == name }
+}
+
+fun isExtFeed(feed: Feed?): Boolean {
+    if (feed?.type.isNullOrBlank()) return false
+    return typeClientMap[feed.type!!] != null
+}
+
 fun clientsHaveMultiQ(): Boolean {
     for (client in sourceClients) if (client.attributes?.hasMultiQualities == true) return true
+    return false
+}
+
+fun clientsHaveSeprateAVs(): Boolean {
+    for (client in sourceClients) if (client.attributes?.hasSeparateAVs == true) return true
     return false
 }
 
@@ -112,7 +131,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     client.connection = this
                     val aidlSearchProvider = client.gateway?.getSearchProvider()
                     if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
-                    typeClientMap[attr.name] = client
+                    typeClientMap[attr.feedType] = client
                     Logt(TAG, "External service ${attr.name} connected")
                 } else {
                     if (recognized && !versionMatched) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")

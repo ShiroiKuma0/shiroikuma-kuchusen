@@ -151,10 +151,8 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.Podcini"
             android:label="@string/add_feed_label"
-            android:exported="true">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="ac.mdiq.podcini.activity.MainActivity"/>
+            android:exported="true"
+            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
 
             <!-- Files with mimeType rss/xml/atom -->
             <intent-filter>
@@ -238,26 +236,22 @@
             android:name=".QueueAlias"
             android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/queue"
-            android:exported="true">
+            android:exported="true"
+            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activity.MainActivity" />
         </activity-alias>
 
         <activity-alias
             android:name=".FacetAlias"
             android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/facet"
-            android:exported="true">
+            android:exported="true"
+            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value=".activity.MainActivity" />
         </activity-alias>
 
         <receiver
@@ -271,16 +265,6 @@
                 android:resource="@xml/widget_info" />
         </receiver>
 
-<!--        <provider
-            android:authorities="@string/provider_authority"
-            android:name="androidx.core.content.FileProvider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths"/>
-        </provider>
--->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"

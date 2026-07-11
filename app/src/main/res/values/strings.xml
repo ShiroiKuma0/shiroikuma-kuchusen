@@ -501,6 +501,7 @@
     <string name="create_YT_syndicates">Create YT syndicates</string>
     <string name="add_to_feed">Add to feed</string>
     <string name="search_existing_media">Searching existing medias</string>
+    <string name="failed_processing_shared">failed processing shared</string>
     <string name="add_as_new">Add asNew</string>
 
     <string name="interruptions">Interruptions</string>
@@ -1019,7 +1020,9 @@
     <string name="feed_origin">Feed origin</string>
     <string name="shelve_important">Shelve important episodes</string>
     <string name="youtube">Youtube</string>
+    <string name="peertube">Peertube</string>
     <string name="rss">RSS</string>
+    <string name="atom">ATOM</string>
     <string name="has_video">Has video</string>
     <string name="tagged">Tagged</string>
     <string name="timers">Timers</string>

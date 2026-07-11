@@ -15,6 +15,7 @@ import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.clientBySearcher
 import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
@@ -159,7 +160,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var didPressSubscribe = false
     internal var isFeedFoundBySearch = false
 
-    var relatedFeeds by mutableStateOf<List<FeedSearchResult>>(listOf())
+    var relatedResults by mutableStateOf<List<FeedSearchResult>>(listOf())
 
     internal var showNoPodcastFoundDialog by mutableStateOf(false)
     internal var errorMessage by mutableStateOf("")
@@ -187,7 +188,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             errorMessage = message ?: "No message"
             errorDetails = details
         }
-        gatewayClient = sourceClients.find { it.withProviderBlocking { p-> p.canHandleFeed(feedUrl) } == true }
+        gatewayClient = clientBySearcher(source)
 
         val defaultCapable = gatewayClient != null
         feedBuilder = FeedBuilder(showError)
@@ -279,7 +280,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         }
         viewModelScope.launch(Dispatchers.IO) {
             val fl = CombinedSearcher::class.java.getDeclaredConstructor().newInstance().search("${feed?.author} podcasts")
-            withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds = fl }
+            withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedResults = fl }
         }
         showProgress = false
         showFeedDisplay = true
@@ -289,7 +290,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     fun isSameFeed(feed: Feed, url: String?, title: String?, author: String?): Boolean {
         if (url == null) return false
-        return if (isExtFeed(url)) (feed.downloadUrl == url || (feed.title == title && feed.author == author))
+        return if (isExtFeed(feed)) (feed.downloadUrl == url || (feed.title == title && feed.author == author))
         else feed.downloadUrl == url
     }
 
@@ -572,9 +573,9 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         navTo(FindFeeds)
                     })
                     LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        items(vm.relatedFeeds) { feed ->
-                            AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                                navTo(OnlineFeed(url = feed.feedUrl ?: "", source = feed.source))
+                        items(vm.relatedResults) { result ->
+                            AsyncImage(model = ImageRequest.Builder(context).data(result.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
+                                navTo(OnlineFeed(url = result.feedUrl ?: "", source = result.source))
                             })
                         }
                     }

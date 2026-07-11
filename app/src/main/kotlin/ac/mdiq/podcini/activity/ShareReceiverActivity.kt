@@ -41,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,15 +68,16 @@ class ShareReceiverActivity : ComponentActivity() {
         Logd(TAG, "feedUrl: $sharedText")
 
         var addAsNew by mutableStateOf(false)
+        var failed by mutableStateOf(false)
         var existing by mutableStateOf<List<Episode>?>(null)
         setContent { PodciniTheme {
             when {
+                failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
+                    title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
+                    confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
                 addAsNew -> ConfirmAddEpisode(listOf(text), onDismissRequest = { finish() })
-                existing == null -> {
-                    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
-                        title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
-                        confirmButton = {})
-                }
+                existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
+                    title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
                 existing!!.isEmpty() -> ConfirmAddEpisode(listOf(text), onDismissRequest = { finish() })
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
@@ -100,21 +102,23 @@ class ShareReceiverActivity : ComponentActivity() {
         runOnIOScope {
             var log = ShareLog(text)
             log = upsertBlk(log) {}
-            receiveShared(text, this, true, log) { existing = it }
+            receiveShared(text, this, true, log) { f, ex ->
+                failed = f
+                existing = ex
+            }
         }
     }
 
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
 
-        fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (List<Episode>)->Unit) {
+        fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (Boolean, List<Episode>)->Unit) {
             Logd(TAG, "receiveShared sharedText: $sharedText")
-//            val log = realm.query(ShareLog::class).query("url == $0", sharedText).first().find()
             when {
 //            plain text
-                sharedText.matches(Regex("^[^<>/]+$")) -> {  // include spaces
+                sharedText.matches(Regex("^[^<>/]+$")) -> {
                     if (log != null)  upsertBlk(log) {it.type = ShareType.Text.name }
-                    Logd(TAG, "Activity is started with text $sharedText")
+                    Logd(TAG, "receiveShared Activity is started with text $sharedText")
                     val intent = Intent(getAppContext(), MainActivity::class.java).apply {
                         putExtra(Extras.search_string.name, sharedText)
                         addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -123,25 +127,36 @@ class ShareReceiverActivity : ComponentActivity() {
                     if (finish) activity.finish()
                 }
                 else -> {
-                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleSharedMedia(sharedText) } == true }
+                    var client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
+                    Logd(TAG, "receiveShared canHandleUrl==1 client: ${client!= null}")
+                    if (client != null) {
+                        val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
+                        val existing = if (episode == null) listOf() else realm.query(Episode::class).query("title == $0", episode.title).find()
+                        if (log != null) upsertBlk(log) { it.type = client?.attributes?.shareLogType }
+                        extMediaCB(episode == null, existing)
+                        return
+                    }
+                    client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 0 } == true }
+                    Logd(TAG, "receiveShared canHandleUrl==0 client: ${client!= null}")
                     if (client != null) {
                         val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
                         val existing = if (episode == null) listOf() else realm.query(Episode::class).query("title == $0", episode.title).find()
                         if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
-                        extMediaCB(existing)
-                    } else {
-                        //              podcast or other?
-                        if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
-                        Logd(TAG, "Activity is started with url $sharedText")
-                        val intent = Intent(getAppContext(), MainActivity::class.java).apply {
-                            putExtra(Extras.feed_url.name, sharedText)
-                            putExtra(Extras.isShared.name, true)
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        }
-//                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                        activity.startActivity(intent)
-                        if (finish) activity.finish()
+                        extMediaCB(episode == null, existing)
+                        return
                     }
+
+                    //              podcast or other?
+                    if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
+                    Logd(TAG, "Activity is started with url $sharedText")
+                    val intent = Intent(getAppContext(), MainActivity::class.java).apply {
+                        putExtra(Extras.feed_url.name, sharedText)
+                        putExtra(Extras.isShared.name, true)
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                    }
+                    activity.startActivity(intent)
+                    if (finish) activity.finish()
+
                 }
             }
         }

@@ -16,6 +16,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.clientshaveLikeCounts
 import ac.mdiq.podcini.sources.clientshaveViewCounts
 import ac.mdiq.podcini.sources.sourceClients
@@ -356,11 +358,11 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             var curItem_ = curItem
             val url = curItem_.downloadUrl
             var cleanedNotes: String? = null
-            if (url?.contains("youtube.com") == true && curItem_.description?.startsWith("Short:") == true) {
+            val client = clientByEpisode(curItem_)
+            if (client != null && curItem_.description?.startsWith("Short:") == true) {
                 Logd(TAG, "buildCleanedNotes getting extended description: ${curItem_.title}")
                 try {
-                    val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) } == true }
-                    val desc = client?.withProvider { it.getEpisodeDescription(url) }
+                    val desc = client.withProvider { it.getEpisodeDescription(url) }
                     cleanedNotes = if (!desc.isNullOrBlank()) {
                         curItem_ = upsertBlk(curItem_) { it.description = desc }
                         shownotesCleaner?.processShownotes(desc, curItem_.duration)
@@ -1412,11 +1414,11 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                                 EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
                                 return 1
                             }
+
                             for (url in sharedUrls) {
                                 val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
-                                try {
-                                    val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) } == true }
-                                    val episode = client?.withProvider { it.buildEpisode(url)?.toEpisode() }
+                                suspend fun addEpisode(client: SourceGatewayClient,  url: String) {
+                                    val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
                                     if (episode != null) {
                                         val status = addToSyndicate(episode, toFeed!!)
                                         if (log != null) upsert(log) {
@@ -1426,6 +1428,14 @@ fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                                     } else {
                                         Loge(TAG, "Error adding media at url: $url")
                                         if (log != null) upsert(log) { it.details = "Can not build episode" }
+                                    }
+                                }
+                                try {
+                                    var client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) == 1 } == true }
+                                    if (client != null) addEpisode(client, url)
+                                    else {
+                                        client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) == 0 } == true }
+                                        if (client != null) addEpisode(client, url)
                                     }
                                 } catch (e: Throwable) {
                                     Loge(TAG, "Receive share error: ${e.message}")

@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.utils.Logd
 
 class FeedFilter(vararg properties_: String) {
@@ -47,23 +47,19 @@ class FeedFilter(vararg properties_: String) {
             properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR isLocal == false ")
         }
 
-        val providerDomains = mutableListOf<String>()
-        for (client in sourceClients) {
-            val ds = client.attributes?.feedDomains
-            if (!ds.isNullOrEmpty()) providerDomains.addAll(ds)
-        }
-        if (providerDomains.isNotEmpty()) {
-            val sb = StringBuilder("( ")
-            for (d in providerDomains) {
-                if (sb.isNotEmpty()) sb.append(" OR ")
-                sb.append(" downloadUrl CONTAINS[c] '$d' OR link CONTAINS[c] '$d' ")
+        val typeQuerys = mutableListOf<String>()
+        if (properties.contains(FeedType.RSS.name)) typeQuerys.add(" type == ${FeedType.RSS.name} ")
+        if (properties.contains(FeedType.ATOM.name)) typeQuerys.add(" type == ${FeedType.ATOM.name} ")
+        if (properties.contains(FeedType.YouTube.name)) typeQuerys.add(" type == ${FeedType.YouTube.name} ")
+        if (properties.contains(FeedType.PeerTube.name)) typeQuerys.add(" type == ${FeedType.PeerTube.name} ")
+        if (typeQuerys.isNotEmpty()) {
+            val query = StringBuilder(" (" + typeQuerys[0])
+            if (typeQuerys.size > 1) for (r in typeQuerys.subList(1, typeQuerys.size)) {
+                query.append(" OR ")
+                query.append(r)
             }
-            sb.append(" )")
-            when {
-                properties.contains(States.youtube.name) -> statements.add(sb.toString())
-                properties.contains(States.rss.name) -> statements.add("!$sb")
-                else -> {}
-            }
+            query.append(") ")
+            statements.add(query.toString())
         }
 
         val ratingQuerys = mutableListOf<String>()
@@ -133,8 +129,9 @@ class FeedFilter(vararg properties_: String) {
         no_video,
         is_local,
         remote,
-        youtube,
-        rss,
+//        youtube,
+//        rss,
+//        atom,
         synthetic,
         normal,
         global_auto_delete,
@@ -165,7 +162,7 @@ class FeedFilter(vararg properties_: String) {
         KEEP_UPDATED(R.string.keep_updated, ItemProperties(R.string.yes, States.keepUpdated.name), ItemProperties(R.string.no, States.not_keepUpdated.name)),
         HAS_VIDEO(R.string.has_video, ItemProperties(R.string.yes, States.has_video.name), ItemProperties(R.string.no, States.no_video.name)),
         PLAY_SPEED(R.string.play_speed, ItemProperties(R.string.global, States.global_playSpeed.name), ItemProperties(R.string.custom_speed, States.custom_playSpeed.name)),
-        ORIGIN(R.string.feed_origin, ItemProperties(R.string.youtube, States.youtube.name), ItemProperties(R.string.rss, States.rss.name)),
+        ORIGIN(R.string.feed_origin, ItemProperties(R.string.rss, FeedType.RSS.name), ItemProperties(R.string.atom, FeedType.ATOM.name), ItemProperties(R.string.youtube, FeedType.YouTube.name), ItemProperties(R.string.youtube, FeedType.PeerTube.name)),
         TYPE(R.string.feed_type, ItemProperties(R.string.synthetic, States.synthetic.name), ItemProperties(R.string.normal, States.normal.name)),
         IS_LOCAL(R.string.is_local, ItemProperties(R.string.yes, States.is_local.name), ItemProperties(R.string.no, States.remote.name)),
         SKIPS(R.string.has_skips, ItemProperties(R.string.yes, States.has_skips.name), ItemProperties(R.string.no, States.no_skips.name)),

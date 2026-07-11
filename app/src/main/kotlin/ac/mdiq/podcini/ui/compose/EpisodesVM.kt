@@ -10,7 +10,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -711,8 +711,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     CoroutineScope(Dispatchers.IO).launch {
                                         ytUrls.clear()
                                         for (e in selected) {
-                                            // TODO: may have issues
-                                            val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(e.downloadUrl ?: "") } == true }
+                                            val client = clientByEpisode(e)
                                             if (client != null) ytUrls.add(e.downloadUrl!!)
                                             else addRemoteToMiscSyndicate(e)
                                         }

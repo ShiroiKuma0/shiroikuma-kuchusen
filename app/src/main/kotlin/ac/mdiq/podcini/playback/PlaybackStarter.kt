@@ -7,10 +7,11 @@ import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
+import ac.mdiq.podcini.storage.database.isMediaDownloadable
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
 import androidx.core.content.ContextCompat
@@ -27,7 +28,7 @@ class PlaybackStarter(private val media: Episode) {
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
             this.shouldStreamThisTime = media.feed == null || media.feedId == null || (!media.downloaded && media.feed?.isLocal != true)
-                    || media.feed?.type == FeedType.YouTube.name || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
+                    || !isMediaDownloadable(media) || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
         } else this.shouldStreamThisTime = shouldStreamThisTime
         return this
     }

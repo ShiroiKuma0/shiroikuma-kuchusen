@@ -233,7 +233,6 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     feed.author = "Yours Truly"
     feed.downloadUrl = null
     feed.hasVideoMedia = video
-//    feed.fileUrl = (cacheDir / feed.getFeedfileName()).absPath
     feed.keepUpdated = false
     feed.queue = null
     return feed
@@ -677,41 +676,3 @@ class FeedAssistant(val feed: Feed, savedFeedId: Long = 0L, isNew: Boolean = fal
     }
     fun clear() = map.clear()
 }
-
-// TODO
-//    private fun createYTSyndicates() {
-//        getYoutubeSyndicate(video = true, music = false)
-//        getYoutubeSyndicate(video = false, music = false)
-//        getYoutubeSyndicate(video = true, music = true)
-//        getYoutubeSyndicate(video = false, music = true)
-//    }
-
-//    private fun getYoutubeSyndicate(video: Boolean, music: Boolean): Feed {
-//        var feedId: Long = if (video) 1 else 2
-//        if (music) feedId += 2  // music feed takes ids 3 and 4
-//        var feed = getFeed(feedId, true)
-//        if (feed != null) return feed
-//
-//        val name = if (music) "YTMusic Syndicate" + if (video) "" else " Audio"
-//        else "Youtube Syndicate" + if (video) "" else " Audio"
-//        feed = createSynthetic(feedId, name)
-//        feed.type = FeedType.YouTube.name
-//        feed.hasVideoMedia = video
-//        feed.audioTypeSetting = if (music) AudioType.MUSIC else AudioType.SPEECH
-//        feed.videoModePolicy = if (video) VideoMode.WINDOW else VideoMode.AUDIO_ONLY
-//        upsertBlk(feed) {}
-//        return feed
-//    }
-
-//    private fun addToSyndicate(episode: Episode, feed: Feed) : Int {
-//        Logd(TAG, "addToYoutubeSyndicate: feed: ${feed.title}")
-//        val episodes = feed.episodes
-//        if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return Status.EXISTING.ordinal
-//
-//        Logd(TAG, "addToSyndicate adding new episode: ${episode.title}")
-//        episode.id = getEntityId()
-//        episode.feedId = feed.id
-//        upsertBlk(episode) {}
-//        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-//        return 1
-//    }
