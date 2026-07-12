@@ -1,3 +1,8 @@
+# 12.3.1
+
+* fixed issues of receiving shared media or feed from other apps
+	* fix for YT channels should be combined with update of UT.urn app to 1.0.13
+
 # 12.3.0
 
 * removed hard-coded checks on youtube type

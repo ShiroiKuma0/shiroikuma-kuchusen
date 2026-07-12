@@ -127,36 +127,42 @@ class ShareReceiverActivity : ComponentActivity() {
                     if (finish) activity.finish()
                 }
                 else -> {
-                    var client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
+                    fun openAsFeed(source: String?) {
+                        if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
+                        Logd(TAG, "openAsFeed Activity is started with url $sharedText")
+                        val intent = Intent(getAppContext(), MainActivity::class.java).apply {
+                            putExtra(Extras.feed_url.name, sharedText)
+                            putExtra(Extras.isShared.name, true)
+                            if (!source.isNullOrBlank()) putExtra(Extras.source.name, source)
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                        }
+                        activity.startActivity(intent)
+                        if (finish) activity.finish()
+                    }
+                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
                     Logd(TAG, "receiveShared canHandleUrl==1 client: ${client!= null}")
                     if (client != null) {
                         val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
-                        val existing = if (episode == null) listOf() else realm.query(Episode::class).query("title == $0", episode.title).find()
-                        if (log != null) upsertBlk(log) { it.type = client?.attributes?.shareLogType }
-                        extMediaCB(episode == null, existing)
-                        return
+                        if (episode == null) openAsFeed(client.feedSearcher?.name)
+                        else {
+                            val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
+                            if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
+                            extMediaCB(false, existing)
+                            return
+                        }
                     }
-                    client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 0 } == true }
-                    Logd(TAG, "receiveShared canHandleUrl==0 client: ${client!= null}")
-                    if (client != null) {
+                    val clients = sourceClients.filter { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 0 } == true }
+                    Logd(TAG, "receiveShared canHandleUrl==0 clients: ${clients.size}")
+                    for (client in clients) {
                         val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
-                        val existing = if (episode == null) listOf() else realm.query(Episode::class).query("title == $0", episode.title).find()
-                        if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
-                        extMediaCB(episode == null, existing)
-                        return
+                        if (episode != null) {
+                            val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
+                            if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
+                            extMediaCB(false, existing)
+                            return
+                        }
                     }
-
-                    //              podcast or other?
-                    if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
-                    Logd(TAG, "Activity is started with url $sharedText")
-                    val intent = Intent(getAppContext(), MainActivity::class.java).apply {
-                        putExtra(Extras.feed_url.name, sharedText)
-                        putExtra(Extras.isShared.name, true)
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    }
-                    activity.startActivity(intent)
-                    if (finish) activity.finish()
-
+                    openAsFeed(null)
                 }
             }
         }

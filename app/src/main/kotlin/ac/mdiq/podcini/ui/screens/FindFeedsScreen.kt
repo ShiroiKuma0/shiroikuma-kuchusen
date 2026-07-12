@@ -135,9 +135,9 @@ class FindFeedsVM: ViewModel() {
                 return 0L
             }
             try {
-                val result = searchProvider.search(query)
-                for (r in result) r.feedId = feedId(r)
-                searchResults = result.sortedBy { it.title }
+                val results = searchProvider.search(query)
+                for (r in results) r.feedId = feedId(r)
+                searchResults = results.sortedBy { it.title }
                 withContext(Dispatchers.Main) { showProgress = false }
             } catch (e: Exception) {
                 showProgress = false
@@ -278,4 +278,4 @@ fun FindFeedsScreen() {
     }
 }
 
-private const val TAG: String = "OnlineSearchScreen"
+private val TAG: String = Screens.FindFeeds.name

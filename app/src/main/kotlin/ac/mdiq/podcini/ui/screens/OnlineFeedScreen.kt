@@ -47,7 +47,6 @@ import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatAbbrev
 import ac.mdiq.podcini.utils.timeIt
 import androidx.activity.compose.BackHandler
@@ -182,7 +181,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             }
         }
 
-        Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl")
+        Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl feedSource: $feedSource isShared: $isShared")
 
         val showError = { message: String?, details: String ->
             errorMessage = message ?: "No message"
@@ -190,7 +189,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         }
         gatewayClient = clientBySearcher(source)
 
-        val defaultCapable = gatewayClient != null
         feedBuilder = FeedBuilder(showError)
         if (feedUrl.isEmpty()) {
             Loge(TAG, "feedUrl is null.")
@@ -200,13 +198,14 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             showProgress = true
             // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
             if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
-            suspend fun handleClientFeeds() {
+            suspend fun handleClientFeeds(): Boolean {
                 feedOptions = gatewayClient?.withProvider { it.feedsTitlesAtUrl(url) } ?: listOf()
                 val feedOptions_ = feedOptions.filter { it != null && it != "playlists" && it != "shorts" }
                 when {
                     feedOptions_.size > 1 -> {
                         showTabsDialog = true
                         feedOptions.forEach { Logd(TAG, "feedOptions: $it") }
+                        return true
                     }
                     feedOptions_.size <= 1 -> {
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
@@ -222,45 +221,53 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                             }
                             fipc.episodes = eList
                             handleFeed(fipc.toFeed())
-                        } else Loge(TAG, "Building feed failed")
+                            return true
+                        }
                     }
-                    else -> Loge(TAG, "No feed found")
                 }
+                return false
             }
             viewModelScope.launch(Dispatchers.IO) {
                 urlToLog = feedUrl
-                try {
-                    val urlString = PodcastSearcherRegistry.lookupUrl(feedUrl)
-                    Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
-                    if (defaultCapable) handleClientFeeds()
-                    else feedBuilder.buildPodcast(getFinalRedirectedUrl(urlString), username, password) { feed_, _ -> handleFeed(feed_) }
-                } catch (error: FeedUrlNotFoundException) {
-                    Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
-                    var url: String? = null
-                    val searcher = CombinedSearcher()
-                    val query = "${error.trackName} ${error.artistName}"
-                    val results = searcher.search(query)
-                    if (results.isEmpty()) return@launch
-                    for (result in results) {
-                        if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
-                            && result.title.equals(error.trackName, ignoreCase = true)) {
-                            url = result.feedUrl
-                            break
+                if (gatewayClient != null) handleClientFeeds()
+                else {
+                    val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(feedUrl) == 1 } == true }
+                    Logd(TAG, "try positive client: ${client != null}")
+                    if (client != null) {
+                        gatewayClient = client
+                        if (handleClientFeeds()) return@launch
+                    }
+                    val clients = sourceClients.filter { it.withProvider { p-> p.canHandleUrl(feedUrl) == 0 } == true }
+                    Logd(TAG, "try neutral clients: ${clients.size}")
+                    for (client in clients) {
+                        gatewayClient = client
+                        if (handleClientFeeds()) return@launch
+                    }
+                    try {
+                        val urlString = PodcastSearcherRegistry.lookupUrl(feedUrl)
+                        Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
+                        feedBuilder.buildPodcast(getFinalRedirectedUrl(urlString), username, password) { feed_, _ -> handleFeed(feed_) }
+                    } catch (error: FeedUrlNotFoundException) {
+                        Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
+                        var url: String? = null
+                        val searcher = CombinedSearcher()
+                        val query = "${error.trackName} ${error.artistName}"
+                        val results = searcher.search(query)
+                        if (results.isEmpty()) return@launch
+                        for (result in results) {
+                            if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
+                                && result.title.equals(error.trackName, ignoreCase = true)) {
+                                url = result.feedUrl
+                                break
+                            }
                         }
+                        if (url != null) {
+                            urlToLog = url
+                            Logd(TAG, "Successfully retrieve feed url: $url")
+                            isFeedFoundBySearch = true
+                            feedBuilder.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, _ -> handleFeed(feed_) }
+                        } else withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
                     }
-                    if (url != null) {
-                        urlToLog = url
-                        Logd(TAG, "Successfully retrieve feed url: $url")
-                        isFeedFoundBySearch = true
-                        if (defaultCapable) handleClientFeeds()
-                        else feedBuilder.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, _ -> handleFeed(feed_) }
-                    } else {
-                        withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
-                        Logd(TAG, "Failed to retrieve feed url")
-                    }
-                } catch (e: Throwable) {
-                    Logs(TAG, e)
-                    withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
                 }
             }
         }

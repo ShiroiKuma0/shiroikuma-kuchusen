@@ -129,12 +129,12 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     client.attributes = attr
                     client.gateway = remote
                     client.connection = this
-                    val aidlSearchProvider = client.gateway?.getSearchProvider()
+                    val aidlSearchProvider = client.gateway?.searchProvider
                     if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
                     typeClientMap[attr.feedType] = client
                     Logt(TAG, "External service ${attr.name} connected")
                 } else {
-                    if (recognized && !versionMatched) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
+                    if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
                     else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
                     clients.remove(client)
                 }
@@ -201,7 +201,7 @@ class SourceGatewayClient() {
     }
 
     fun <T> executeBlocking(block: (IPodciniGateway) -> T): T? {
-        Logd(TAG, "executeBlocking")
+//        Logd(TAG, "executeBlocking")
         return runBlocking(Dispatchers.IO) {
             if (gateway == null) return@runBlocking null
             withContext(Dispatchers.IO) { block(gateway!!) }
