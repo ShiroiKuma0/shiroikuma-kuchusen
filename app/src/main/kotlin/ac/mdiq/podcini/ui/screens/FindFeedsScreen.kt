@@ -88,7 +88,7 @@ import kotlinx.coroutines.withContext
 
 private var searchText by mutableStateOf("")
 
-fun searchOnline(searcherName: String = "", query: String? = null) {
+fun searchFeedsOnline(searcherName: String = "", query: String? = null) {
     searchText = query ?: ""
     if (searcherName.isNotBlank()) {
         val searcher_ = searcherInfos.find { it.tag == searcherName }?.searcher
@@ -200,22 +200,22 @@ fun FindFeedsScreen() {
     if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                searchOnline()
+                searchFeedsOnline()
                 showAdvanced = false
             })
             for (client in sourceClients) {
                 val searchName = remember { client.feedSearcher?.name }
                 if (!searchName.isNullOrBlank()) Text(searchName, color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                    searchOnline(searchName)
+                    searchFeedsOnline(searchName)
                     showAdvanced = false
                 })
             }
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                searchOnline(FeedSearchers.Apple.name)
+                searchFeedsOnline(FeedSearchers.Apple.name)
                 showAdvanced = false
             })
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
-                searchOnline(FeedSearchers.PodcastIndex.name)
+                searchFeedsOnline(FeedSearchers.PodcastIndex.name)
                 showAdvanced = false
             })
         }

@@ -470,7 +470,7 @@
     <string name="search_status_no_results">Neboli nájdené žiadne výsledky</string>
     <string name="search_label">Hľadať</string>
     <string name="no_results_for_query">Neboli nájdené žiadne výsledky pre „%1$s“</string>
-    <string name="search_online">Hľadať online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synchronizácia bola spustená</string>
     <string name="sync_status_episodes_upload">Nahrávajú sa zmeny epizód…</string>

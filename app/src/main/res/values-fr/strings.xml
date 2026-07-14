@@ -469,7 +469,7 @@
     <string name="search_status_no_results">Aucun résultat trouvé</string>
     <string name="search_label">Recherche</string>
     <string name="no_results_for_query">Aucun résultat trouvé pour \"%1$s\"</string>
-    <string name="search_online">Chercher en ligne</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synchronisation démarrée</string>
     <string name="sync_status_episodes_upload">Export des statuts des épisodes…</string>

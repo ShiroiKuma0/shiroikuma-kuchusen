@@ -464,7 +464,7 @@
     <string name="search_status_no_results">Tidak ada hasil yang ditemukan</string>
     <string name="search_label">Telusuri</string>
     <string name="no_results_for_query">Tidak ada hasil yang ditemukan untuk \"%1$s\"`</string>
-    <string name="search_online">Search online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Sinkronisasi dijalankan</string>
     <string name="sync_status_episodes_upload">Mengunggah perubahan pada episode…</string>

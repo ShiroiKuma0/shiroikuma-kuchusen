@@ -19,7 +19,7 @@ import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.ConfirmAddEpisode
+import ac.mdiq.podcini.ui.compose.ConfirmAddEpisodes
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -198,7 +198,7 @@ fun LogsScreen() {
         if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismissRequest = { showSharedDialog.value = false })
 
         var sharedUrl by remember { mutableStateOf("") }
-        if (sharedUrl.isNotBlank()) ConfirmAddEpisode(listOf(sharedUrl), onDismissRequest = { sharedUrl = "" })
+        if (sharedUrl.isNotBlank()) ConfirmAddEpisodes(listOf(sharedUrl), onDismissRequest = { sharedUrl = "" })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->

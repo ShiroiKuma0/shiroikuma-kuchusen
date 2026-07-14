@@ -639,7 +639,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
         audioSpecs = listOf()
         videoSpecs = listOf()
-        if (client.attributes?.hasSeparateAVs == true) {
+        if (client.attributes?.hasSeparateAVs == true || media.feed?.hasVideoMedia != true) {
             audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
             var aSource: ProgressiveMediaSource? = null
             if (audioSpecs.isNotEmpty()) {
@@ -653,7 +653,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 } else Loge(TAG, "audioStream or url is null or blank")
             } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
 
-            if (aSource == null || needVideo) {
+            if (aSource == null || (needVideo && media.feed?.hasVideoMedia == true)) {
                 if (aSource == null) setMuxedVideo()
                 else {
                     videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()

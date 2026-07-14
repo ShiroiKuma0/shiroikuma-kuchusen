@@ -578,7 +578,7 @@
 
     <string name="search_label">Ara</string>
     <string name="no_results_for_query">\"%1$s\" için sonuç bulunamadı</string>
-    <string name="search_online">Çevrimiçi ara</string>
+
 
     <!-- Synchronization -->
     <string name="sync_status_started">Senkronizasyon başladı</string>

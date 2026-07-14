@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Fandt ingen resultater</string>
     <string name="search_label">Søg</string>
     <string name="no_results_for_query">Ingen resultater fundet for \"%1$s\"</string>
-    <string name="search_online">Søg online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synkronisering startet</string>
     <string name="sync_status_episodes_upload">Overfører afsnitændringer…</string>

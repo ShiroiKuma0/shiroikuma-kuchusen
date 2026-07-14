@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Ei löydetty tuloksia</string>
     <string name="search_label">Etsi</string>
     <string name="no_results_for_query">Ei löydetty tuloksia \"%1$s\"</string>
-    <string name="search_online">Etsi verkosta</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synkronointi aloitettu</string>
     <string name="sync_status_episodes_upload">Ladataan jaksomuutokset palvelimelle…</string>

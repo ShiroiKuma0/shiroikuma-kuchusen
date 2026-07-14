@@ -203,10 +203,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     var showMulticastDialog by remember { mutableStateOf(false) }
     var showEraseDialog by remember { mutableStateOf(false) }
     val ytUrls = remember { mutableListOf<String>() }
+    var showAddEpisodesDialog by remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
-        if (ytUrls.isNotEmpty()) ConfirmAddEpisode(ytUrls, onDismissRequest = { ytUrls.clear() })
+        if (showAddEpisodesDialog) ConfirmAddEpisodes(ytUrls, onDismissRequest = { showAddEpisodesDialog = false })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
@@ -472,7 +473,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable {
                                     when {
                                         selectMode -> toggleSelected(episode)
-                                        feed == null && episode.feed?.isSynthetic() != true -> navTo(FeedDetails(feedId = episode.feed!!.id, modeName = FeedScreenMode.Info.name))
+                                        feed == null && episode.feed != null && !episode.feed!!.isSynthetic() -> navTo(FeedDetails(feedId = episode.feed!!.id, modeName = FeedScreenMode.Info.name))
                                         else -> episodeForInfo = episode
                                     }
                                 }) {
@@ -515,7 +516,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     }
                                     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                                         detectTapGestures(
-                                            onLongPress = { showAltActionsDialog = true },
+                                            onLongPress = { if (!isExternal) showAltActionsDialog = true },
                                             onTap = {
                                                 val actType = actionButton.type
                                                 actionButton.onClick()
@@ -715,6 +716,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             if (client != null) ytUrls.add(e.downloadUrl!!)
                                             else addRemoteToMiscSyndicate(e)
                                         }
+                                        if (ytUrls.isNotEmpty()) showAddEpisodesDialog = true
                                     }
                                 }) {
                                     Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")

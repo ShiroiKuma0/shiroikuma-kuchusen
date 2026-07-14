@@ -10,6 +10,7 @@
     <string name="languages">Languages</string>
     <string name="feed_update_receiver_name">Update subscriptions</string>
     <string name="feeds">Feeds</string>
+    <string name="remote">Remote</string>
     <string name="pafeeds" translatable="false">PAFeeds</string>
 
     <string name="preferred_languages">Preferred languages</string>
@@ -739,7 +740,9 @@
     <string name="search_label">Search</string>
     <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
-    <string name="search_online">Search online</string>
+
+    <string name="feeds_online">Feeds online</string>
+    <string name="remote_searchers">Remote searchers</string>
 
     <string name="feeds_from_search">Feeds from search</string>
     <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>

@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.utils.toSafeUri
-import ac.mdiq.podcini.ui.compose.ConfirmAddEpisode
+import ac.mdiq.podcini.ui.compose.ConfirmAddEpisodes
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.LayoutMode
@@ -75,10 +75,10 @@ class ShareReceiverActivity : ComponentActivity() {
                 failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
                     confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddEpisode(listOf(text), onDismissRequest = { finish() })
+                addAsNew -> ConfirmAddEpisodes(listOf(text), onDismissRequest = { finish() })
                 existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddEpisode(listOf(text), onDismissRequest = { finish() })
+                existing!!.isEmpty() -> ConfirmAddEpisodes(listOf(text), onDismissRequest = { finish() })
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {

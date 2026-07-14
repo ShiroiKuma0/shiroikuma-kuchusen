@@ -408,7 +408,7 @@
 
   <string name="search_label">חיפוש</string>
   <string name="no_results_for_query">לא נמצאו תוצאות עבור „%1$s”</string>
-  <string name="search_online">חיפוש מקוון</string>
+
   <!--Synchronization-->
   <string name="sync_status_started">הסנכרון החל</string>
   <string name="sync_status_episodes_upload">השינויים לפרק נשלחים…</string>

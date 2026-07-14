@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Nincsenek találatok</string>
     <string name="search_label">Keresés</string>
     <string name="no_results_for_query">Nincs találat a következőre: „%1$s”</string>
-    <string name="search_online">Search online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Szinkronizálás elindítva</string>
     <string name="sync_status_episodes_upload">Epizódváltozások feltöltése…</string>

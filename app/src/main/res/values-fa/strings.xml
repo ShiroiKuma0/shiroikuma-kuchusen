@@ -466,7 +466,7 @@
     <string name="search_status_no_results">نتیجه‌ای یافت نشد</string>
     <string name="search_label">جستجو</string>
     <string name="no_results_for_query">هیچ نتیجه ای برای \"%1$s\" یافت نشد</string>
-    <string name="search_online">Search online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">همگام سازی شروع شد</string>
     <string name="sync_status_episodes_upload">بارگذاری تغییرات قسمت…</string>

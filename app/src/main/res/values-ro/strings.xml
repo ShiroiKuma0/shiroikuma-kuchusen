@@ -468,7 +468,7 @@
     <string name="search_status_no_results">Nu s-a găsit nici un rezultat</string>
     <string name="search_label">Caută</string>
     <string name="no_results_for_query">Nu au fost găsite rezultate pentru \"%1$s\"</string>
-    <string name="search_online">Caută online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Sincronizarea a început</string>
     <string name="sync_status_episodes_upload">Se încarcă schimbările episoadelor…</string>

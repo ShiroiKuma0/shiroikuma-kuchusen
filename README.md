@@ -13,29 +13,32 @@ An open source extensible media instrument, attuned to Puccini ![Puccini](./imag
 ### A fork of [Podcini.X](<https://github.com/XilinJia/Podcini.X>) as of May 29 2026, this project inherits all functionalities of Podcini.X.
 
 ### A major milestone is this project can handle sources provided by external apps.
-Two such apps are available: 
-[UT.urn](<https://github.com/XilinJia/UT.urn>) and
-[PeerPop](<https://github.com/XilinJia/PeerPop>)
+Available such apps are available: 
+[UT.urn](<https://github.com/XilinJia/UT.urn>), 
+[PeerPop](<https://github.com/XilinJia/PeerPop>) and
+[CloudSound](<https://github.com/XilinJia/CloudSound>)
 
 ## Notable features
 
-1. Not only playing podcasts, but also local media and any remote media served by external source providers.
+1. Not only handling podcasts, but also local media and any remote media served by external source providers.
 2. Features multiple, natural and circular play queues associable with any feed.
 3. Features volume hierarchies each of which can contain sub-volumes and feeds.
 4. Presents synthetic feeds and allows media to be separately shelved.
-5. Allows setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every media.
-6. Boasts sophisticated sorting, filtering and searching on media and feeds.
-7. Supports sleep and auto play timers.
-8. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed.
-9. Supports spaced repetition of repeat media: auto-download or auto-enqueue them at preset intervals specified in the feed.
-10. Caches streamed audio for seamless local rewind and replay.
-11. is capable of playing 2 media simultaneously (one in each ear with earphones) with independent controls.
-12. Features audio clips recording and position marking on any media for better review.
-13. Allows linking/relating multiple media for better grouping.
-14. Is capable of preserving important media when a feed is unsubscribed.
-15. Spotlights sending/receiving feeds and subscriptions catalogue across devices without a server.
-16. Offers Readability and Text-to-Speech for RSS contents.
-17. Supports auto-backups, customized media folder and importing DB from other apps
+5. Remote media (unsubscribed) can be preserved or played.
+6. Allows online search of remote media provided by external sources.
+7. Enables setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every media.
+8. Boasts sophisticated sorting, filtering and searching on media and feeds.
+9. Supports sleep and auto-play timers.
+10. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed.
+11. Supports spaced repetition of repeat media: auto-download or auto-enqueue them at preset intervals specified in the feed.
+12. Caches streamed audio for seamless local rewind and replay.
+13. is capable of playing 2 media simultaneously (one in each ear with earphones) with independent controls.
+14. Features audio clips recording and position marking on any media for better review.
+15. Allows linking/relating multiple media for better grouping.
+16. Is capable of preserving important media when a feed is unsubscribed.
+17. Spotlights sending/receiving feeds and subscriptions catalogue across devices without a server.
+18. Offers Readability and Text-to-Speech for RSS contents.
+19. Supports auto-backups, customized media folder and importing DB from other apps
 
 ### Note:
 

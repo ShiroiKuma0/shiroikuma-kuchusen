@@ -353,7 +353,7 @@
 
   <string name="search_label">Bilatu</string>
   <string name="no_results_for_query">Ez da \"%1$s\"emaitzarik aurkitu</string>
-  <string name="search_online">Bilatu online</string>
+
   <!--Synchronization-->
   <string name="sync_status_started">Sinkronizatzen hasi da</string>
   <string name="sync_status_episodes_upload">Saio aldaketak kargatzen…</string>

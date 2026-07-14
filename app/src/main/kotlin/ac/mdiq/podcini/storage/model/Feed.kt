@@ -765,7 +765,8 @@ enum class FeedType {
     RSS,
     ATOM,
     YouTube,
-    PeerTube
+    PeerTube,
+    SoundCloud
 }
 
 @Serializable

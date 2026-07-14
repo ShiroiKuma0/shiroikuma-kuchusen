@@ -468,7 +468,7 @@
     <string name="search_status_no_results">Nenhum resultado</string>
     <string name="search_label">Pesquisar</string>
     <string name="no_results_for_query">Não existem resultados para  \"%1$s\"</string>
-    <string name="search_online">Pesquisar online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Sincronização iniciada</string>
     <string name="sync_status_episodes_upload">Atualizar alterações nos episódios…</string>

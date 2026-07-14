@@ -381,7 +381,7 @@
 
   <string name="search_label">Cerca</string>
   <string name="no_results_for_query">No s\'han trobat resultats per «%1$s»</string>
-  <string name="search_online">Cerca en línia</string>
+
   <!--Synchronization-->
   <string name="sync_status_started">Sincronització començada</string>
   <string name="sync_status_episodes_upload">Pujant canvis d\'episodi</string>

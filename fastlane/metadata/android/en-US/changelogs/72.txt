@@ -1,0 +1,10 @@
+* adopted improved API in PodciniLib 1.1.1
+	* external apps (if used) need to be updated for compatibility
+	* search playlists and individual media is enabled
+* added SoundCloud support via external app CloudSound
+* in SearchScreen
+	* added Remote tab for results of online media (via external apps only)
+* in Episodes mode of OnlineFeed screen
+	* added sorting for episodes
+* in topbar of EpisodeInfo screen
+	* added a close button

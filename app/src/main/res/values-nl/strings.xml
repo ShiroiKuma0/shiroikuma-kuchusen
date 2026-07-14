@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Er zijn geen resultaten gevonden</string>
     <string name="search_label">Zoeken</string>
     <string name="no_results_for_query">Geen resultaten gevonden voor  \"%1$s\"</string>
-    <string name="search_online">Zoek online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synchronisatie gestart</string>
     <string name="sync_status_episodes_upload">Bezig met uploaden van aflevering veranderingen…</string>

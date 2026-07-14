@@ -472,7 +472,7 @@
     <string name="search_status_no_results">Brak wyników</string>
     <string name="search_label">Szukaj</string>
     <string name="no_results_for_query">Brak wyników dla \"%1$s\"</string>
-    <string name="search_online">Szukaj online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Rozpoczęto synchronizację</string>
     <string name="sync_status_episodes_upload">Wysyłanie zmian odcinków…</string>

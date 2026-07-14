@@ -470,7 +470,7 @@
     <string name="search_status_no_results">Жодних результатів немає</string>
     <string name="search_label">Пошук</string>
     <string name="no_results_for_query">Нічого не знайдено за запитом \"%1$s\"</string>
-    <string name="search_online">Шукати онлайн</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Синхронізація запущена</string>
     <string name="sync_status_episodes_upload">Вивантаження змін епізоду…</string>

@@ -9,7 +9,6 @@ import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sources.isExtFeed
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
@@ -593,7 +592,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             if (feed?.isSynthetic() == false) {
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable {
-                        searchOnline(query = "${feed?.author} podcasts")
+                        searchFeedsOnline(query = "${feed?.author} podcasts")
                         navTo(FindFeeds)
                     })
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(feed?.lastFullUpdateTime?:0L)}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))

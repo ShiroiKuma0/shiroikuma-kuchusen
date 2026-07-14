@@ -464,7 +464,7 @@
     <string name="search_status_no_results">没有找到结果</string>
     <string name="search_label">搜索</string>
     <string name="no_results_for_query">没有找到 \"%1$s \" 的结果</string>
-    <string name="search_online">在线搜索</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">同步已开始</string>
     <string name="sync_status_episodes_upload">Uploading episode changes…</string>

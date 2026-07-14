@@ -1,3 +1,23 @@
+# 12.4.0
+
+* adopted improved API in PodciniLib 1.1.1
+	* external apps (if used) need to be updated for compatibility
+	* search playlists and individual media is enabled
+* added SoundCloud support via external app CloudSound
+* in SearchScreen
+	* changed advanced settings to a menu
+	* added Remote tab for results of online media (via external apps only)
+		* only performs search when the tab is open
+		* media list limited by 1000, sortable
+		* each media is playable (stream) and preservable
+* in Episodes mode of OnlineFeed screen 
+	* added sorting for episodes
+	* fixed media possibly not playing when feed comes from external app
+	* action button is no longer long-pressable
+* in topbar of EpisodeInfo screen 
+	* added a close button
+	* disabled showHome button when episode is from an external app
+
 # 12.3.1
 
 * fixed issues of receiving shared media or feed from other apps

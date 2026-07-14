@@ -34,7 +34,7 @@ import ac.mdiq.podcini.ui.screens.Search
 import ac.mdiq.podcini.ui.screens.Statistics
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.ui.screens.psState
-import ac.mdiq.podcini.ui.screens.searchOnline
+import ac.mdiq.podcini.ui.screens.searchFeedsOnline
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -391,7 +391,7 @@ class MainActivity : BaseActivity() {
                 if (feedurl != null) navTo(OnlineFeed(url = feedurl, source = source, shared = isShared))
             }
             intent.hasExtra(Extras.search_string.name) -> {
-                searchOnline(query = intent.getStringExtra(Extras.search_string.name))
+                searchFeedsOnline(query = intent.getStringExtra(Extras.search_string.name))
                 navTo(FindFeeds)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> psState = PSState.Expanded

@@ -464,7 +464,7 @@
     <string name="search_status_no_results">검색 결과가 없습니다</string>
     <string name="search_label">검색</string>
     <string name="no_results_for_query">\"%1$s\" 검색 결과가 없습니다</string>
-    <string name="search_online">Search online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">동기화 시작함</string>
     <string name="sync_status_episodes_upload">에피소드 변경 업로드 중…</string>

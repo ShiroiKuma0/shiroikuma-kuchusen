@@ -13,6 +13,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
+import ac.mdiq.podcini.sources.clientByEpisode
+import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.canCheckMediaSize
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -31,6 +33,7 @@ import ac.mdiq.podcini.ui.actions.Combo
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
+import ac.mdiq.podcini.ui.screens.navBack
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.utils.Logd
@@ -68,6 +71,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -220,7 +227,9 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             AsyncImage(model = episode.imageUrl ?: episodeFeed?.imageUrl ?: "", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser), modifier = Modifier.matchParentSize().blur(radiusX = 5.dp, radiusY = 5.dp))
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)))
             Column {
-                Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { episodeForInfo = null })
+                    Spacer(Modifier.weight(1f))
                     if (allowOpenFeed) IconButton(onClick = {
                         if (episodeFeed != null) {
                             navTo(FeedDetails(feedId = episodeFeed.id))
@@ -228,7 +237,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                         }
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     IconButton(onClick = { comboAction.performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                    if (!episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
+                    if (!isExtFeed(episode.feed) && !episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                     IconButton(onClick = { episode.getLinkWithFallback()?.let { openInBrowser(it) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -352,8 +361,13 @@ fun EpisodeWebView(episode: Episode) {
                         cleanedNotes = notesCache[episode.id]
                         if (cleanedNotes == null) {
                             if (episode.transcript == null) {
-                                val url = episode.link!!
-                                val htmlSource = fetchHtmlSource(url)
+//                                val client = clientByEpisode(episode)
+//                                val htmlSource = if (client != null) {
+//                                    ""    // TODO: how to do
+//                                } else {
+//                                    fetchHtmlSource(episode.link!!)
+//                                }
+                                val htmlSource = fetchHtmlSource(episode.link!!)
                                 val article = Readability4JExtended(episode.link!!, htmlSource).parse()
                                 readerText = article.textContent
                                 readerhtml = article.contentWithDocumentsCharsetOrUtf8
@@ -424,7 +438,9 @@ fun EpisodeWebView(episode: Episode) {
     fun Toolbar() {
         var expanded by remember { mutableStateOf(false) }
         val context = LocalContext.current
-        Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.End) {
+        Row(modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Back or drawer", modifier = Modifier.padding(7.dp).clickable { navBack() })
+            Spacer(Modifier.weight(1f))
             if (readMode && tts != null) {
                 val iconRes = if (ttsPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
                 IconButton(onClick = {

@@ -34,12 +34,15 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.model.toFeed
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
+import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.episodeForInfo
@@ -88,11 +91,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -118,6 +123,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -149,7 +155,9 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal var infoBarText = mutableStateOf("")
 
-    internal var episodes = mutableListOf<Episode>()
+    var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
+
+    internal var episodes = mutableStateListOf<Episode>()
 
     internal var feed by mutableStateOf<Feed?>(null)
     internal var username: String? = null
@@ -270,6 +278,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     }
                 }
             }
+            viewModelScope.launch { snapshotFlow { episodeSortOrder }.collectLatest { episodes.reorderWith(episodeSortOrder) } }
         }
         timeIt("$TAG end of init")
     }
@@ -304,18 +313,19 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal fun showEpisodes() {
         if (feed == null) return
         if (episodes.isEmpty()) {
-            episodes = feed!!.episodes
+            episodes.addAll(feed!!.episodes)
             infoBarText.value = "${episodes.size} episodes"
 
             Logd(TAG, "showEpisodes ${episodes.size}")
             if (episodes.isEmpty()) return
-            episodes.sortByDescending { it.pubDate }
+//            episodes.sortByDescending { it.pubDate }
             for (episode in episodes) {
                 episode.id = getEntityId()
                 episode.origFeedlink = feed!!.link
                 episode.origFeeddownloadUrl = feed!!.downloadUrl
                 episode.origFeedTitle = feed!!.title
             }
+            episodes.reorderWith(episodeSortOrder)
         }
         showEpisodes = true
     }
@@ -400,6 +410,9 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         }
     }
 
+    var showSortDialog by remember { mutableStateOf(false) }
+    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
+
     @Composable
     fun ShowTabsDialog(onDismissRequest: () -> Unit, handleFeed: (Feed) -> Unit) {
         val ytTabsMap = remember { mutableStateMapOf<Int, String>() }
@@ -454,7 +467,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
-
     if (vm.showTabsDialog) ShowTabsDialog(onDismissRequest = { vm.showTabsDialog = false }) { feed -> vm.handleFeed(feed) }
 
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
@@ -469,18 +481,22 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(topBar = {
             Box {
-                TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back or drawer", modifier = Modifier.padding(7.dp).clickable {
-                        if (vm.showEpisodes) vm.showEpisodes = false
-                        else if (!navBack()) drawerController?.open()
+                TopAppBar(title = {  Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "Online feed", modifier = Modifier.weight(1f))
+                    if (vm.showEpisodes) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
+                } },
+                    navigationIcon = {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back or drawer", modifier = Modifier.padding(7.dp).clickable {
+                            if (vm.showEpisodes) vm.showEpisodes = false
+                            else if (!navBack()) drawerController?.open()
+                        })
                     })
-                })
                 HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
             }
         }) { innerPadding ->
             if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 5.dp, end = 5.dp).background(MaterialTheme.colorScheme.surface)) {
                 InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-                EpisodeLazyColumn(vm.episodes.toList(), isExternal = true, swipeActions = swipeActions, actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+                EpisodeLazyColumn(vm.episodes, isExternal = true, swipeActions = swipeActions, actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
             } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
                 ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface)) {
                     val (coverImage, taColumn, buttons) = createRefs()
@@ -576,7 +592,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     }
 
                     Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp).clickable {
-                        searchOnline(query = "${vm.feed?.author} podcasts")
+                        searchFeedsOnline(query = "${vm.feed?.author} podcasts")
                         navTo(FindFeeds)
                     })
                     LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {

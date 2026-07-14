@@ -1368,7 +1368,7 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
 }
 
 @Composable
-fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
+fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
     val YTSyndMap = remember { mutableStateMapOf<Int, Boolean>() }
     var synthetics by remember { mutableStateOf(allFeeds.filter { it.id in 1..1000 }) }
     Dialog(onDismissRequest = { onDismissRequest() }) {

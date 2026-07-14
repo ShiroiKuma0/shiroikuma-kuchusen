@@ -3,8 +3,10 @@ package ac.mdiq.podcini.sources
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searcherInfos
+import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.FeedSearcher
+import ac.mdiq.podcini.shared.MediaSearcher
 import ac.mdiq.podcini.shared.PROVIDER_API_VERSION
 import ac.mdiq.podcini.shared.ProviderAttrs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -47,9 +49,9 @@ fun clientByFeed(feed: Feed): SourceGatewayClient? {
 }
 
 fun clientByEpisode(episode: Episode): SourceGatewayClient? {
-//    Logd(TAG, "clientByEpisode episode.feed?.type: ${episode.feed?.type}")
-    if (episode.feed?.type.isNullOrBlank()) return null
-    return typeClientMap[episode.feed!!.type!!]
+    if (!episode.feed?.type.isNullOrBlank()) return typeClientMap[episode.feed!!.type!!]
+    val client = sourceClients.firstOrNull { it.withProviderBlocking { p-> p.canHandleUrl(episode.downloadUrl) == 1 } == true }
+    return client
 }
 
 fun clientBySearcher(name: String?): SourceGatewayClient? {
@@ -131,6 +133,9 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     client.connection = this
                     val aidlSearchProvider = client.gateway?.searchProvider
                     if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
+                    val aidlMediaSearcher = client.gateway?.mediaSearcher
+                    if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
+
                     typeClientMap[attr.feedType] = client
                     Logt(TAG, "External service ${attr.name} connected")
                 } else {
@@ -185,6 +190,8 @@ class SourceGatewayClient() {
     var attributes: ProviderAttrs? = null
 
     var feedSearcher: FeedSearcher? = null
+
+    var mediaSearcher: MediaSearcher? = null
 
     @Volatile
     var gateway: IPodciniGateway? = null
@@ -247,5 +254,20 @@ class GatewaySearcherAdapter(private val aidlProvider: IFeedSearchProvider) : Fe
     }
     override suspend fun lookupUrl(url: String): String = withContext(Dispatchers.IO) {
         try { aidlProvider.lookupUrl(url) ?: url } catch (e: RemoteException) { url }
+    }
+}
+
+class GatewayMediaSearcherAdapter(private val aidlProvider: IMediaSearchProvider) : MediaSearcher {
+    override val name: String
+        get() = aidlProvider.name
+
+    override suspend fun searchQuick(query: String): List<EpisodeIPC> = withContext(Dispatchers.IO) {
+        try { aidlProvider.searchQuick(query) ?: emptyList() } catch (e: RemoteException) { emptyList() }
+    }
+    override suspend fun search(query: String, limit: Int): List<EpisodeIPC> = withContext(Dispatchers.IO) {
+        try { aidlProvider.search(query, limit) ?: emptyList() } catch (e: RemoteException) { emptyList() }
+    }
+    override suspend fun getMoreItems(): List<EpisodeIPC> = withContext(Dispatchers.IO) {
+        try { aidlProvider.getMoreItems() ?: emptyList() } catch (e: RemoteException) { emptyList() }
     }
 }

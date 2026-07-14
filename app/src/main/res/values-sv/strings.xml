@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Inga resultat hittades</string>
     <string name="search_label">Sök</string>
     <string name="no_results_for_query">Inga resultat hittades för \"%1$s\"</string>
-    <string name="search_online">Sök online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Synkning startad</string>
     <string name="sync_status_episodes_upload">Laddar upp episodändringar…</string>

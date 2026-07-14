@@ -466,7 +466,7 @@
     <string name="search_status_no_results">Δεν βρέθηκαν αποτελέσματα</string>
     <string name="search_label">Αναζήτηση</string>
     <string name="no_results_for_query">Δεν βρέθηκαν αποτελέσματα για \"%1$s\"</string>
-    <string name="search_online">Αναζήτηση online</string>
+
     <!-- Synchronization -->
     <string name="sync_status_started">Ο συγχρονισμός ξεκίνησε</string>
     <string name="sync_status_episodes_upload">Uploading episode changes…</string>
