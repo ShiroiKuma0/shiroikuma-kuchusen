@@ -2,7 +2,7 @@
 
 * adopted improved API in PodciniLib 1.1.1
 	* external apps (if used) need to be updated for compatibility
-	* search playlists and individual media is enabled
+	* search for playlists and individual media is enabled
 * added SoundCloud support via external app CloudSound
 * in SearchScreen
 	* changed advanced settings to a menu
