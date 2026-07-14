@@ -13,7 +13,7 @@ An open source extensible media instrument, attuned to Puccini ![Puccini](./imag
 ### A fork of [Podcini.X](<https://github.com/XilinJia/Podcini.X>) as of May 29 2026, this project inherits all functionalities of Podcini.X.
 
 ### A major milestone is this project can handle sources provided by external apps.
-Available such apps are available: 
+Available such apps are: 
 [UT.urn](<https://github.com/XilinJia/UT.urn>), 
 [PeerPop](<https://github.com/XilinJia/PeerPop>) and
 [CloudSound](<https://github.com/XilinJia/CloudSound>)
@@ -346,9 +346,6 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 For more details of the changes, see the [Changelog](changelog.md)
 
 </details>
-
-## ⭐ Star This Repo!
-If this helped you, please give it a **star** ⭐ - it helps others find this project!
 
 ## Screenshots
 
