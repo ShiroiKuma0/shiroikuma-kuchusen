@@ -121,26 +121,31 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName, service: IBinder) {
 //                Logt(TAG, "onServiceConnected")
-                val remote = IPodciniGateway.Stub.asInterface(service)
-                val attr = remote.attributes
-                Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
-                searcherInfos.clear()
-                val recognized = attr.feedType in FeedType.entries.map { it.name }
-                val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
-                if (recognized && versionMatched) {
-                    client.attributes = attr
-                    client.gateway = remote
-                    client.connection = this
-                    val aidlSearchProvider = client.gateway?.searchProvider
-                    if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
-                    val aidlMediaSearcher = client.gateway?.mediaSearcher
-                    if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
+                try {
+                    val remote = IPodciniGateway.Stub.asInterface(service)
+                    val attr = remote.attributes
+                    Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
+                    searcherInfos.clear()
+                    val recognized = attr.feedType in FeedType.entries.map { it.name }
+                    val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
+                    if (recognized && versionMatched) {
+                        client.attributes = attr
+                        client.gateway = remote
+                        client.connection = this
+                        val aidlSearchProvider = client.gateway?.searchProvider
+                        if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
+                        val aidlMediaSearcher = client.gateway?.mediaSearcher
+                        if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
 
-                    typeClientMap[attr.feedType] = client
-                    Logt(TAG, "External service ${attr.name} connected")
-                } else {
-                    if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
-                    else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
+                        typeClientMap[attr.feedType] = client
+                        Logt(TAG, "External service ${attr.name} connected")
+                    } else {
+                        if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
+                        else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
+                        clients.remove(client)
+                    }
+                } catch (e: Exception) {
+                    Loge(TAG, "External service unqualified or incompatible, rejected.")
                     clients.remove(client)
                 }
             }

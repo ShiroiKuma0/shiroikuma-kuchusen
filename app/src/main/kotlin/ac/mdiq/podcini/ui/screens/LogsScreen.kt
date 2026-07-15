@@ -5,7 +5,6 @@ import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdater
-import ac.mdiq.podcini.shared.ShareType
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -208,12 +207,12 @@ fun LogsScreen() {
                         Logd(TAG, "shared log url: ${log.url}")
                         var hasError = false
                         when(log.type) {
-                            ShareType.YTMedia.name, ShareType.PeerTubeMedia.name, "youtube media" -> {
+                            ShareLog.ShareType.Media.name -> {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
                                 if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
                                 else hasError = true
                             }
-                            ShareType.Podcast.name, "podcast" -> {
+                            ShareLog.ShareType.Podcast.name -> {
                                 val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
                                 if (feed != null) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
                                 else hasError = true

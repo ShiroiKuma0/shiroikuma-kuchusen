@@ -1,3 +1,10 @@
+# 12.4.1
+
+* PodciniLib upped to 1.1.2, external apps (if used) need to be updated for compatibility
+* fixed video not showing from Remote tab of SearchScreen
+* when tap on Pause in PlayerUI, not open PlayerDetailed when playing video
+* gradle upped to 9.6.1, AGP upped to 9.3.0
+
 # 12.4.0
 
 * adopted improved API in PodciniLib 1.1.1

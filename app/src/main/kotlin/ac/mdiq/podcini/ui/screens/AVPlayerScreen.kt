@@ -510,7 +510,7 @@ fun ControlUI(vm: AVPlayerVM) {
                     Logd(TAG, "Play button clicked: status: ${theatres[vm.playerId].mPlayer?.status} is ready: ${playbackService?.isServiceReady()}")
                     PlaybackStarter(theatres[vm.playerId].mPlayer?.curEpisode!!).shouldStreamThisTime(null).start(vm.playerId)
                     if (theatres[vm.playerId].mPlayer?.curEpisode?.getMediaType() == MediaType.VIDEO && !theatres[vm.playerId].mPlayer!!.isPlaying && (vm.episodeFeed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                        if (!theatres[vm.playerId].mPlayer!!.isPlaying) psState = PSState.Expanded
+                        if (!vm.showPlayButton && psState != PSState.Expanded) psState = PSState.Expanded
                     }
                 }
             },

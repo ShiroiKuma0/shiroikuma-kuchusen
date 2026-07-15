@@ -224,7 +224,7 @@ suspend fun deleteMedia(episode: Episode): Episode {
 }
 
 fun isMediaDownloadable(media: Episode): Boolean {
-    return clientByEpisode(media)?.attributes?.supportDonwload != false
+    return clientByEpisode(media)?.attributes?.supportDownload != false
 }
 
 fun canCheckMediaSize(episode: Episode): Boolean {

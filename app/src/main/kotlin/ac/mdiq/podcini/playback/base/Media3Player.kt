@@ -14,7 +14,6 @@ import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientByEpisode
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -639,7 +638,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
         audioSpecs = listOf()
         videoSpecs = listOf()
-        if (client.attributes?.hasSeparateAVs == true || media.feed?.hasVideoMedia != true) {
+        if (client.attributes?.hasSeparateAVs == true || client.attributes?.hasVideo != true) {
             audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
             var aSource: ProgressiveMediaSource? = null
             if (audioSpecs.isNotEmpty()) {
@@ -653,7 +652,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 } else Loge(TAG, "audioStream or url is null or blank")
             } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
 
-            if (aSource == null || (needVideo && media.feed?.hasVideoMedia == true)) {
+            if ((aSource == null || needVideo) && client.attributes?.hasVideo == true) {
                 if (aSource == null) setMuxedVideo()
                 else {
                     videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()

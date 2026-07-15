@@ -3,7 +3,6 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Extras
-import ac.mdiq.podcini.shared.ShareType
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -117,7 +116,7 @@ class ShareReceiverActivity : ComponentActivity() {
             when {
 //            plain text
                 sharedText.matches(Regex("^[^<>/]+$")) -> {
-                    if (log != null)  upsertBlk(log) {it.type = ShareType.Text.name }
+                    if (log != null)  upsertBlk(log) {it.type = ShareLog.ShareType.Text.name }
                     Logd(TAG, "receiveShared Activity is started with text $sharedText")
                     val intent = Intent(getAppContext(), MainActivity::class.java).apply {
                         putExtra(Extras.search_string.name, sharedText)
@@ -128,7 +127,7 @@ class ShareReceiverActivity : ComponentActivity() {
                 }
                 else -> {
                     fun openAsFeed(source: String?) {
-                        if (log != null) upsertBlk(log) { it.type = ShareType.Podcast.name }
+                        if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Podcast.name }
                         Logd(TAG, "openAsFeed Activity is started with url $sharedText")
                         val intent = Intent(getAppContext(), MainActivity::class.java).apply {
                             putExtra(Extras.feed_url.name, sharedText)
@@ -146,7 +145,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         if (episode == null) openAsFeed(client.feedSearcher?.name)
                         else {
                             val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
-                            if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
+                            if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Media.name }
                             extMediaCB(false, existing)
                             return
                         }
@@ -157,7 +156,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
                         if (episode != null) {
                             val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
-                            if (log != null) upsertBlk(log) { it.type = client.attributes?.shareLogType }
+                            if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Media.name }
                             extMediaCB(false, existing)
                             return
                         }

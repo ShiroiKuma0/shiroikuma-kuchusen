@@ -33,4 +33,10 @@ class ShareLog : RealmObject {
         SUCCESS,
         EXISTING
     }
+
+    enum class ShareType {
+        Text,
+        Media,
+        Podcast,
+    }
 }

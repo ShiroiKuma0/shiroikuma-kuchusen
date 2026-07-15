@@ -582,7 +582,7 @@ fun FeedsSettingsScreen() {
             //                    prefer streaming
             var autoDownloadChecked by remember { mutableStateOf(feedToSet.autoDownload) }
             var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
-            if (extClient?.attributes?.supportDonwload != false || !preferStreaming || feedsToSet.size > 1) {
+            if (extClient?.attributes?.supportDownload != false || !preferStreaming || feedsToSet.size > 1) {
                 TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
                     preferStreaming = it
                     if (preferStreaming) {
@@ -592,7 +592,7 @@ fun FeedsSettingsScreen() {
                     runOnIOScope {
                         realm.write { for (f in feedsToSet) {
                             val client = clientByFeed(f)
-                            if (client?.attributes?.supportDonwload == true || preferStreaming) findLatest(f)?.let { f ->
+                            if (client?.attributes?.supportDownload == true || preferStreaming) findLatest(f)?.let { f ->
                                 f.prefStreamOverDownload = preferStreaming
                                 if (preferStreaming) f.autoDownload = false
                             }
@@ -601,7 +601,7 @@ fun FeedsSettingsScreen() {
                 }
             }
             //                    preferred action
-            val actions = remember { listOf("Auto") + (if (extClient?.attributes?.supportDonwload != false) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
+            val actions = remember { listOf("Auto") + (if (extClient?.attributes?.supportDownload != false) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
             val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
             var showChooseAction by remember { mutableStateOf(false) }
             if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
@@ -823,7 +823,7 @@ fun FeedsSettingsScreen() {
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.inNormalVolume && extClient?.attributes?.supportDonwload != false) || feedsToSet.size > 1) {
+                if ((feedToSet.inNormalVolume && extClient?.attributes?.supportDownload != false) || feedsToSet.size > 1) {
                     if (appPrefs.enableAutoDl && !preferStreaming) {
                         //                    auto download
                         Spacer(modifier = Modifier.width(10.dp))
@@ -834,7 +834,7 @@ fun FeedsSettingsScreen() {
                                 runOnIOScope {
                                     realm.write { for (f in feedsToSet) {
                                         val client = clientByFeed(f)
-                                        if (client?.attributes?.supportDonwload != false) findLatest(f)?.let { f ->
+                                        if (client?.attributes?.supportDownload != false) findLatest(f)?.let { f ->
                                             f.autoDownload = autoDownloadChecked
                                             f.autoEnqueue = autoEnqueueChecked
                                         }
@@ -1132,7 +1132,7 @@ fun FeedsSettingsScreen() {
             }
 
             //                    auto delete
-            if (extClient?.attributes?.supportDonwload != false || feedsToSet.size > 1) {
+            if (extClient?.attributes?.supportDownload != false || feedsToSet.size > 1) {
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
@@ -1156,7 +1156,7 @@ fun FeedsSettingsScreen() {
                                                         }
                                                         runOnIOScope { realm.write { for (f in feedsToSet) {
                                                             val client = clientByFeed(f)
-                                                            if (client?.attributes?.supportDonwload != false) findLatest(f)?.autoDeleteAction = action_
+                                                            if (client?.attributes?.supportDownload != false) findLatest(f)?.autoDeleteAction = action_
                                                         } } }
                                                         onDismissRequest()
                                                     }
