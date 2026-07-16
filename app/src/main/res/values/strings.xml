@@ -205,6 +205,7 @@
 
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>
     <string name="remove_from_current_feed">Remove from current feed</string>
+    <string name="add_to_synthetic_note">For media from an external source, ensure to add them to a synthetic feed created for that source.</string>
 
     <string name="recent_episode">Recent episode</string>
 

@@ -4,3 +4,4 @@
 	* created feed is set to the current volume
 * limit name entry field to one line in create/edit volume
 * fixed possible crash when shelve episodes to a synthetic feed
+* added note on selecting proper feed in add-to-synthetic-feed dialog

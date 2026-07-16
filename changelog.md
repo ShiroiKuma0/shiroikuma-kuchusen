@@ -1,11 +1,12 @@
 # 12.4.2
 
-* Remote tab of SearchScreen, disabled swipe actions (not applicable)
+* in Remote tab of SearchScreen, disabled swipe actions (not applicable)
 * Amended create/rename synthetic feed
 	* name entry field is limited to one line
 	* created feed is set to the current volume
 * limit name entry field to one line in create/edit volume
 * fixed possible crash when shelve episodes to a synthetic feed
+* added note on selecting proper feed in add-to-synthetic-feed dialog
 
 # 12.4.1
 

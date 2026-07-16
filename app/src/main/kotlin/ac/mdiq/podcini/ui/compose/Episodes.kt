@@ -1384,6 +1384,7 @@ fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
 //                    }) { Text(stringResource(R.string.create_YT_syndicates)) }
 //                }
                 if (synthetics.isNotEmpty()) {
+                    Text(text = stringResource(R.string.add_to_synthetic_note), style = MaterialTheme.typography.bodySmall, color = textColor)
                     LaunchedEffect(synthetics) { synthetics.forEach { f-> if (f.id <= 4) YTSyndMap[f.id.toInt()] = true } }
                     LazyColumn(modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.Top) {
                         items(synthetics, key = { it.id }) { f ->
