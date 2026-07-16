@@ -1,3 +1,8 @@
+# 12.4.4
+
+* improved player buffer and made it dynamically set based on play speed
+* one media list in Remote tab in SearchScreen is cached, re-search is not needed when come back
+
 # 12.4.3
 
 * ensure player position functions when playing from Remote tab of SearchScreen or Episodes mode of OnlineFeed screen

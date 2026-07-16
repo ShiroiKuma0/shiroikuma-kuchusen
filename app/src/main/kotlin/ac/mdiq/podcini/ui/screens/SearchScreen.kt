@@ -37,6 +37,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatWithGrouping
 import androidx.activity.compose.BackHandler
+import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -126,6 +127,8 @@ fun setSearchTerms(query: String? = null) {
     if (query != null) curSearchString = query
 }
 
+private val onlineMediaCache = LruCache<String, List<Episode>>(1)
+
 class SearchVM: ViewModel() {
     val algo = SearchAlgo()
 
@@ -164,6 +167,12 @@ class SearchVM: ViewModel() {
 
     suspend fun searchMediaOnline() {
         val onlineMediaLimit = 1000
+        val fromCache = onlineMediaCache[curSearchString]
+        if (fromCache != null) {
+            onlineMedia.clear()
+            onlineMedia.addAll(fromCache)
+            return
+        }
         for (s in searchers) {
             val items = s.searchQuick(curSearchString)
             Logd(TAG, "searchQuick items: ${items.size}")
@@ -185,6 +194,7 @@ class SearchVM: ViewModel() {
             if (counter >= onlineMedia.size) break
             counter = onlineMedia.size
         }
+        onlineMediaCache.put(curSearchString, onlineMedia)
     }
     data class Triplet(val episodes: Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 

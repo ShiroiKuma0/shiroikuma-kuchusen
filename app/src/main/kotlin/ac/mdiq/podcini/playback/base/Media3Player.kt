@@ -132,6 +132,8 @@ import kotlin.time.Instant
 class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private var exoPlayer: ExoPlayer? = null
 
+    private var loadControl: DynamicLoadControl? = null
+
     private var mediaSource: MediaSource? = null
     private var mediaItem: MediaItem? = null
 
@@ -507,7 +509,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     class DynamicLoadControl : LoadControl {
         private val sharedAllocator = DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE)
         @Volatile
-        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 40_000, maxBufferMs = 90_000, playbackMs = 3500, rebufferMs = 8000, prioritizeTime = true)
+//        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 40_000, maxBufferMs = 90_000, playbackMs = 3500, rebufferMs = 8000, prioritizeTime = true)
+        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 15_000, maxBufferMs = 50_000, playbackMs = 2500, rebufferMs = 5000, prioritizeTime = true)
+        private var activePlayerId: PlayerId? = null
 
         private fun createDefaultDelegate(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean): DefaultLoadControl {
             return DefaultLoadControl.Builder()
@@ -517,30 +521,34 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 .build()
         }
 
-        // TODO: use it at play time
         fun updateBufferParameters(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean) {
-            currentDelegate = createDefaultDelegate(minBufferMs, maxBufferMs, playbackMs, rebufferMs, prioritizeTime)
+            val newDelegate = createDefaultDelegate(minBufferMs, maxBufferMs, playbackMs, rebufferMs, prioritizeTime)
+            activePlayerId?.let { id -> newDelegate.onPrepared(id) }
+            currentDelegate = newDelegate
         }
 
-        override fun onPrepared(playerId: PlayerId) = currentDelegate.onPrepared(playerId)
+        override fun onPrepared(playerId: PlayerId) {
+            activePlayerId = playerId
+            currentDelegate.onPrepared(playerId)
+        }
         override fun onStopped(playerId: PlayerId) = currentDelegate.onStopped(playerId)
-        override fun onReleased(playerId: PlayerId) = currentDelegate.onReleased(playerId)
         override fun getAllocator(playerId: PlayerId): Allocator = sharedAllocator
         override fun getBackBufferDurationUs(playerId: PlayerId): Long = currentDelegate.getBackBufferDurationUs(playerId)
         override fun retainBackBufferFromKeyframe(playerId: PlayerId): Boolean = currentDelegate.retainBackBufferFromKeyframe(playerId)
         override fun onTracksSelected(parameters: LoadControl.Parameters, trackGroups: TrackGroupArray, trackSelections: Array<out ExoTrackSelection?>) = currentDelegate.onTracksSelected(parameters, trackGroups, trackSelections)
         override fun shouldContinueLoading(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldContinueLoading(parameters)
         override fun shouldStartPlayback(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldStartPlayback(parameters)
+        override fun onReleased(playerId: PlayerId) {
+            activePlayerId = null
+            currentDelegate.onReleased(playerId)
+        }
     }
 
     override fun createNativePlayer() {
         if (exoPlayer != null) return
         timeIt("$TAG createNativePlayer")
 
-//        val loadControl = DefaultLoadControl.Builder()
-//        loadControl.setBufferDurationsMs(40_000, 90_000, 3_500, 8_000).setPrioritizeTimeOverSizeThresholds(true)
-
-        val loadControl = DynamicLoadControl()
+        loadControl = DynamicLoadControl()
         val audioOffloadPreferences = AudioOffloadPreferences.Builder()
             .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
             .build()
@@ -548,7 +556,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         runBlocking { initCache() }
 
-        // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)
         val renderersFactory = object : DefaultRenderersFactory(context) {
             init {
@@ -583,7 +590,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
-            .setLoadControl(loadControl)
+            .setLoadControl(loadControl!!)
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
@@ -765,6 +772,19 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
+
+        val baseMinBuffer = 15_000
+        val baseMaxBuffer = 50_000
+        val basePlaybackMs = 2500
+        val baseRebufferMs = 5000
+
+        val targetPlaybackMs = (basePlaybackMs * speed).toInt().coerceAtMost(6000)
+        val targetRebufferMs = (baseRebufferMs * speed).toInt().coerceAtMost(12000)
+        val requiredMinBuffer = (baseMinBuffer * speed).toInt()
+        val targetMaxBuffer = maxOf(baseMaxBuffer, requiredMinBuffer + 10_000)
+        Logt(TAG, "set player buffer: $baseMinBuffer $targetMaxBuffer $targetPlaybackMs $targetRebufferMs")
+        loadControl?.updateBufferParameters(minBufferMs = baseMinBuffer, maxBufferMs = targetMaxBuffer, playbackMs = targetPlaybackMs, rebufferMs = targetRebufferMs, true)
+
         playbackParameters = PlaybackParameters(if (speed <= 0) playbackParameters.speed else speed, if (pitch <= 0f) playbackParameters.pitch else pitch)
         setPlaybackParams()
         Logd(TAG, "setPlaybackParams offloadEnabled $speedEnablesOffload")
