@@ -40,6 +40,7 @@ import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.stripDateTimeLines
+import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -120,19 +121,19 @@ private const val TAG = "EpisodesVM"
 var showSwipeActionsDialog by mutableStateOf(false)
 
 @Composable
-fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit)) {
-    val leftAction = swipeActions.left
-    val rightAction = swipeActions.right
+fun InforBar(swipeActions: SwipeActions?, content: @Composable (RowScope.()->Unit)) {
     Row {
-        Icon(imageVector = ImageVector.vectorResource(leftAction.iconRes), tint = buttonColor, contentDescription = "left_action_icon",
-            modifier = Modifier.width(24.dp).height(24.dp).clickable { showSwipeActionsDialog = true })
-        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
+        if (swipeActions != null) {
+            Icon(imageVector = ImageVector.vectorResource(swipeActions.left.iconRes), tint = buttonColor, contentDescription = "left_action_icon", modifier = Modifier.width(24.dp).height(24.dp).clickable { showSwipeActionsDialog = true })
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
+        }
         Spacer(modifier = Modifier.weight(1f))
         content()
         Spacer(modifier = Modifier.weight(1f))
-        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
-        Icon(imageVector = ImageVector.vectorResource(rightAction.iconRes), tint = buttonColor, contentDescription = "right_action_icon",
-            modifier = Modifier.width(24.dp).height(24.dp).clickable {  showSwipeActionsDialog = true })
+        if (swipeActions != null) {
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
+            Icon(imageVector = ImageVector.vectorResource(swipeActions.right.iconRes), tint = buttonColor, contentDescription = "right_action_icon", modifier = Modifier.width(24.dp).height(24.dp).clickable { showSwipeActionsDialog = true })
+        }
     }
 }
 

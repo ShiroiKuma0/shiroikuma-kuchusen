@@ -1,3 +1,12 @@
+# 12.4.2
+
+* Remote tab of SearchScreen, disabled swipe actions (not applicable)
+* Amended create/rename synthetic feed
+	* name entry field is limited to one line
+	* created feed is set to the current volume
+* limit name entry field to one line in create/edit volume
+* fixed possible crash when shelve episodes to a synthetic feed
+
 # 12.4.1
 
 * PodciniLib upped to 1.1.2, external apps (if used) need to be updated for compatibility

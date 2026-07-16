@@ -402,12 +402,12 @@ fun SearchScreen() {
                     }
                     1 -> FeedsColumn()
                     2 -> {
-                        InforBar(swipeActions) {
+                        InforBar(null) {
                             Text(vm.onlineMedia.size.toString(), style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(0.1f))
                             PlayRandom(vm.onlineMedia)
                         }
-                        EpisodeLazyColumn(vm.onlineMedia, isExternal = true, layoutMode = LayoutMode.WideImage.ordinal, swipeActions = swipeActions, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+                        EpisodeLazyColumn(vm.onlineMedia, isExternal = true, layoutMode = LayoutMode.WideImage.ordinal, swipeActions = null, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
                     }
                     3 -> PAFeedsColumn()
                 }

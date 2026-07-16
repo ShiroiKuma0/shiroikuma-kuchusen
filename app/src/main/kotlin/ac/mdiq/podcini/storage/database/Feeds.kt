@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
 import kotlinx.coroutines.CoroutineScope
@@ -199,7 +200,7 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
         if (toFeedEpisodes.firstOrNull { it.identifyingValue == e.identifyingValue } != null) continue
         var e_ = e
         if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
-            e_ = realm.copyFromRealm(e)
+            if (e.isManaged()) e_ = realm.copyFromRealm(e)
             e_.id = getEntityId()
             if (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID) {
                 e_.origFeedTitle = e.feed?.title

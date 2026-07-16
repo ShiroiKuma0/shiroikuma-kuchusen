@@ -1525,11 +1525,10 @@ fun LibraryScreen() {
         @Composable
         fun CreateVolume(parent: Volume?, onDismissRequest: () -> Unit) {
             CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf("") }
-                    TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+                    TextField(value = name, singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
                     Row {
                         Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
                         Spacer(Modifier.weight(1f))
@@ -1603,7 +1602,7 @@ fun LibraryScreen() {
 
         if (showFilterDialog) FilterDialog(FeedFilter(vm.subPrefs.feedsFilter)) { showFilterDialog = false }
         if (showSortDialog) SortDialog { showSortDialog = false }
-        if (showNewSynthetic) RenameOrCreateSyntheticFeed { showNewSynthetic = false }
+        if (showNewSynthetic) RenameOrCreateSyntheticFeed(volume = vm.curVolume) { showNewSynthetic = false }
         if (showNewVolume) CreateVolume(parent = vm.curVolume) { showNewVolume = false }
 
         @SuppressLint("LocalContextResourcesRead")
@@ -1789,7 +1788,7 @@ fun LibraryScreen() {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf(volume.name) }
-                    TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
+                    TextField(value = name, singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
                     var parent by remember { mutableStateOf<Volume?>(null) }
                     val custom = "Custom"
                     val none = "None"

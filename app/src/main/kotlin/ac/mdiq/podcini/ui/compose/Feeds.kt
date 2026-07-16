@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.screens.FeedDetails
@@ -59,6 +60,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -238,12 +241,12 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
 }
 
 @Composable
-fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Unit) {
+fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, volume: Volume? = null, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
             var name by remember { mutableStateOf(feed_?.title ?:"") }
-            TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+            TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
             var hasVideo by remember { mutableStateOf(true) }
             var feedType by remember { mutableStateOf(FeedType.RSS) }
             if (feed_ == null) {
@@ -251,6 +254,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                     Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
                     Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                 }
+                HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
                 for (type in FeedType.entries) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
@@ -267,6 +271,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                         feed.type = feedType.name
                         if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
                     }
+                    if (volume != null) feed.volumeId = volume.id
                     upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
