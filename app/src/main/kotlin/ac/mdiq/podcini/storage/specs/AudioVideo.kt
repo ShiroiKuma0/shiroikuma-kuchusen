@@ -17,3 +17,15 @@ enum class VideoMode(val code: Int, val tag: String) {
         }
     }
 }
+
+enum class AVQuality(val code: Int, val tag: String) {
+    GLOBAL(0, "Global"),
+    LOW(1, "Low"),
+    MEDIUM(5, "Medium"),
+    HIGH(10, "High");
+
+    companion object {
+        fun fromCode(code: Int): AVQuality = AVQuality.entries.firstOrNull { it.code == code } ?: GLOBAL
+        fun fromTag(tag: String): AVQuality = AVQuality.entries.firstOrNull { it.tag == tag } ?: GLOBAL
+    }
+}

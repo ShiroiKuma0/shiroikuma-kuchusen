@@ -1,0 +1,2 @@
+* ensure player position functions when playing from Remote tab of SearchScreen or Episodes mode of OnlineFeed screen
+* added global qualities settings for audio and video (if any installed external app supports) in Settings->Playback

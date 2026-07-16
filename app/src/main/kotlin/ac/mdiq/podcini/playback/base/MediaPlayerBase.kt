@@ -17,6 +17,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
@@ -40,16 +41,15 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_MINUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.LONG_PLUS_1
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AudioType
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.QueueEntry
+import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.utils.loadChapters
-import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -184,8 +184,7 @@ abstract class MediaPlayerBase {
         var speed = SPEED_USE_GLOBAL
         if (media != null) {
             speed = curSpeed
-            if (speed == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) speed =
-                feedsMap[media.feedId!!]!!.playSpeed
+            if (speed == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) speed = feedsMap[media.feedId!!]!!.playSpeed
         }
         if (speed == SPEED_USE_GLOBAL) speed = appPrefs.playbackSpeed
 
@@ -223,7 +222,7 @@ abstract class MediaPlayerBase {
         //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id) return
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        val episode_ = if (episode != null) episodeById(episode.id) else null
+        val episode_ = if (episode != null) episodeById(episode.id) ?: upsertBlk(episode) {} else null
         when {
             episode_ != null -> {
                 bitrate = 0
@@ -251,7 +250,6 @@ abstract class MediaPlayerBase {
                     }
                 }
             }
-
             else -> {
                 curEpisode = episode
                 savePlayerStatus(null, null)
@@ -272,7 +270,6 @@ abstract class MediaPlayerBase {
                         it.curMediaId = LONG_MINUS_1
                     }
                 }
-
                 else -> {
                     statusSimple = playerStatus.toStatusInt()
                     upsert(curState) {
@@ -347,14 +344,12 @@ abstract class MediaPlayerBase {
                 pause(reinit = false)
                 setVolume(1.0f, 1.0f)
             }
-
             event.getTimeLeft() < SleepManager.SLEEP_TIMER_ENDING_THRESHOLD -> {
                 val multiplicators = floatArrayOf(0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.3f, 0.4f, 0.4f, 0.5f, 0.5f, 0.6f, 0.6f, 0.7f, 0.7f, 0.8f, 0.8f, 0.9f, 0.9f)
                 val multiplicator = multiplicators[min(multiplicators.size - 1, (event.getTimeLeft().toInt() / 1000))]
                 Logd(TAG, "onSleepTimerAlmostExpired: $multiplicator")
                 setVolume(multiplicator, multiplicator)
             }
-
             event.isCancelled -> setVolume(1.0f, 1.0f)
         }
     }
@@ -518,8 +513,7 @@ abstract class MediaPlayerBase {
             } catch (e: Throwable) {
                 withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
                 LogsFor(TAG, curEpisode?.id, e, "setDataSource error: [${e.localizedMessage}]")
-            } finally {
-            }
+            } finally { }
         }
     }
 
@@ -535,12 +529,7 @@ abstract class MediaPlayerBase {
                 isStartWhenPrepared = true
                 prepare()
             }
-
-            else -> LogeFor(
-                TAG,
-                curEpisode?.id,
-                "Play/Pause button was pressed and PlaybackService state was unknown: $status"
-            )
+            else -> LogeFor(TAG, curEpisode?.id, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
         }
     }
 
@@ -549,19 +538,14 @@ abstract class MediaPlayerBase {
         if (isPaused || isPrepared) {
             Logd(TAG, "play() Resuming/Starting playback")
             if (shouldSetSource()) setSource()
-            val volAdpFac =
-                if (curEpisode != null) curEpisode!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
+            val volAdpFac = if (curEpisode != null) curEpisode!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
             setVolume(1.0f, 1.0f, volAdpFac)
             Logd(TAG, "play(): position: ${curEpisode?.position}")
             castPlayer?.play()
             setPlaybackParams()
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
             sleepManager?.restart()
-        } else LogtFor(
-            TAG,
-            curEpisode?.id,
-            "Call to play() was ignored because current state of PSMP object is $status"
-        )
+        } else LogtFor(TAG, curEpisode?.id, "Call to play() was ignored because current state of PSMP object is $status")
     }
 
     fun pause(reinit: Boolean) {
@@ -604,20 +588,17 @@ abstract class MediaPlayerBase {
         var t = t_
         if (t < 0) t = 0
         Logd(TAG, "seekTo() called $t status: $status")
-
         when {
             isPlaying || isPaused || isPrepared -> {
                 Logd(TAG, "seekTo t: $t status: $status")
                 castPlayer?.seekTo(t.toLong())
                 if (curEpisode != null) upsertBlk(curEpisode!!) { it.position = t }
             }
-
             isInitialized -> {
                 if (curEpisode != null) upsertBlk(curEpisode!!) { it.position = t }
                 isStartWhenPrepared = false
                 prepare()
             }
-
             else -> {}
         }
     }
@@ -653,10 +634,7 @@ abstract class MediaPlayerBase {
         // we're relying on the position stored in the EpisodeMedia object for post-playback processing
         val position = getPosition()
         if (position >= 0) upsertBlk(curEpisode!!) { it.position = position }
-        Logd(
-            TAG,
-            "endPlayback hasEnded=$hasEnded wasSkipped=$wasSkipped shouldContinue=$shouldContinue ${curEpisode?.title}"
-        )
+        Logd(TAG, "endPlayback hasEnded=$hasEnded wasSkipped=$wasSkipped shouldContinue=$shouldContinue ${curEpisode?.title}")
 
         fun stopPlayer() {
             Logd(TAG, "endPlayback stopPlayer is called")
@@ -739,10 +717,7 @@ abstract class MediaPlayerBase {
     }
 
     private fun onPlaybackStart(playable: Episode, position: Int) {
-        val delayInterval = if (appPrefs.useAdaptiveProgressUpdate) max(
-            MIN_POSITION_SAVER_INTERVAL,
-            playable.duration / 50
-        ).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
+        val delayInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, playable.duration / 50).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
         Logd(TAG, "onPlaybackStart ${playable.title}")
         Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
         if (position != Episode.INVALID_TIME) {
@@ -802,10 +777,7 @@ abstract class MediaPlayerBase {
         }
         runOnIOScope {
             if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !appPrefs.skipKeepsEpisode)) {
-                Logd(
-                    TAG,
-                    "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped"
-                )
+                Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyway
                 item = upsert(item) {
                     if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + nowInMillis()
@@ -817,12 +789,8 @@ abstract class MediaPlayerBase {
                     if (ended || skipped || playingNext) it.playbackCompletionTime = nowInMillis()
                 }
                 val action = item.feed?.autoDeleteAction
-                val shouldAutoDelete =
-                    (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(
-                        item.feed!!
-                    )))
-                val isItemdeletable =
-                    (!appPrefs.favoriteKeepsEpisode || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
+                val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
+                val isItemdeletable = (!appPrefs.favoriteKeepsEpisode || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
                     if (!item.fileUrl.isNullOrBlank()) item = deleteMedia(item)
                     if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item))
@@ -843,10 +811,7 @@ abstract class MediaPlayerBase {
         } else duration_ = playable?.duration ?: Episode.INVALID_TIME
 
         if (position != Episode.INVALID_TIME && duration_ != Episode.INVALID_TIME && playable != null) {
-            Logd(
-                TAG,
-                "persistCurrentPosition to position: $position duration: $duration_ ${playable.getEpisodeTitle()}"
-            )
+            Logd(TAG, "persistCurrentPosition to position: $position duration: $duration_ ${playable.getEpisodeTitle()}")
             upsertBlk(playable) { upsertDB(it, position) }
             prevPosition = position
         }
@@ -855,8 +820,7 @@ abstract class MediaPlayerBase {
     private fun upsertDB(it: Episode, position: Int) {
         it.position = position
         if (position > it.duration) it.duration = position
-        if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration =
-            (it.playedDurationWhenStarted + it.position - it.startPosition)
+        if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
             var delta = (nowInMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) {
@@ -883,7 +847,6 @@ abstract class MediaPlayerBase {
                 val position_ = if (position == Episode.INVALID_TIME) media.position else position
                 when {
                     oldStatus == PlayerStatus.PLAYING && !isPlaying && media.id == prevMedia?.id -> onPlaybackPause(media, position_)
-
                     oldStatus != PlayerStatus.PLAYING && isPlaying -> onPlaybackStart(media, position_)
                     else -> Logd(TAG, "setPlayerStatus case else, isPlaying: $isPlaying ${media.id == prevMedia?.id} not handled")
                 }
@@ -982,13 +945,20 @@ abstract class MediaPlayerBase {
         }
         val prefLowQualityMedia: Boolean = appPrefs.lowQualityOnMobile
         val audioIndex =
-            if (networkMonitor.isNetworkRestricted && prefLowQualityMedia && media.feed?.audioQualitySetting == Feed.AVQuality.GLOBAL) 0
+            if (networkMonitor.isNetworkRestricted && prefLowQualityMedia && media.feed?.audioQualitySetting == AVQuality.GLOBAL) 0
             else {
                 when (media.feed?.audioQualitySetting) {
-                    Feed.AVQuality.LOW -> 0
-                    Feed.AVQuality.MEDIUM -> asl.size / 2
-                    Feed.AVQuality.HIGH -> asl.size - 1
-                    else -> asl.size - 1
+                    AVQuality.LOW -> 0
+                    AVQuality.MEDIUM -> asl.size / 2
+                    AVQuality.HIGH -> asl.size - 1
+                    else -> {
+                        when (appPrefs.audioQuality) {
+                            AVQuality.LOW.code -> 0
+                            AVQuality.MEDIUM.code -> asl.size / 2
+                            AVQuality.HIGH.code -> asl.size - 1
+                            else -> asl.size - 1
+                        }
+                    }
                 }
             }
 
@@ -1003,13 +973,20 @@ abstract class MediaPlayerBase {
 
     fun setVideoStream(videoSpecs: List<VideoSpec>, media: Episode): VideoSpec {
         val videoIndex =
-            if (networkMonitor.isNetworkRestricted && appPrefs.lowQualityOnMobile && media.feed?.videoQualitySetting == Feed.AVQuality.GLOBAL) 0
+            if (networkMonitor.isNetworkRestricted && appPrefs.lowQualityOnMobile && media.feed?.videoQualitySetting == AVQuality.GLOBAL) 0
             else {
                 when (media.feed?.videoQualitySetting) {
-                    Feed.AVQuality.LOW -> 0
-                    Feed.AVQuality.MEDIUM -> videoSpecs.size / 2
-                    Feed.AVQuality.HIGH -> videoSpecs.size - 1
-                    else -> 0
+                    AVQuality.LOW -> 0
+                    AVQuality.MEDIUM -> videoSpecs.size / 2
+                    AVQuality.HIGH -> videoSpecs.size - 1
+                    else -> {
+                        when (appPrefs.videoQuality) {
+                            AVQuality.LOW.code -> 0
+                            AVQuality.MEDIUM.code -> videoSpecs.size / 2
+                            AVQuality.HIGH.code -> videoSpecs.size - 1
+                            else -> 0
+                        }
+                    }
                 }
             }
 

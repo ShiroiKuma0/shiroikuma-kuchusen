@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
@@ -16,11 +15,13 @@ import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
+import ac.mdiq.podcini.ui.compose.SetAVQuality
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
@@ -39,9 +40,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -63,8 +66,10 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
@@ -179,8 +184,39 @@ fun PlaybackScreen() {
             Text(stringResource(R.string.pref_stream_cache_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         val hasMultiQ = remember { clientsHaveMultiQ() }
-        if (hasMultiQ) TitleSummarySwitchRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, appPrefs.lowQualityOnMobile) {
-            upsertBlk(appPrefs) { p-> p.lowQualityOnMobile = it }
+        if (hasMultiQ) {
+            var audioQuality by remember { mutableStateOf(  AVQuality.fromCode(appPrefs.audioQuality)) }
+            var videoQuality by remember { mutableStateOf(AVQuality.fromCode(appPrefs.videoQuality)) }
+
+            var showAudioDialog by remember { mutableStateOf(false) }
+            if (showAudioDialog) SetAVQuality(selectedOption = audioQuality.tag, showGlobal = false, onDismissRequest = { showAudioDialog = false }) { type ->
+                audioQuality = type
+                upsertBlk(appPrefs) { it.audioQuality  = audioQuality.code }
+            }
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                Row(Modifier.fillMaxWidth()) {
+                    Text(text = stringResource(R.string.pref_feed_audio_quality), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showAudioDialog = true })
+                    Spacer(modifier = Modifier.width(30.dp))
+                    Text(audioQuality.tag, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+                Text(text = stringResource(R.string.pref_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            var showVideoDialog by remember { mutableStateOf(false) }
+            if (showVideoDialog) SetAVQuality(selectedOption = videoQuality.tag, showGlobal = false, onDismissRequest = { showVideoDialog = false }) { type->
+                videoQuality = type
+                upsertBlk(appPrefs) { it.videoQuality  = videoQuality.code }
+            }
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                Row(Modifier.fillMaxWidth()) {
+                    Text(text = stringResource(R.string.pref_feed_video_quality), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showVideoDialog = true })
+                    Spacer(modifier = Modifier.width(30.dp))
+                    Text(videoQuality.tag, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+                Text(text = stringResource(R.string.pref_video_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            TitleSummarySwitchRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, appPrefs.lowQualityOnMobile) {
+                upsertBlk(appPrefs) { p-> p.lowQualityOnMobile = it }
+            }
         }
         TitleSummarySwitchRow(R.string.pref_use_adaptive_progress_title, R.string.pref_use_adaptive_progress_sum, appPrefs.useAdaptiveProgressUpdate) {
             upsertBlk(appPrefs) { p-> p.useAdaptiveProgressUpdate = it }

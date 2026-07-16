@@ -1,8 +1,6 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.AppPrefs
 import ac.mdiq.podcini.storage.model.Chapter
@@ -23,8 +21,6 @@ import ac.mdiq.podcini.storage.model.SyncPrefs
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
-import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.util.Log
@@ -32,10 +28,7 @@ import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
 import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
-import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
-import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
 import io.github.xilinjia.krdb.dynamic.getNullableValue
-import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -51,7 +44,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import java.util.Locale
 import kotlin.coroutines.ContinuationInterceptor
 
 private const val TAG: String = "RealmDB"
@@ -79,7 +71,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(150)
+    )).name("Podcini.realm").schemaVersion(151)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -276,10 +268,9 @@ fun unsubscribeEpisode(episode: Episode, tag: String) {
                         ms.job?.cancel()
                         idMonitorsMap.remove(episode.id)
                     }
-                } catch (e: Throwable) {
-                    Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}")
-                }
+                } catch (e: Throwable) { Logs(TAG, e, "unsubscribe episode failed $tag ${episode.title}") }
             }
+            eraseIfLoose(episode)
             Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
             Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
             for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")

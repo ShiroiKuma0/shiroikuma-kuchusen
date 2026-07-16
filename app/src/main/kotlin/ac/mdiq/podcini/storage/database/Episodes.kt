@@ -166,6 +166,10 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     }
 }
 
+suspend fun eraseIfLoose(episode: Episode) {
+    if (episode.feed == null) eraseEpisodes(listOf(episode), "")
+}
+
 suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
     if (msg.isNotEmpty()) realm.write {
         for (e in episodes) {

@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientByFeed
-import ac.mdiq.podcini.storage.model.FeedType
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
 import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -36,6 +35,7 @@ import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
+import ac.mdiq.podcini.ui.compose.SetAVQuality
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
@@ -477,36 +477,17 @@ fun FeedsSettingsScreen() {
                 //                    audio quality
                 if (extClient?.attributes?.hasSeparateAVs == true || hasMultiQ) Column {
                     var showDialog by remember { mutableStateOf(false) }
-                    @Composable
-                    fun SetAudioQuality(selectedOption: String, onDismissRequest: () -> Unit) {
-                        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                            var selected by remember {mutableStateOf(selectedOption)}
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Feed.AVQuality.entries.forEach { option ->
-                                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = option.tag == selected,
-                                            onCheckedChange = { isChecked ->
-                                                selected = option.tag
-                                                if (isChecked) Logd(TAG, "$option is checked")
-                                                val type = Feed.AVQuality.fromTag(selected)
-                                                audioQuality = type.tag
-                                                runOnIOScope { realm.write {
-                                                    for (f in feedsToSet) {
-                                                        val client = clientByFeed(f)
-                                                        if (client?.attributes?.hasSeparateAVs == true) findLatest(f)?.let {
-                                                            if (!it.hasVideoMedia) it.hasVideoMedia = true
-                                                            it.audioQuality = type.code
-                                                        }
-                                                    } } }
-                                                onDismissRequest()
-                                            })
-                                        Text(option.tag)
-                                    }
+                    if (showDialog) SetAVQuality(selectedOption = audioQuality, onDismissRequest = { showDialog = false }) { type ->
+                        audioQuality = type.tag
+                        runOnIOScope { realm.write {
+                            for (f in feedsToSet) {
+                                val client = clientByFeed(f)
+                                if (client?.attributes?.hasSeparateAVs == true) findLatest(f)?.let {
+                                    if (!it.hasVideoMedia) it.hasVideoMedia = true
+                                    it.audioQuality = type.code
                                 }
-                            }
-                        }
+                            } } }
                     }
-                    if (showDialog) SetAudioQuality(selectedOption = audioQuality, onDismissRequest = { showDialog = false })
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.baseline_audiotrack_24), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
@@ -525,32 +506,13 @@ fun FeedsSettingsScreen() {
                     //                    video quality
                     Column {
                         var showDialog by remember { mutableStateOf(false) }
-                        @Composable
-                        fun SetVideoQuality(selectedOption: String, onDismissRequest: () -> Unit) {
-                            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                                var selected by remember {mutableStateOf(selectedOption)}
-                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Feed.AVQuality.entries.forEach { option ->
-                                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(checked = option.tag == selected,
-                                                onCheckedChange = { isChecked ->
-                                                    selected = option.tag
-                                                    if (isChecked) Logd(TAG, "$option is checked")
-                                                    val type = Feed.AVQuality.fromTag(selected)
-                                                    videoQuality = type.tag
-                                                    runOnIOScope { realm.write { for (f in feedsToSet) {
-                                                        val client = clientByFeed(f)
-                                                        if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
-                                                    } } }
-                                                    onDismissRequest()
-                                                })
-                                            Text(option.tag)
-                                        }
-                                    }
-                                }
-                            }
+                        if (showDialog) SetAVQuality(selectedOption = videoQuality, onDismissRequest = { showDialog = false }) { type->
+                            videoQuality = type.tag
+                            runOnIOScope { realm.write { for (f in feedsToSet) {
+                                val client = clientByFeed(f)
+                                if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
+                            } } }
                         }
-                        if (showDialog) SetVideoQuality(selectedOption = videoQuality, onDismissRequest = { showDialog = false })
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)
                             Spacer(modifier = Modifier.width(20.dp))

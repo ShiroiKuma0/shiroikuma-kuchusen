@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.model
 
+import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.ui.screens.DefaultPages
 import ac.mdiq.podcini.ui.screens.prefscreens.EpisodeCleanupOptions
 import android.view.KeyEvent
@@ -117,15 +118,13 @@ class AppPrefs: RealmObject {
     // TODO: not changed
     var content_country: String? = null
 
-    // TODO: not changed
-    var recaptcha_cookies: String = ""
-
-    // TODO: not changed
-    var restrictedModeEnabled: Boolean = false
-
     var loadExternalApp: Boolean = false
 
-//    =====================
+    var audioQuality: Int = AVQuality.HIGH.code
+    var videoQuality: Int = AVQuality.LOW.code
+
+
+    //    =====================
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -185,7 +184,6 @@ class AppPrefs: RealmObject {
         if (rewindSecs != other.rewindSecs) return false
         if (streamingCacheSizeMB != other.streamingCacheSizeMB) return false
         if (videoPlaybackMode != other.videoPlaybackMode) return false
-        if (restrictedModeEnabled != other.restrictedModeEnabled) return false
         if (lastVersion != other.lastVersion) return false
         if (theme != other.theme) return false
         if (defaultPage != other.defaultPage) return false
@@ -203,8 +201,11 @@ class AppPrefs: RealmObject {
         if (proxyUser != other.proxyUser) return false
         if (proxyPassword != other.proxyPassword) return false
         if (nextcloud_server_address != other.nextcloud_server_address) return false
-        if (recaptcha_cookies != other.recaptcha_cookies) return false
         if (content_country != other.content_country) return false
+
+        if (loadExternalApp != other.loadExternalApp) return false
+        if (audioQuality != other.audioQuality) return false
+        if (videoQuality != other.videoQuality) return false
 
         return true
     }
@@ -262,7 +263,6 @@ class AppPrefs: RealmObject {
         result = 31 * result + rewindSecs
         result = 31 * result + streamingCacheSizeMB
         result = 31 * result + videoPlaybackMode
-        result = 31 * result + restrictedModeEnabled.hashCode()
         result = 31 * result + lastVersion.hashCode()
         result = 31 * result + theme.hashCode()
         result = 31 * result + defaultPage.hashCode()
@@ -280,8 +280,11 @@ class AppPrefs: RealmObject {
         result = 31 * result + (proxyUser?.hashCode() ?: 0)
         result = 31 * result + (proxyPassword?.hashCode() ?: 0)
         result = 31 * result + nextcloud_server_address.hashCode()
-        result = 31 * result + recaptcha_cookies.hashCode()
         result = 31 * result + (content_country?.hashCode() ?: 0)
+
+        result = 31 * result + loadExternalApp.hashCode()
+        result = 31 * result + audioQuality
+        result = 31 * result + videoQuality
         return result
     }
 

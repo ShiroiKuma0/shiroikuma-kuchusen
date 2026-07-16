@@ -1,3 +1,8 @@
+# 12.4.3
+
+* ensure player position functions when playing from Remote tab of SearchScreen or Episodes mode of OnlineFeed screen
+* added global qualities settings for audio and video (if any installed external app supports) in Settings->Playback
+
 # 12.4.2
 
 * in Remote tab of SearchScreen, disabled swipe actions (not applicable)

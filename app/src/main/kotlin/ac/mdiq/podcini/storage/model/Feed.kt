@@ -9,6 +9,7 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
+import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
@@ -718,18 +719,6 @@ class Feed : RealmObject {
         companion object {
             fun fromCode(code: Int): AudioType = AudioType.entries.firstOrNull { it.code == code } ?: SPEECH
             fun fromTag(tag: String): AudioType = AudioType.entries.firstOrNull { it.tag == tag } ?: SPEECH
-        }
-    }
-
-    enum class AVQuality(val code: Int, val tag: String) {
-        GLOBAL(0, "Global"),
-        LOW(1, "Low"),
-        MEDIUM(5, "Medium"),
-        HIGH(10, "High");
-
-        companion object {
-            fun fromCode(code: Int): AVQuality = AVQuality.entries.firstOrNull { it.code == code } ?: GLOBAL
-            fun fromTag(tag: String): AVQuality = AVQuality.entries.firstOrNull { it.tag == tag } ?: GLOBAL
         }
     }
 

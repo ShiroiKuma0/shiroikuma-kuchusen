@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.tmpQueue
+import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.utils.EventFlow
@@ -34,7 +35,6 @@ import ac.mdiq.podcini.utils.format
 import ac.mdiq.podcini.utils.formatNumberKmp
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -103,6 +103,8 @@ import kotlin.math.max
 import kotlin.math.round
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+
+private const val TAG = "Playback"
 
 private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
     return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
@@ -541,4 +543,26 @@ fun PlayRandom(episodes: List<Episode>, playNext: Boolean = false) {
         playVideoIfNeeded(item)
         if (!playNext) actQueue = tmpQueue()
     })
+}
+
+@Composable
+fun SetAVQuality(selectedOption: String, showGlobal: Boolean = true, onDismissRequest: () -> Unit, cb: (AVQuality)->Unit) {
+    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        var selected by remember {mutableStateOf(selectedOption)}
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            AVQuality.entries.forEach { option ->
+                if (showGlobal || option != AVQuality.GLOBAL) Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = option.tag == selected,
+                        onCheckedChange = { isChecked ->
+                            selected = option.tag
+                            if (isChecked) Logd(TAG, "$option is checked")
+                            val type = AVQuality.fromTag(selected)
+                            cb(type)
+                            onDismissRequest()
+                        })
+                    Text(option.tag)
+                }
+            }
+        }
+    }
 }
