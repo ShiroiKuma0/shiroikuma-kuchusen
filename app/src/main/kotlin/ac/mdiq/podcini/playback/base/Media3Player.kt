@@ -125,6 +125,7 @@ import kotlinx.serialization.json.Json
 import okio.Path.Companion.toOkioPath
 import okio.buffer
 import java.io.File
+import java.lang.reflect.Field
 import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.time.Instant
@@ -508,40 +509,37 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
     class DynamicLoadControl : LoadControl {
         private val sharedAllocator = DefaultAllocator(true, C.DEFAULT_BUFFER_SEGMENT_SIZE)
-        @Volatile
-//        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 40_000, maxBufferMs = 90_000, playbackMs = 3500, rebufferMs = 8000, prioritizeTime = true)
-        private var currentDelegate: DefaultLoadControl = createDefaultDelegate(minBufferMs = 15_000, maxBufferMs = 50_000, playbackMs = 2500, rebufferMs = 5000, prioritizeTime = true)
-        private var activePlayerId: PlayerId? = null
+        private val delegate: DefaultLoadControl = DefaultLoadControl.Builder()
+            .setAllocator(sharedAllocator)
+            .setBufferDurationsMs(15_000, 50_000, 2500, 5000)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
 
-        private fun createDefaultDelegate(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean): DefaultLoadControl {
-            return DefaultLoadControl.Builder()
-                .setAllocator(sharedAllocator)
-                .setBufferDurationsMs(minBufferMs, maxBufferMs, playbackMs, rebufferMs)
-                .setPrioritizeTimeOverSizeThresholds(prioritizeTime)
-                .build()
-        }
+        private val minBufferUsField: Field? = runCatching { DefaultLoadControl::class.java.getDeclaredField("minBufferUs").apply { isAccessible = true } }.getOrNull()
+        private val maxBufferUsField: Field? = runCatching { DefaultLoadControl::class.java.getDeclaredField("maxBufferUs").apply { isAccessible = true } }.getOrNull()
+        private val bufferForPlaybackUsField: Field? = runCatching { DefaultLoadControl::class.java.getDeclaredField("bufferForPlaybackUs").apply { isAccessible = true } }.getOrNull()
+        private val bufferForPlaybackAfterRebufferUsField: Field? = runCatching { DefaultLoadControl::class.java.getDeclaredField("bufferForPlaybackAfterRebufferUs").apply { isAccessible = true } }.getOrNull()
+        private val prioritizeTimeOverSizeThresholdsField: Field? = runCatching { DefaultLoadControl::class.java.getDeclaredField("prioritizeTimeOverSizeThresholds").apply { isAccessible = true } }.getOrNull()
 
         fun updateBufferParameters(minBufferMs: Int, maxBufferMs: Int, playbackMs: Int, rebufferMs: Int, prioritizeTime: Boolean) {
-            val newDelegate = createDefaultDelegate(minBufferMs, maxBufferMs, playbackMs, rebufferMs, prioritizeTime)
-            activePlayerId?.let { id -> newDelegate.onPrepared(id) }
-            currentDelegate = newDelegate
+            runCatching {
+                minBufferUsField?.set(delegate, minBufferMs * 1000L)
+                maxBufferUsField?.set(delegate, maxBufferMs * 1000L)
+                bufferForPlaybackUsField?.set(delegate, playbackMs * 1000L)
+                bufferForPlaybackAfterRebufferUsField?.set(delegate, rebufferMs * 1000L)
+                prioritizeTimeOverSizeThresholdsField?.set(delegate, prioritizeTime)
+            }.onFailure { e -> Loge(TAG, "Failed to dynamically update buffer parameters ${e.message}") }
         }
 
-        override fun onPrepared(playerId: PlayerId) {
-            activePlayerId = playerId
-            currentDelegate.onPrepared(playerId)
-        }
-        override fun onStopped(playerId: PlayerId) = currentDelegate.onStopped(playerId)
+        override fun onPrepared(playerId: PlayerId) = delegate.onPrepared(playerId)
+        override fun onStopped(playerId: PlayerId) = delegate.onStopped(playerId)
         override fun getAllocator(playerId: PlayerId): Allocator = sharedAllocator
-        override fun getBackBufferDurationUs(playerId: PlayerId): Long = currentDelegate.getBackBufferDurationUs(playerId)
-        override fun retainBackBufferFromKeyframe(playerId: PlayerId): Boolean = currentDelegate.retainBackBufferFromKeyframe(playerId)
-        override fun onTracksSelected(parameters: LoadControl.Parameters, trackGroups: TrackGroupArray, trackSelections: Array<out ExoTrackSelection?>) = currentDelegate.onTracksSelected(parameters, trackGroups, trackSelections)
-        override fun shouldContinueLoading(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldContinueLoading(parameters)
-        override fun shouldStartPlayback(parameters: LoadControl.Parameters): Boolean = currentDelegate.shouldStartPlayback(parameters)
-        override fun onReleased(playerId: PlayerId) {
-            activePlayerId = null
-            currentDelegate.onReleased(playerId)
-        }
+        override fun getBackBufferDurationUs(playerId: PlayerId): Long = delegate.getBackBufferDurationUs(playerId)
+        override fun retainBackBufferFromKeyframe(playerId: PlayerId): Boolean = delegate.retainBackBufferFromKeyframe(playerId)
+        override fun onTracksSelected(parameters: LoadControl.Parameters, trackGroups: TrackGroupArray, trackSelections: Array<out ExoTrackSelection?>) = delegate.onTracksSelected(parameters, trackGroups, trackSelections)
+        override fun shouldContinueLoading(parameters: LoadControl.Parameters): Boolean = delegate.shouldContinueLoading(parameters)
+        override fun shouldStartPlayback(parameters: LoadControl.Parameters): Boolean = delegate.shouldStartPlayback(parameters)
+        override fun onReleased(playerId: PlayerId) = delegate.onReleased(playerId)
     }
 
     override fun createNativePlayer() {

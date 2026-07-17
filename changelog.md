@@ -1,3 +1,7 @@
+# 12.4.5
+
+* likely fixed possible run time error when changing player buffer
+
 # 12.4.4
 
 * improved player buffer and made it dynamically set based on play speed
