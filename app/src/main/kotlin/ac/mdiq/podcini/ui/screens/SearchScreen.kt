@@ -7,6 +7,7 @@ import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.queueToVirtual
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -22,6 +23,7 @@ import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.CreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -52,6 +54,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,6 +67,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -139,6 +143,7 @@ class SearchVM: ViewModel() {
 
     var searchers = mutableStateListOf<MediaSearcher>()
 
+    var searchingOnline by mutableStateOf(false)
     internal var onlineMedia = mutableStateListOf<Episode>()
 
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
@@ -173,6 +178,7 @@ class SearchVM: ViewModel() {
             onlineMedia.addAll(fromCache)
             return
         }
+        searchingOnline = true
         for (s in searchers) {
             val items = s.searchQuick(curSearchString)
             Logd(TAG, "searchQuick items: ${items.size}")
@@ -195,6 +201,7 @@ class SearchVM: ViewModel() {
             counter = onlineMedia.size
         }
         onlineMediaCache.put(curSearchString, onlineMedia)
+        searchingOnline = false
     }
     data class Triplet(val episodes: Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
@@ -271,6 +278,21 @@ fun SearchScreen() {
             }
         }
     }
+    var showReserveAllDialog by remember { mutableStateOf(false) }
+    if (showReserveAllDialog) CreateSyntheticFeed(onDismissRequest = { showReserveAllDialog = false }) { feed->
+        runOnIOScope {
+            realm.write {
+                for (e in vm.onlineMedia) {
+                    e.feedId = feed.id
+                    copyToRealm(e)
+                }
+                val eps = query(Episode::class).query("feedId == ${feed.id}").find()
+                val dur = eps.sumOf { it.duration }
+                feed.episodesCount = eps.size
+                feed.totleDuration = dur.toLong()
+            }
+        }
+    }
 
     @Composable
     fun MyTopAppBar() {
@@ -311,6 +333,10 @@ fun SearchScreen() {
                         if (vm.selectedTabIndex == 2) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.remote_searchers)) }, onClick = {
                                 showRemoteSearchers = true
+                                expanded = false
+                            })
+                            if (!vm.searchingOnline) DropdownMenuItem(text = { Text(stringResource(R.string.reserve_all)) }, onClick = {
+                                showReserveAllDialog = true
                                 expanded = false
                             })
                         }
@@ -413,6 +439,8 @@ fun SearchScreen() {
                     1 -> FeedsColumn()
                     2 -> {
                         InforBar(null) {
+                            if (vm.searchingOnline) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.weight(0.1f))
                             Text(vm.onlineMedia.size.toString(), style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(0.1f))
                             PlayRandom(vm.onlineMedia)

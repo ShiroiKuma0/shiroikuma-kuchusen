@@ -747,6 +747,7 @@
 
     <string name="feeds_online">Feeds online</string>
     <string name="remote_searchers">Remote searchers</string>
+    <string name="reserve_all">Reserve all</string>
 
     <string name="feeds_from_search">Feeds from search</string>
     <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>

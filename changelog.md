@@ -1,3 +1,12 @@
+# 12.4.6
+
+* in Remote tab in SearchScreen
+	* addded searching indicator on infobar
+	* in menu, added "Reserve all" (shown only when search is complete) to save all the media to a synthetic feed
+* when playing a remote media, it's automatically saved in synthetic feed "Remote history"
+	* applicable to media in Remote tab in SearchScreen and Episodes mode of OnlineFeed screen
+* untoast "set player buffer"
+
 # 12.4.5
 
 * likely fixed possible run time error when changing player buffer

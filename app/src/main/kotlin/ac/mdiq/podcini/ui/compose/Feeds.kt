@@ -281,6 +281,29 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, volume: Volume? = null, onD
 }
 
 @Composable
+fun CreateSyntheticFeed(volume: Volume? = null, onDismissRequest: () -> Unit, cb: (Feed)->Unit) {
+    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            var name by remember { mutableStateOf("") }
+            TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+            HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+            Row {
+                Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                Spacer(Modifier.weight(1f))
+                Button({
+                    var feed = createSynthetic(0, name, true)
+                    feed.videoModePolicy = VideoMode.WINDOW
+                    if (volume != null) feed.volumeId = volume.id
+                    feed = upsertBlk(feed) { it.customTitle = name }
+                    cb(feed)
+                    onDismissRequest()
+                }) { Text(stringResource(R.string.confirm_label)) }
+            }
+        }
+    }
+}
+
+@Composable
 fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, onDismissRequest: () -> Unit) {
     val selectedItems = remember {  mutableStateMapOf<Int, Boolean>() }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },

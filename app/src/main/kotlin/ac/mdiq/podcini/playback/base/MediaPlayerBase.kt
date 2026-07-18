@@ -19,10 +19,12 @@ import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.MonitorEntity
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
+import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.curIndexInActQueue
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.episodeById
@@ -222,7 +224,16 @@ abstract class MediaPlayerBase {
         //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id) return
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        val episode_ = if (episode != null) episodeById(episode.id) ?: upsertBlk(episode) {} else null
+        val episode_ = if (episode != null) {
+            val e = episodeById(episode.id)
+            if (e == null) {
+                val name = "Remote history"
+                val f = allFeeds.firstOrNull { it.title == name } ?: upsertBlk(createSynthetic(0, name, true)) {}
+                Logd(TAG, "adding to feed Remote history ${f.id} ${episode.id} ${episode.title}")
+                episode.feedId = f.id
+                upsertBlk(episode) { }
+            } else e
+        } else null
         when {
             episode_ != null -> {
                 bitrate = 0
