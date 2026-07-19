@@ -375,7 +375,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
     
     @Composable
     fun AltActionsDialog(onDismiss: () -> Unit) {
-        CommonPopupCard(onDismissRequest = onDismiss) {
+        CommonPopupCard(onDismiss = onDismiss) {
             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 Logd(TAG, "button label: $type")
                 if (type != ButtonTypes.TTS) {

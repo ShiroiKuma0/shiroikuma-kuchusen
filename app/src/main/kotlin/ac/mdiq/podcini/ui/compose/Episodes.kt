@@ -185,7 +185,7 @@ import kotlin.time.Instant
 private const val TAG = "ComposeEpisodes"
 
 @Composable
-fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
+fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
     val hasMedia = remember { true }
     val downloaded = remember { hasMedia && item.downloaded }
     val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
@@ -195,7 +195,7 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
     var isChecked by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
 
-    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
@@ -228,16 +228,16 @@ fun ShareDialog(item: Episode, onDismissRequest: () -> Unit) {
                     }
                     3 -> shareFeedItemFile(ctx, item)
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(text = "OK") }
         },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }
 
 @Composable
-fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Unit) {
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
+    CommonDialogSurface(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             
             var title by remember { mutableStateOf(TextFieldValue(todo?.title ?: "")) }
@@ -307,7 +307,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
                         if (dueTime > 0) playEpisodeAtTime(dueTime, episode.id)
                     } catch (e: Throwable) { Loge(TAG, "editing Todo error: ${e.message}")}
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
@@ -338,7 +338,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
 
     if (showEditComment) {
         var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
-        CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
+        CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismiss = { showEditComment = false},
             onSave = { runOnIOScope { upsert(episode) { it.addComment(commentText.text, false) } } })
     }
     if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
@@ -582,9 +582,9 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
 }
 
 @Composable
-fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
+fun RelatedEpisodesDialog(episode: Episode, onDismiss: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },  confirmButton = {},
         text = {
             Logd(TAG, "episode.related: ${episode.related.size}")
             EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true, showActionButtons = false,
@@ -599,18 +599,18 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
                         }
                     }
                 } ) },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } } )
 }
 
 @Composable
-fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun ChooseRatingDialog(selected: List<Episode>, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (rating in Rating.entries.reversed()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
                     .clickable {
                         runOnIOScope { for (e in selected) upsert(e) { it.setRating(rating) } }
-                        onDismissRequest()
+                        onDismiss()
                     }) {
                     Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
                     Text(rating.name, Modifier.padding(start = 4.dp))
@@ -621,8 +621,8 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun PlayStateDialog(selected: List<Episode>, onDismiss: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (state in EpisodeState.entries.reversed()) {
                 if (state.userSet) {
@@ -661,7 +661,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                 }
                             }
                         }
-                        onDismissRequest()
+                        onDismiss()
                     }) {
                         Icon(imageVector = ImageVector.vectorResource(id = state.res), "")
                         Text(state.name, Modifier.padding(start = 4.dp))
@@ -673,8 +673,8 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
 }
 
 @Composable
-fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun PutToQueueDialog(selected: List<Episode>, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
             var toQueue by remember { mutableStateOf(actQueue) }
@@ -708,7 +708,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                         }
                         addToQueue(selected, toQueue)
                     }
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
@@ -716,9 +716,9 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
+fun ShelveDialog(selected: List<Episode>, onDismiss: () -> Unit) {
     val synthetics = allFeeds.filter { it.id in 100..1000 }
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
             var toFeed by remember { mutableStateOf<Feed?>(null) }
@@ -738,7 +738,7 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
                     runOnIOScope { shelveToFeed(selected, toFeed!!, removeChecked) }
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
@@ -746,8 +746,8 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         val message = stringResource(R.string.erase_episodes_confirmation_msg)
         var textState by remember { mutableStateOf(TextFieldValue("")) }
         if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
@@ -757,15 +757,15 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
             BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch { eraseEpisodes(selected, textState.text) }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
 @Composable
-fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (Timer)->Unit) {
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+fun EpisodeTimetableDialog(episode: Episode, onDismiss: () -> Unit, cb: (Timer)->Unit) {
+    CommonDialogSurface(onDismiss = onDismiss) {
         val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id } }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (timer in timers) {
@@ -783,8 +783,8 @@ fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (
 }
 
 @Composable
-fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun EditTimerDialog(timer: Timer, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         val zdt = remember(timer.triggerTime) { Instant.fromEpochMilliseconds(timer.triggerTime).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
         var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
@@ -813,15 +813,15 @@ fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
                         Loge(TAG, "editing timer error: ${e.message}")
                     }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
 @Composable
-fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun AddTimerDialog(episode: Episode, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         val zdt = remember { Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
         var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
@@ -852,15 +852,15 @@ fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
                         playEpisodeAtTime(triggerTime, episode.id, isRepeat)
                     } catch (e: Throwable) { Loge(TAG, "editing timer error: ${e.message}") }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
 @Composable
-fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun IgnoreEpisodesDialog(selected: List<Episode>, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             val message = stringResource(R.string.ignore_episodes_confirmation_msg)
             
@@ -882,16 +882,16 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
                         }
                     } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
 @Composable
-fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissRequest: () -> Unit) {
+fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismiss: () -> Unit) {
     val message = stringResource(R.string.repeat_episodes_msg)
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message + ": ${selected.size}")
             var intervals = remember { if (selected.size == 1) selected[0].feed?.repeatIntervals?.toMutableList() else null }
@@ -921,16 +921,16 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
                         }
                     } catch (e: Throwable) { Logs("AgainEpisodesDialog", e) }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
 @Composable
-fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<EpisodesFilterGroup> = mutableSetOf(), showAndOr: Boolean = true, onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
+fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<EpisodesFilterGroup> = mutableSetOf(), showAndOr: Boolean = true, onDismiss: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
     //    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
-    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
+    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
@@ -1174,7 +1174,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         onFilterChanged(filter)
                     }) { Text(stringResource(R.string.reset)) }
                     Spacer(Modifier.weight(0.4f))
-                    Button(onClick = { onDismissRequest() }) { Text(stringResource(R.string.close_label)) }
+                    Button(onClick = { onDismiss() }) { Text(stringResource(R.string.close_label)) }
                     Spacer(Modifier.weight(0.3f))
                 }
             }
@@ -1183,12 +1183,12 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 }
 
 @Composable
-fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
+fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismiss: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val viewCounts = remember { listOf(EpisodeSortOrder.VIEWS_ASC, EpisodeSortOrder.VIEWS_DESC, EpisodeSortOrder.VIEWS_SPEED_ASC, EpisodeSortOrder.VIEWS_SPEED_DESC) }
     val likeCounts = remember { listOf(EpisodeSortOrder.LIKES_ASC, EpisodeSortOrder.LIKES_DESC) }
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (clientshaveViewCounts()) viewCounts else listOf()) + (if (clientshaveLikeCounts()) likeCounts else listOf()) ) ) } }
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
-    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
+    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
@@ -1212,7 +1212,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<Epi
 }
 
 @Composable
-fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, onDismissRequest: ()->Unit, callback: (Long, Long) -> Unit) {
+fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, onDismiss: ()->Unit, callback: (Long, Long) -> Unit) {
     @Composable
     fun MonthYearInput(default: String, onMonthYearChange: (String) -> Unit) {
         fun formatMonthYear(input: String): String {
@@ -1267,7 +1267,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
     var useAllTime by remember { mutableStateOf((from == null || from == 0L) && (to == null || to == Long.MAX_VALUE)) }
     val timeFrom = remember(timeFilterFrom) { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom }
     val timeTo = remember(timeFilterTo) { if (timeFilterTo == Long.MAX_VALUE) nowInMillis() else timeFilterTo }
-    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
@@ -1301,10 +1301,10 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
                     timeFilterTo = Long.MAX_VALUE
                 }
                 callback(timeFilterFrom, timeFilterTo)
-                onDismissRequest()
+                onDismiss()
             }) { Text(text = "OK") }
         },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }
 
@@ -1368,10 +1368,10 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
 }
 
 @Composable
-fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
+fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismiss: () -> Unit) {
     val YTSyndMap = remember { mutableStateMapOf<Int, Boolean>() }
     var synthetics by remember { mutableStateOf(allFeeds.filter { it.id in 1..1000 }) }
-    Dialog(onDismissRequest = { onDismissRequest() }) {
+    Dialog(onDismissRequest = { onDismiss() }) {
         Card(modifier = Modifier.height(350.dp).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             var toFeed by remember { mutableStateOf<Feed?>(null) }
             var showComfirmButton by remember { mutableStateOf(toFeed != null) }
@@ -1443,11 +1443,11 @@ fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismissRequest: () -> Unit) {
                                     if (log != null) upsert(log) { it.details = e.message ?: "error" }
                                 }
                             }
-                            withContext(Dispatchers.Main) { onDismissRequest() }
+                            withContext(Dispatchers.Main) { onDismiss() }
                         }
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
-                if (showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 4.dp, modifier = Modifier.padding(start = 40.dp, end = 40.dp).width(30.dp).height(30.dp))
+                if (showProgress) CircularProgressIndicator(strokeWidth = 4.dp, modifier = Modifier.padding(start = 40.dp, end = 40.dp).width(30.dp).height(30.dp))
             }
         }
     }

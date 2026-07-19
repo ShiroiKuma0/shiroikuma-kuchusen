@@ -546,8 +546,8 @@ fun PlayRandom(episodes: List<Episode>, playNext: Boolean = false) {
 }
 
 @Composable
-fun SetAVQuality(selectedOption: String, showGlobal: Boolean = true, onDismissRequest: () -> Unit, cb: (AVQuality)->Unit) {
-    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+fun SetAVQuality(selectedOption: String, showGlobal: Boolean = true, onDismiss: () -> Unit, cb: (AVQuality)->Unit) {
+    CommonPopupCard(onDismiss = { onDismiss() }) {
         var selected by remember {mutableStateOf(selectedOption)}
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             AVQuality.entries.forEach { option ->
@@ -558,7 +558,7 @@ fun SetAVQuality(selectedOption: String, showGlobal: Boolean = true, onDismissRe
                             if (isChecked) Logd(TAG, "$option is checked")
                             val type = AVQuality.fromTag(selected)
                             cb(type)
-                            onDismissRequest()
+                            onDismiss()
                         })
                     Text(option.tag)
                 }

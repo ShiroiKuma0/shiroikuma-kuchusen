@@ -345,11 +345,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(feed!!)) { showChooseRatingDialog = false }
 
-        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navTo(Library) }
+        if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismiss = { showRemoveFeedDialog = false }) { navTo(Library) }
 
         if (feed != null && showFilterDialog) {
             vm.showHeader = false
-            EpisodesFilterDialog(filter_ = feed!!.episodeFilter, onDismissRequest = {
+            EpisodesFilterDialog(filter_ = feed!!.episodeFilter, onDismiss = {
                 vm.showHeader = true
                 showFilterDialog = false
             }) { filter ->
@@ -360,7 +360,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (feed != null && showSortDialog) {
             vm.showHeader = false
-            EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismissRequest = {
+            EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismiss = {
                 vm.showHeader = true
                 showSortDialog = false
             }) { order ->
@@ -546,7 +546,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         var showEditComment by remember { mutableStateOf(false) }
         val localTime = remember { nowInMillis() }
         var editCommentText by remember { mutableStateOf(TextFieldValue(feed?.comment ?: "")) }
-        if (feed != null && showEditComment) CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = {showEditComment = false},
+        if (feed != null && showEditComment) CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = {showEditComment = false},
             onSave = {
                 runOnIOScope {
                     upsert(feed!!) {

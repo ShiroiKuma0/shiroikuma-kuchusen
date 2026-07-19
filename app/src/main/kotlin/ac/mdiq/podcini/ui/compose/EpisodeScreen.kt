@@ -13,7 +13,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
-import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.canCheckMediaSize
@@ -71,10 +70,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -190,7 +187,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
 
     @Composable
     fun OpenDialogs() {
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(episode), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(episode), futureState, onDismiss = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog) ShareDialog(episode) { showShareDialog = false }
 
         if (showEditTimerDialog) EditTimerDialog(onTimer) { showEditTimerDialog = false }

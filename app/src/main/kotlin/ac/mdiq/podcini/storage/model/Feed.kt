@@ -755,7 +755,10 @@ enum class FeedType {
     ATOM,
     YouTube,
     PeerTube,
-    SoundCloud
+    SoundCloud;
+    companion object {
+        fun fromName(name: String?): FeedType? = FeedType.entries.firstOrNull { it.name == name }
+    }
 }
 
 @Serializable

@@ -29,19 +29,7 @@ import ac.mdiq.podcini.utils.Logt
 
 private const val TAG = "AutoDownloads"
 
-/**
- * Implements the automatic download algorithm used by Podcini. This class assumes that
- * the client uses the [EpisodeCleanupAlgorithm].
- */
 class AutoDownloadAlgorithm {
-    private val TAG = "AutoDownloadAlgorithm"
-    /**
-     * Looks for undownloaded episodes in the queue or list of new items and request a download if
-     * 1. Network is available
-     * 2. The device is charging or the user allows auto download on battery
-     * 3. There is free space in the episode cache
-     * This method is executed on an internal single thread executor.
-     */
     suspend fun run(feeds: List<Feed>?, checkQueues: Boolean = true, noRefreshing: Boolean = false) {
         Logd(TAG, "run Performing auto-dl of undownloaded episodes")
         val toReplace: MutableSet<Episode> = mutableSetOf()
@@ -92,7 +80,6 @@ class AutoDownloadAlgorithm {
 }
 
 class AutoEnqueueAlgorithm {
-    private val TAG = "AutoEnqueueAlgorithm"
     suspend fun run(feeds: List<Feed>?, noRefreshing: Boolean = false) {
         Logd(TAG, "Performing auto-enqueue of undownloaded episodes")
 //        showStackTrace()

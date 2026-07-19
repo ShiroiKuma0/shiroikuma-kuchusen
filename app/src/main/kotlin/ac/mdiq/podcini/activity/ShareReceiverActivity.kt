@@ -74,10 +74,10 @@ class ShareReceiverActivity : ComponentActivity() {
                 failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
                     confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddEpisodes(listOf(text), onDismissRequest = { finish() })
+                addAsNew -> ConfirmAddEpisodes(listOf(text), onDismiss = { finish() })
                 existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddEpisodes(listOf(text), onDismissRequest = { finish() })
+                existing!!.isEmpty() -> ConfirmAddEpisodes(listOf(text), onDismiss = { finish() })
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {

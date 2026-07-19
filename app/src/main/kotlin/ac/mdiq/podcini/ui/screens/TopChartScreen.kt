@@ -328,7 +328,7 @@ fun TopChartScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
-            if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
+            if (vm.showProgress) CircularProgressIndicator(strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             val lazyListState = rememberLazyListState()
             if (vm.searchResults.isNotEmpty()) LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp)
                 .constrainAs(gridView) {

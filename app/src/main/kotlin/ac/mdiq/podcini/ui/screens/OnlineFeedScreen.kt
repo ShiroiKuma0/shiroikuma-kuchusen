@@ -411,12 +411,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
 
     var showSortDialog by remember { mutableStateOf(false) }
-    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
+    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismiss = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
 
     @Composable
-    fun ShowTabsDialog(onDismissRequest: () -> Unit, handleFeed: (Feed) -> Unit) {
+    fun ShowTabsDialog(onDismiss: () -> Unit, handleFeed: (Feed) -> Unit) {
         val ytTabsMap = remember { mutableStateMapOf<Int, String>() }
-        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.choose_tab), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -461,13 +461,13 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                             } else Loge(TAG, "Subscribe feed failed")
                         }
                     }
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(text = stringResource(R.string.confirm_label)) }
             },
-            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+            dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
-    if (vm.showTabsDialog) ShowTabsDialog(onDismissRequest = { vm.showTabsDialog = false }) { feed -> vm.handleFeed(feed) }
+    if (vm.showTabsDialog) ShowTabsDialog(onDismiss = { vm.showTabsDialog = false }) { feed -> vm.handleFeed(feed) }
 
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
@@ -613,7 +613,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
             }
             if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
+                CircularProgressIndicator(strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
             }
         }
         if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)

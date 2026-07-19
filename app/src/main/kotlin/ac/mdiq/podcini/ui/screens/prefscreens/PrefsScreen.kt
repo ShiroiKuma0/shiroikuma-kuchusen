@@ -272,7 +272,7 @@ fun LicensesScreen() {
     ComfirmDialog(titleRes = 0, message = licenseText, showLicense) {}
     var showDialog by remember { mutableStateOf(false) }
     var curLicenseIndex by remember { mutableIntStateOf(-1) }
-    if (showDialog) CommonPopupCard(onDismissRequest = { showDialog = false }) {
+    if (showDialog) CommonPopupCard(onDismiss = { showDialog = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             Row {

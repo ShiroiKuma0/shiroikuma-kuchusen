@@ -1,0 +1,9 @@
+* in Remote tab in SearchScreen, on popup of "Reserve all"
+	* the search string plus searcher names are suggested as the feed name
+	* added option of feed type and hasVideo
+	* fixed crash on confirm
+* in FeedSettings
+	* added setting (with note) for feed type if it is synthetic, which activates proper settings for audio/video prefs
+	* enabled audio/video qualities settings for synthetic feed
+* added note in creating synthetic feed
+* static circular progress indicators are set to animate

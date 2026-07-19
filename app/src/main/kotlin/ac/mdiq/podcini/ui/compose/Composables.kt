@@ -89,10 +89,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
-    Dialog(onDismissRequest = onDismissRequest) {
+fun CommonDialogSurface(onDismiss: () -> Unit, content: @Composable (() -> Unit)) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             content()
@@ -101,8 +102,8 @@ fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -
 }
 
 @Composable
-fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
-    Popup(onDismissRequest = { onDismissRequest() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
+fun CommonPopupCard(onDismiss: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
+    Popup(onDismissRequest = { onDismiss() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
             modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             content()
@@ -155,20 +156,9 @@ fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modi
 }
 
 @Composable
-fun MeasureLongestWidth(items: List<String>, textStyle: TextStyle, content: @Composable (maxWidth: Int) -> Unit) {
-    SubcomposeLayout { constraints ->
-        val placeables = items.map { label -> subcompose(label) { Text(label, style = textStyle) }.first().measure(constraints) }
-        val maxWidth = placeables.maxOf { it.width }
-        val placeable = subcompose("content") { content(maxWidth) }.first().measure(constraints)
-        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
-    }
-}
-
-@Composable
 fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> Unit) {
     var isForeground by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             isForeground = when (event) {
@@ -180,10 +170,9 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-
     LaunchedEffect(message, isForeground) {
         if (message.isNotBlank() && isForeground) {
-            delay(durationMillis)
+            delay(durationMillis.milliseconds)
             onDismiss()
         }
     }
@@ -199,11 +188,10 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
 }
 
 @Composable
-fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: () -> Unit) {
-    Dialog(onDismissRequest = { onDismissRequest() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismiss: () -> Unit, onSave: () -> Unit) {
+    Dialog(onDismissRequest = { onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         var textChanged by remember { mutableStateOf(false) }
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, borderColor)) {
-            
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(stringResource(R.string.add_comment), color = textColor, style = CustomTextStyles.titleCustom)
                 Spacer(modifier = Modifier.height(16.dp))
@@ -214,18 +202,18 @@ fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, on
                 })
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                    TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                     TextButton(onClick = {
                         onSave()
                         textChanged = false
-                        onDismissRequest()
+                        onDismiss()
                     }) { Text("Save") }
                 }
             }
         }
         LaunchedEffect(Unit) {
             while (autoSave) {
-                delay(10000)
+                delay(10000.milliseconds)
                 if (textChanged) onSave()
                 textChanged = false
             }
@@ -275,30 +263,7 @@ fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, c
 }
 
 @Composable
-fun SimpleSwitchDialog(title: String, text: String, onDismissRequest: ()->Unit, callback: (Boolean)-> Unit) {
-    
-    var isChecked by remember { mutableStateOf(false) }
-    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
-        title = { Text(title, style = CustomTextStyles.titleCustom) },
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                Text(text, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                Switch(checked = isChecked, onCheckedChange = { isChecked = it })
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                callback(isChecked)
-                onDismissRequest()
-            }) { Text(text = "OK") }
-        },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
-    )
-}
-
-@Composable
 fun IconTitleSummaryActionRow(vecRes: Int, titleRes: Int, summaryRes: Int, callback: ()-> Unit) {
-    
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
         Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
         Column(modifier = Modifier.weight(1f).clickable { callback() }) {
@@ -382,14 +347,8 @@ data class CommonMessageAttrib(
 fun LargePoster(c: CommonMessageAttrib) {
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { },
         title = { Text(c.title) },
-        text = {
-            Box(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                c.onOK()
-            }) { Text(stringResource(c.OKRes)) }
-        },
+        text = { Box(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) } },
+        confirmButton = { TextButton(onClick = { c.onOK() }) { Text(stringResource(c.OKRes)) } },
         dismissButton = { }
     )
 }
@@ -427,7 +386,7 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Mod
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-        TextField(value = queryText, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+        TextField(value = queryText, singleLine = true, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             textStyle = TextStyle(fontSize = 14.sp), label = { Text(stringResource(hintTextRes), style = MaterialTheme.typography.bodySmall) },
             keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
             leadingIcon = if (history.isNotEmpty()) { { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = buttonColor, contentDescription = "history",
@@ -529,7 +488,7 @@ enum class TagType { Feed, Episode }
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boolean = false, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
-    CommonPopupCard(onDismissRequest = onDismiss) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
             var text by remember { mutableStateOf("") }

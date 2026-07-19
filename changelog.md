@@ -1,7 +1,21 @@
+# 12.4.7
+
+* in Remote tab in SearchScreen, on popup of "Reserve all"
+	* the search string plus searcher names are suggested as the feed name
+	* added option of feed type and hasVideo
+	* fixed crash on confirm
+* in FeedSettings
+	* added setting (with note) for feed type if it is synthetic, which activates proper settings for audio/video prefs
+	* enabled audio/video qualities settings for synthetic feed
+* added note in creating synthetic feed
+* top searchbars are set for single line
+* static circular progress indicators are set to animate
+* some code refactoring
+
 # 12.4.6
 
 * in Remote tab in SearchScreen
-	* addded searching indicator on infobar
+	* added searching indicator on infobar
 	* in menu, added "Reserve all" (shown only when search is complete) to save all the media to a synthetic feed
 * when playing a remote media, it's automatically saved in synthetic feed "Remote history"
 	* applicable to media in Remote tab in SearchScreen and Episodes mode of OnlineFeed screen

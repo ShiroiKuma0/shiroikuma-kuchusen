@@ -40,7 +40,6 @@ import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.stripDateTimeLines
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -190,7 +189,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
             if (rightActionState.value is NoAction) showSwipeActionsDialog = true
             else rightActionState.value.performAction(it)
         }
-        if (showSwipeActionsDialog) swipeActions.SwipeActionsSettingDialog(onDismissRequest = { showSwipeActionsDialog = false })
+        if (showSwipeActionsDialog) swipeActions.SwipeActionsSettingDialog(onDismiss = { showSwipeActionsDialog = false })
     }
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
@@ -208,24 +207,24 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
 
     @Composable
     fun OpenDialogs() {
-        if (showAddEpisodesDialog) ConfirmAddEpisodes(ytUrls, onDismissRequest = { showAddEpisodesDialog = false })
+        if (showAddEpisodesDialog) ConfirmAddEpisodes(ytUrls, onDismiss = { showAddEpisodesDialog = false })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
-            CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismissRequest = { showAddCommentDialog = false },
+            CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismiss = { showAddCommentDialog = false },
                 onSave = { runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } } })
         }
         if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
         }
-        if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
+        if (showPlayStateDialog) PlayStateDialog(selected, onDismiss = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
         if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
         if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
         if (showMulticastDialog) MulticastDialog(selected) { showMulticastDialog = false }
 
-        if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
-        if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+        if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismiss = { showEraseDialog = false })
+        if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismiss = { showIgnoreDialog = false })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismiss = { futureState = EpisodeState.UNSPECIFIED })
     }
 
     OpenDialogs()
@@ -765,7 +764,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.multicast_to_devices)) }
                         }
                     }
-                    if (isExpanded) CommonPopupCard(onDismissRequest = { isExpanded = false }) {
+                    if (isExpanded) CommonPopupCard(onDismiss = { isExpanded = false }) {
                         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { options.forEachIndexed { _, entry -> entry() } }
                     }
                     FloatingActionButton(containerColor = bgColor, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Menu, "Menu") }

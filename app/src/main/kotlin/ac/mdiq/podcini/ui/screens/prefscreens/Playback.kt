@@ -66,10 +66,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
@@ -189,7 +187,7 @@ fun PlaybackScreen() {
             var videoQuality by remember { mutableStateOf(AVQuality.fromCode(appPrefs.videoQuality)) }
 
             var showAudioDialog by remember { mutableStateOf(false) }
-            if (showAudioDialog) SetAVQuality(selectedOption = audioQuality.tag, showGlobal = false, onDismissRequest = { showAudioDialog = false }) { type ->
+            if (showAudioDialog) SetAVQuality(selectedOption = audioQuality.tag, showGlobal = false, onDismiss = { showAudioDialog = false }) { type ->
                 audioQuality = type
                 upsertBlk(appPrefs) { it.audioQuality  = audioQuality.code }
             }
@@ -202,7 +200,7 @@ fun PlaybackScreen() {
                 Text(text = stringResource(R.string.pref_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             var showVideoDialog by remember { mutableStateOf(false) }
-            if (showVideoDialog) SetAVQuality(selectedOption = videoQuality.tag, showGlobal = false, onDismissRequest = { showVideoDialog = false }) { type->
+            if (showVideoDialog) SetAVQuality(selectedOption = videoQuality.tag, showGlobal = false, onDismiss = { showVideoDialog = false }) { type->
                 videoQuality = type
                 upsertBlk(appPrefs) { it.videoQuality  = videoQuality.code }
             }
@@ -222,7 +220,7 @@ fun PlaybackScreen() {
             upsertBlk(appPrefs) { p-> p.useAdaptiveProgressUpdate = it }
         }
         var showVideoModeDialog by remember { mutableStateOf(false) }
-        if (showVideoModeDialog) VideoModeDialog(initMode =  VideoMode.fromCode(appPrefs.videoPlaybackMode), onDismissRequest = { showVideoModeDialog = false }) { mode ->
+        if (showVideoModeDialog) VideoModeDialog(initMode =  VideoMode.fromCode(appPrefs.videoPlaybackMode), onDismiss = { showVideoModeDialog = false }) { mode ->
             upsertBlk(appPrefs) { it.videoPlaybackMode = mode.code }
         }
         TitleSummaryActionColumn(R.string.pref_playback_video_mode, R.string.pref_playback_video_mode_sum) { showVideoModeDialog = true }

@@ -141,7 +141,7 @@ class Combo : EpisodeAction() {
     @Composable
     override fun ActionOptions() {
         useAction?.ActionOptions()
-        if (showDialog && onEpisode != null) CommonPopupCard(onDismissRequest = { showDialog = false }) {
+        if (showDialog && onEpisode != null) CommonPopupCard(onDismiss = { showDialog = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 for (action in episodeActions) {
                     if (action is NoAction || action is Combo) continue
@@ -179,10 +179,10 @@ class SetPlaybackState : EpisodeAction() {
     @Composable
     override fun ActionOptions() {
         var showIgnoreDialog by remember { mutableStateOf(false) }
-        if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
+        if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismiss = { showIgnoreDialog = false })
         var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
-        if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismiss = { futureState = EpisodeState.UNSPECIFIED })
+        if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismiss = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
     }
 }
 
@@ -325,7 +325,7 @@ class AddComment : EpisodeAction() {
     @Composable
     override fun ActionOptions() {
         if (showEditComment) {
-            CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
+            CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = { showEditComment = false },
                 onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, false) } } })
         }
     }

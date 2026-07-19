@@ -550,12 +550,12 @@ fun FacetsScreen(modeName: String = "") {
             return if (facetsMode == QuickAccess.Downloaded) mutableSetOf(EpisodeFilter.EpisodesFilterGroup.DOWNLOADED)
             else mutableSetOf()
         }
-        if (showFilterDialog) EpisodesFilterDialog(filter_ = vm.filter, disabledSet = filtersDisabled(), showAndOr = facetsMode in listOf(QuickAccess.All, QuickAccess.Custom), onDismissRequest = { showFilterDialog = false }) { filter ->
+        if (showFilterDialog) EpisodesFilterDialog(filter_ = vm.filter, disabledSet = filtersDisabled(), showAndOr = facetsMode in listOf(QuickAccess.All, QuickAccess.Custom), onDismiss = { showFilterDialog = false }) { filter ->
             vm.filter = filter
             upsertBlk(vm.facetsPrefs) { it.filtersMap[facetsMode.name] = vm.filter.propertySet.joinToString(",") }
             resetSwipes()
         }
-        if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { showSortDialog = false }) { order ->
+        if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismiss = { showSortDialog = false }) { order ->
             if (order != null) {
                 vm.sortOrder = order
                 resetSwipes()
@@ -563,7 +563,7 @@ fun FacetsScreen(modeName: String = "") {
         }
         swipeActions.ActionOptionsDialog()
         ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { vm.clearHistory() }
-        if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
+        if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismiss = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
             vm.historyStartDate = timeFilterFrom
             vm.historyEndDate = timeFilterTo
         }

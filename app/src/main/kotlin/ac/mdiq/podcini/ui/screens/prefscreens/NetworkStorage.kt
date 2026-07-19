@@ -141,7 +141,7 @@ fun NetworkStorageScreen() {
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
     @Composable
-    fun ProxyDialog(onDismissRequest: ()->Unit) {
+    fun ProxyDialog(onDismiss: ()->Unit) {
         val types = remember { mutableStateListOf<String>() }
         val textColor = MaterialTheme.colorScheme.onSurface
         LaunchedEffect(Unit) {
@@ -240,7 +240,7 @@ fun NetworkStorageScreen() {
                 }
             }
         }
-        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.pref_proxy_title), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -296,10 +296,10 @@ fun NetworkStorageScreen() {
                     }
                     configProxy()
                     resetClient()
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(stringResource(okButtonTextRes)) }
             },
-            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+            dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
 
@@ -310,18 +310,18 @@ fun NetworkStorageScreen() {
 
     var showProgress by remember { mutableStateOf(false) }
     if (showProgress) {
-        CommonPopupCard(onDismissRequest = { showProgress = false }) {
+        CommonPopupCard(onDismiss = { showProgress = false }) {
             Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
+                CircularProgressIndicator(strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
                 Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
             }
         }
     }
 
     Logd(TAG, "useCustomMediaFolder: ${appPrefs.useCustomMediaFolder} customMediaUri: ${appPrefs.customMediaUri}")
-    val selectCustomMediaDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == RESULT_OK) {
-            val uri: Uri? = it.data?.data
+    val selectCustomMediaDirLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val uri: Uri? = result.data?.data
             Logd(TAG, "selectCustomMediaDirLauncher the chosen uri: $uri")
             if (uri != null) {
                 showProgress = true
@@ -565,7 +565,7 @@ fun SynchronizationScreen() {
     var loggedIn by remember { mutableStateOf(isProviderConnected) }
 
     @Composable
-    fun NextcloudAuthenticationDialog(onDismissRequest: ()->Unit) {
+    fun NextcloudAuthenticationDialog(onDismiss: ()->Unit) {
         var nextcloudLoginFlow = remember<NextcloudLoginFlow?> { null }
         var showUrlEdit by remember { mutableStateOf(true) }
         var serverUrlText by remember { mutableStateOf(appPrefs.nextcloud_server_address) }
@@ -582,7 +582,7 @@ fun SynchronizationScreen() {
                 SynchronizationCredentials.username = username
                 SyncService.fullSync()
                 loggedIn = isProviderConnected
-                onDismissRequest()
+                onDismiss()
             }
             override fun onNextcloudAuthError(errorMessage: String?) {
                 errorText = errorMessage ?: ""
@@ -598,7 +598,7 @@ fun SynchronizationScreen() {
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.gpodnetauth_login_butLabel), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -623,7 +623,7 @@ fun SynchronizationScreen() {
                     //                        onDismissRequest()
                 }) { Text(stringResource(R.string.proceed_to_login_butLabel)) }
             },
-            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+            dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
 
@@ -631,8 +631,8 @@ fun SynchronizationScreen() {
     if (showNextCloudAuthDialog) NextcloudAuthenticationDialog { showNextCloudAuthDialog = false }
 
     @Composable
-    fun ChooseProviderAndLoginDialog(onDismissRequest: ()->Unit) {
-        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+    fun ChooseProviderAndLoginDialog(onDismiss: ()->Unit) {
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.dialog_choose_sync_service_title), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -644,7 +644,7 @@ fun SynchronizationScreen() {
                                     SynchronizationProviderViewData.NEXTCLOUD_GPODDER -> showNextCloudAuthDialog = true
                                 }
                                 loggedIn = isProviderConnected
-                                onDismissRequest()
+                                onDismiss()
                             }) {
                             Icon(painter = painterResource(id = option.iconResource), contentDescription = "", modifier = Modifier.size(40.dp).padding(end = 15.dp))
                             Text(stringResource(option.summaryResource), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
@@ -653,12 +653,12 @@ fun SynchronizationScreen() {
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+            dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
 
     @Composable
-    fun WifiAuthenticationDialog(onDismissRequest: ()->Unit) {
+    fun WifiAuthenticationDialog(onDismiss: ()->Unit) {
         val TAG = "WifiAuthenticationDialog"
 
         val context by rememberUpdatedState(LocalContext.current)
@@ -673,11 +673,11 @@ fun SynchronizationScreen() {
                             R.string.sync_status_error -> {
                                 errorMessage = event.message
                                 Loge(TAG, errorMessage)
-                                onDismissRequest()
+                                onDismiss()
                             }
                             R.string.sync_status_success -> {
                                 Logt(TAG, context.getString(R.string.sync_status_success))
-                                onDismissRequest()
+                                onDismiss()
                             }
                             R.string.sync_status_in_progress -> progressMessage = event.message
                             else -> Loge(TAG, "Sync result unknown ${event.messageResId}")
@@ -695,7 +695,7 @@ fun SynchronizationScreen() {
         var showProgress by remember { mutableStateOf(false) }
         var showConfirm by remember { mutableStateOf(true)  }
         var showCancel by remember { mutableStateOf(true)  }
-        AlertDialog(modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.connect_to_peer), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -734,7 +734,7 @@ fun SynchronizationScreen() {
                             label = { Text(stringResource(id = R.string.synchronization_host_port_label)) })
                     }
                     if (showProgress)  {
-                        CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp))
+                        CircularProgressIndicator(strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp))
                         Text(stringResource(R.string.wifisync_progress_message) + " " + progressMessage, color = textColor)
                     }
                     Text(errorMessage, style = MaterialTheme.typography.bodyMedium)
@@ -754,7 +754,7 @@ fun SynchronizationScreen() {
                     startInstantSync(portNum, hostAddress, isGuest!!)
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
-            dismissButton = { if (showCancel) TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+            dismissButton = { if (showCancel) TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
 

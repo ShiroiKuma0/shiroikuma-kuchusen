@@ -18,7 +18,6 @@ import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.format
@@ -582,7 +581,7 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Logs(TAG, error) }
         }
     }
-    if (vm.showFilter) DatesFilterDialog(from = vm.timeFilterFrom, to = vm.timeFilterTo, oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { from, to ->
+    if (vm.showFilter) DatesFilterDialog(from = vm.timeFilterFrom, to = vm.timeFilterTo, oldestDate = vm.statsResult.oldestDate, onDismiss = {vm.showFilter = false} ) { from, to ->
         Logd(TAG, "confirm DatesFilterDialog ${vm.timeFilterFrom} $from ${vm.timeFilterTo} $to")
         vm.setTimeFilter(from, to)
         vm.chartData = null
@@ -804,7 +803,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 }
 
 @Composable
-fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
+fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismiss: () -> Unit) {
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
     var episodes by remember { mutableStateOf<List<Episode>>(listOf())  }
     fun loadStatistics() {
@@ -820,7 +819,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
         text = {
             
             val context = LocalContext.current
@@ -859,9 +858,9 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {
             navTo(FeedDetails(feedId=feedId))
-            onDismissRequest()
+            onDismiss()
         }) { Text(stringResource(R.string.open_podcast))} },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+        dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }
 

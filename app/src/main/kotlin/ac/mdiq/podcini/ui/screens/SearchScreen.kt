@@ -22,8 +22,8 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.compose.AmendSyntheticFeed
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.CreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -263,11 +263,11 @@ fun SearchScreen() {
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { episodeForInfo = null }
 
     var showSortDialog by remember { mutableStateOf(false) }
-    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
+    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismiss = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
     var showSearchBy by remember { mutableStateOf(false) }
-    if (showSearchBy) CommonPopupCard(onDismissRequest = { showSearchBy = false} ) { vm.algo.SearchByGrid() }
+    if (showSearchBy) CommonPopupCard(onDismiss = { showSearchBy = false} ) { vm.algo.SearchByGrid() }
     var showRemoteSearchers by remember { mutableStateOf(false) }
-    if (showRemoteSearchers) CommonPopupCard(onDismissRequest = { showRemoteSearchers = false} ) {
+    if (showRemoteSearchers) CommonPopupCard(onDismiss = { showRemoteSearchers = false} ) {
         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
             val sNames = remember(vm.searchers.size) { vm.searchers.map { it.name } }
             for (searcher in vm.searchersAll) {
@@ -279,7 +279,7 @@ fun SearchScreen() {
         }
     }
     var showReserveAllDialog by remember { mutableStateOf(false) }
-    if (showReserveAllDialog) CreateSyntheticFeed(onDismissRequest = { showReserveAllDialog = false }) { feed->
+    if (showReserveAllDialog) AmendSyntheticFeed(name_ = "$curSearchString. By ${vm.searchers.joinToString { it.name }}", onDismiss = { showReserveAllDialog = false }) { feed->
         runOnIOScope {
             realm.write {
                 for (e in vm.onlineMedia) {
@@ -288,8 +288,10 @@ fun SearchScreen() {
                 }
                 val eps = query(Episode::class).query("feedId == ${feed.id}").find()
                 val dur = eps.sumOf { it.duration }
-                feed.episodesCount = eps.size
-                feed.totleDuration = dur.toLong()
+                findLatest(feed)?.let {
+                    it.episodesCount = eps.size
+                    it.totleDuration = dur.toLong()
+                }
             }
         }
     }
@@ -439,7 +441,7 @@ fun SearchScreen() {
                     1 -> FeedsColumn()
                     2 -> {
                         InforBar(null) {
-                            if (vm.searchingOnline) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(20.dp))
+                            if (vm.searchingOnline) CircularProgressIndicator(strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.weight(0.1f))
                             Text(vm.onlineMedia.size.toString(), style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(0.1f))

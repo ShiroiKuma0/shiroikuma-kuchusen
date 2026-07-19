@@ -51,7 +51,7 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
-import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
+import ac.mdiq.podcini.ui.compose.AmendSyntheticFeed
 import ac.mdiq.podcini.ui.compose.ScrollRowGrid
 import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SendToDevice
@@ -883,8 +883,8 @@ fun LibraryScreen() {
     @Composable
     fun OpenDialogs() {
         @Composable
-        fun SortDialog(onDismissRequest: () -> Unit) {
-            Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
+        fun SortDialog(onDismiss: () -> Unit) {
+            Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
@@ -1243,7 +1243,7 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun FilterDialog(filter: FeedFilter? = null, onDismissRequest: () -> Unit) {
+        fun FilterDialog(filter: FeedFilter? = null, onDismiss: () -> Unit) {
             val filterValues = remember { filter?.properties ?: mutableSetOf() }
             var reset by remember { mutableIntStateOf(0) }
             var langFull by remember(vm.subPrefs.langsSel.size) { mutableStateOf(vm.subPrefs.langsSel.size == appAttribs.langSet.size) }
@@ -1258,7 +1258,7 @@ fun LibraryScreen() {
                 }
                 Logd(TAG, "onFilterChanged: ${vm.subPrefs.feedsFilter}")
             }
-            Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
+            Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
@@ -1513,7 +1513,7 @@ fun LibraryScreen() {
                                     onFilterChanged(setOf(""))
                                 }) { Text(stringResource(R.string.reset)) }
                                 Spacer(Modifier.weight(0.4f))
-                                Button(onClick = { onDismissRequest() }) { Text(stringResource(R.string.close_label)) }
+                                Button(onClick = { onDismiss() }) { Text(stringResource(R.string.close_label)) }
                                 Spacer(Modifier.weight(0.3f))
                             }
                         }
@@ -1523,14 +1523,14 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun CreateVolume(parent: Volume?, onDismissRequest: () -> Unit) {
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        fun CreateVolume(parent: Volume?, onDismiss: () -> Unit) {
+            CommonPopupCard(onDismiss = { onDismiss() }) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf("") }
                     TextField(value = name, singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
                     Row {
-                        Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                        Button({ onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                         Spacer(Modifier.weight(1f))
                         Button({
                             val v = Volume()
@@ -1539,7 +1539,7 @@ fun LibraryScreen() {
                                 it.name = name
                                 it.parentId = parent?.id ?: -1L
                             }
-                            onDismissRequest()
+                            onDismiss()
                         }) { Text(stringResource(R.string.confirm_label)) }
                     }
                 }
@@ -1602,7 +1602,7 @@ fun LibraryScreen() {
 
         if (showFilterDialog) FilterDialog(FeedFilter(vm.subPrefs.feedsFilter)) { showFilterDialog = false }
         if (showSortDialog) SortDialog { showSortDialog = false }
-        if (showNewSynthetic) RenameOrCreateSyntheticFeed(volume = vm.curVolume) { showNewSynthetic = false }
+        if (showNewSynthetic) AmendSyntheticFeed(volume = vm.curVolume, onDismiss = { showNewSynthetic = false }) {}
         if (showNewVolume) CreateVolume(parent = vm.curVolume) { showNewVolume = false }
 
         @SuppressLint("LocalContextResourcesRead")
@@ -1613,8 +1613,8 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun SetToVolumeDialog(onDismissRequest: () -> Unit) {
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        fun SetToVolumeDialog(onDismiss: () -> Unit) {
+            CommonPopupCard(onDismiss = { onDismiss() }) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var selectedOption by remember {mutableStateOf("")}
                     val custom = "Custom"
@@ -1625,7 +1625,7 @@ fun LibraryScreen() {
                             onCheckedChange = {
                                 selected = none
                                 saveSelectedFeeds { it: Feed -> it.volumeId = -1L }
-                                onDismissRequest()
+                                onDismiss()
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
@@ -1639,7 +1639,7 @@ fun LibraryScreen() {
                                 FilterChip(label = { Text(volumes[index].name) }, selected = false,
                                     onClick = {
                                         saveSelectedFeeds { it: Feed -> it.volumeId = volumes[index].id }
-                                        onDismissRequest()
+                                        onDismiss()
                                     })
                             }
                         }
@@ -1649,8 +1649,8 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun SetAssociateQueueDialog(onDismissRequest: () -> Unit) {
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        fun SetAssociateQueueDialog(onDismiss: () -> Unit) {
+            CommonPopupCard(onDismiss = { onDismiss() }) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var selectedOption by remember {mutableStateOf("")}
                     val custom = "Custom"
@@ -1665,7 +1665,7 @@ fun LibraryScreen() {
                                     it.autoDownload = false
                                     it.autoEnqueue = false
                                 }
-                                onDismissRequest()
+                                onDismiss()
                             })
                         Text(none)
                         Spacer(Modifier.width(50.dp))
@@ -1679,7 +1679,7 @@ fun LibraryScreen() {
                                 FilterChip(label = { Text(queuesLive[index].name) }, selected = false,
                                     onClick = {
                                         saveSelectedFeeds { it: Feed -> it.queue = queuesLive[index] }
-                                        onDismissRequest()
+                                        onDismiss()
                                     })
                             }
                         }
@@ -1689,8 +1689,8 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-            CommonPopupCard(onDismissRequest = onDismissRequest) {
+        fun ChooseRatingDialog(selected: List<Feed>, onDismiss: () -> Unit) {
+            CommonPopupCard(onDismiss = onDismiss) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     for (rating in Rating.entries.reversed()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
@@ -1702,7 +1702,7 @@ fun LibraryScreen() {
                                     }
                                 }
                             }
-                            onDismissRequest()
+                            onDismiss()
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
                             Text(rating.name, Modifier.padding(start = 4.dp))
@@ -1713,8 +1713,8 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun VolumeOptionsMenu(onDismissRequest: ()->Unit) {
-            CommonPopupCard(onDismissRequest = onDismissRequest) {
+        fun VolumeOptionsMenu(onDismiss: ()->Unit) {
+            CommonPopupCard(onDismiss = onDismiss) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     feedsOptionsMap.entries.forEachIndexed { _, entry -> if (entry.key != "ParentVolume") entry.value() }
                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
@@ -1733,7 +1733,7 @@ fun LibraryScreen() {
                                     feedOperationText = "Processing"
                                     deleteVolumeTree(volumeToOperate!!)
                                     feedOperationText = ""
-                                    onDismissRequest()
+                                    onDismiss()
                                 }
                                 commonConfirm = null
                             },
@@ -1774,7 +1774,7 @@ fun LibraryScreen() {
             }
         }
 
-        if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismissRequest = {showRemoveFeedDialog = false}) {}
+        if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismiss = {showRemoveFeedDialog = false}) {}
 
         if (showChooseRatingDialog) ChooseRatingDialog(feedsSelected) { showChooseRatingDialog = false }
         if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
@@ -1783,8 +1783,8 @@ fun LibraryScreen() {
             runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.tags?.addAll(tags) } }
         }
         @Composable
-        fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        fun EditVolume(volume: Volume, onDismiss: () -> Unit) {
+            CommonPopupCard(onDismiss = { onDismiss() }) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf(volume.name) }
@@ -1813,14 +1813,14 @@ fun LibraryScreen() {
                         }
                     }
                     Row {
-                        Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                        Button({ onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                         Spacer(Modifier.weight(1f))
                         Button({
                             upsertBlk(volume) {
                                 it.name = name
                                 it.parentId = parent?.id ?: -1L
                             }
-                            onDismissRequest()
+                            onDismiss()
                         }) { Text(stringResource(R.string.confirm_label)) }
                     }
                 }
@@ -2045,7 +2045,7 @@ fun LibraryScreen() {
                     fun FeedsSpeedDial(selected: List<Feed>, modifier: Modifier = Modifier) {
                         val bgColor = MaterialTheme.colorScheme.tertiaryContainer
                         val fgColor = remember { complementaryColorOf(bgColor) }
-                        if (isFeedsOptionsExpanded) CommonPopupCard(onDismissRequest = { isFeedsOptionsExpanded = false }) {
+                        if (isFeedsOptionsExpanded) CommonPopupCard(onDismiss = { isFeedsOptionsExpanded = false }) {
                             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { feedsOptionsMap.entries.forEachIndexed { _, entry -> entry.value() } }
                         }
                         FloatingActionButton(containerColor = bgColor, contentColor = fgColor,

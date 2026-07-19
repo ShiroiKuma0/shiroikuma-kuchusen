@@ -327,8 +327,8 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
 }
 
 @Composable
-fun VolumeDialog(vm: AVPlayerVM, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun VolumeDialog(vm: AVPlayerVM, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         fun adaptionFactor(): Float = when {
             vm.volumeAdaption != VolumeAdaptionSetting.OFF -> vm.volumeAdaption.adaptionFactor
             vm.episodeFeed != null -> vm.episodeFeed!!.volumeAdaptionSetting.adaptionFactor
@@ -354,7 +354,7 @@ fun VolumeDialog(vm: AVPlayerVM, onDismissRequest: () -> Unit) {
                             if (setting != vm.volumeAdaption) {
                                 vm.volumeAdaption = setting
                                 theatres[vm.playerId].mPlayer?.setVolume(1.0f, 1.0f, adaptionFactor())
-                                onDismissRequest()
+                                onDismiss()
                             }
                         }
                     )

@@ -32,9 +32,6 @@ fun cleanupAlgorithm(): EpisodeCleanupAlgorithm {
     }
 }
 
-/**
- * A cleanup algorithm that removes any item that isn't a favorite but only if space is needed.
- */
 class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     private val candidates: List<Episode>
         get() {
@@ -68,10 +65,6 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     }
 }
 
-/**
- * A cleanup algorithm that removes any item that isn't in the queue and isn't a favorite
- * but only if space is needed.
- */
 class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     private val candidates: List<Episode>
         get() {
@@ -99,9 +92,6 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     }
 }
 
-/**
- * A cleanup algorithm that never removes anything
- */
 class APNullCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     public override suspend fun performCleanup(numToRemove: Int): Int {
         // never clean anything up
@@ -118,7 +108,6 @@ class APNullCleanupAlgorithm : EpisodeCleanupAlgorithm() {
 
 /** the number of days after playback to wait before an item is eligible to be cleaned up.
  * Fractional for number of hours, e.g., 0.5 = 12 hours, 0.0416 = 1 hour.   */
-
 class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupAlgorithm() {
     private val candidates: List<Episode>
         get() {
@@ -153,14 +142,6 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
 }
 
 abstract class EpisodeCleanupAlgorithm {
-    /**
-     * Deletes downloaded episodes that are no longer needed. What episodes are deleted and how many
-     * of them depends on the implementation.
-     * @param context     Can be used for accessing the database
-     * @param numToRemove An additional parameter. This parameter is either returned by getDefaultCleanupParameter
-     * or getPerformCleanupParameter.
-     * @return The number of episodes that were deleted.
-     */
     protected abstract suspend fun performCleanup(numToRemove: Int): Int
 
     protected suspend fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
@@ -177,31 +158,14 @@ abstract class EpisodeCleanupAlgorithm {
         return counter
     }
 
-    /**
-     * Returns a parameter for performCleanup. The implementation of this interface should decide how much
-     * space to free to satisfy the episode cache conditions. If the conditions are already satisfied, this
-     * method should not have any effects.
-     */
     protected abstract fun getDefaultCleanupParameter(): Int
-    /**
-     * Cleans up just enough episodes to make room for the requested number
-     * @param amountOfRoomNeeded the number of episodes we need space for
-     * @return The number of epiosdes that were deleted
-     */
     suspend fun makeRoomForEpisodes(amountOfRoomNeeded: Int): Int {
         val numToRemove = getNumEpisodesToCleanup(amountOfRoomNeeded)
         Logt("EpisodeCleanupAlgorithm", "makeRoomForEpisodes: $numToRemove")
         if (numToRemove <= 0) return 0
         return performCleanup(numToRemove)
     }
-    /**
-     * @return the number of episodes/items that *could* be cleaned up, if needed
-     */
     abstract fun getReclaimableItems(): Int
-    /**
-     * @param amountOfRoomNeeded the number of episodes we want to download
-     * @return the number of episodes to delete in order to make room
-     */
     fun getNumEpisodesToCleanup(amountOfRoomNeeded: Int): Int {
         if (amountOfRoomNeeded >= 0 && appPrefs.episodeCacheSize > EPISODE_CACHE_SIZE_UNLIMITED) {
             val downloadedEpisodes = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))

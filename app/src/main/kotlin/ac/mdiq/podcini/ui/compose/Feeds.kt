@@ -104,13 +104,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+fun ChooseRatingDialog(selected: List<Feed>, onDismiss: () -> Unit) {
+    CommonPopupCard(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (rating in Rating.entries.reversed()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
                     for (item in selected) upsertBlk(item) { it.rating = rating.code }
-                    onDismissRequest()
+                    onDismiss()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
                     Text(rating.name, Modifier.padding(start = 4.dp))
@@ -121,7 +121,7 @@ fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: ()->Unit) {
+fun RemoveFeedDialog(feeds: List<Feed>, onDismiss: () -> Unit, callback: ()->Unit) {
     val message = if (feeds.size == 1) {
         if (feeds[0].isLocal) stringResource(R.string.feed_delete_confirmation_local_msg, feeds[0].title?:"No title")
         else stringResource(R.string.feed_delete_confirmation_msg, feeds[0].title?:"No title")
@@ -129,7 +129,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     
     var textState by remember { mutableStateOf(TextFieldValue("")) }
 
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonDialogSurface(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message)
             var saveImportant by remember { mutableStateOf(true) }
@@ -158,7 +158,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                         }
                     } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
@@ -191,7 +191,7 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             fbb.buildPodcast(url, "", "") { feed, _ -> subscribe(feed) }
         }
     }
-    if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
+    if (showSubscribeDialog.value) CommonPopupCard(onDismiss = { showSubscribeDialog.value = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
             Text("Subscribe: \"${result.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
             Button(onClick = {
@@ -241,62 +241,38 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
 }
 
 @Composable
-fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, volume: Volume? = null, onDismissRequest: () -> Unit) {
-    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+fun AmendSyntheticFeed(feed_: Feed? = null, name_: String? = null, volume: Volume? = null, onDismiss: () -> Unit, cb: (Feed)->Unit) {
+    CommonPopupCard(onDismiss = { onDismiss() }) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
-            var name by remember { mutableStateOf(feed_?.title ?:"") }
+            var name by remember { mutableStateOf(feed_?.title ?: name_ ?: "") }
             TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
             var hasVideo by remember { mutableStateOf(true) }
-            var feedType by remember { mutableStateOf(FeedType.RSS) }
-            if (feed_ == null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
-                    Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                }
-                HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-                for (type in FeedType.entries) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
-                        Text(text = type.name, style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                    }
-                }
+            var feedType by remember { mutableStateOf<FeedType?>(FeedType.fromName(feed_?.type)) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
+                Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
             }
-            Row {
-                Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
-                Spacer(Modifier.weight(1f))
-                Button({
-                    val feed = feed_ ?: createSynthetic(0, name, hasVideo)
-                    if (feed_ == null) {
-                        feed.type = feedType.name
-                        if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
-                    }
-                    if (volume != null) feed.volumeId = volume.id
-                    upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }
-                    onDismissRequest()
-                }) { Text(stringResource(R.string.confirm_label)) }
-            }
-        }
-    }
-}
-
-@Composable
-fun CreateSyntheticFeed(volume: Volume? = null, onDismissRequest: () -> Unit, cb: (Feed)->Unit) {
-    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            var name by remember { mutableStateOf("") }
-            TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
             HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+            Text(text = stringResource(R.string.pref_feed_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            for (type in FeedType.entries + listOf(null)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
+                    Text(text = type?.name?:"null", style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
+                }
+            }
             Row {
-                Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                Button({ onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                 Spacer(Modifier.weight(1f))
                 Button({
-                    var feed = createSynthetic(0, name, true)
-                    feed.videoModePolicy = VideoMode.WINDOW
+                    var feed = feed_ ?: createSynthetic(0, name, hasVideo)
+                    feed.type = feedType?.name
+                    if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW
                     if (volume != null) feed.volumeId = volume.id
-                    feed = upsertBlk(feed) { it.customTitle = name }
+                    if (feed_ != null) feed.customTitle = if (name == feed.eigenTitle) null else name
+                    feed = upsertBlk(feed) { }
                     cb(feed)
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
@@ -304,9 +280,9 @@ fun CreateSyntheticFeed(volume: Volume? = null, onDismissRequest: () -> Unit, cb
 }
 
 @Composable
-fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, onDismissRequest: () -> Unit) {
+fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, onDismiss: () -> Unit) {
     val selectedItems = remember {  mutableStateMapOf<Int, Boolean>() }
-    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
         title = { Text("Import OPML file") },
         text = {
             var isSelectAllChecked by remember { mutableStateOf(false) }
@@ -346,17 +322,17 @@ fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, o
                         }
                     } catch (e: Throwable) { Logs("OpmlImportSelectionDialog", e) }
                 }
-                onDismissRequest()
+                onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
         },
-        dismissButton = { Button(onClick = { onDismissRequest() }) { Text("Dismiss") } }
+        dismissButton = { Button(onClick = { onDismiss() }) { Text("Dismiss") } }
     )
 }
 
 @Composable
-fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback: (VideoMode) -> Unit) {
+fun VideoModeDialog(initMode: VideoMode?, onDismiss: () -> Unit, callback: (VideoMode) -> Unit) {
     var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.DEFAULT.tag) }
-    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+    CommonPopupCard(onDismiss = { onDismiss() }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {
                 VideoMode.entries.forEach { mode ->
@@ -366,7 +342,7 @@ fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback
                             if (text != selectedOption) {
                                 selectedOption = text
                                 callback(mode)
-                                onDismissRequest()
+                                onDismiss()
                             }
                         })
                         Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))

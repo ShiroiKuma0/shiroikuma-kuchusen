@@ -646,6 +646,8 @@
     <string name="pref_video_quality_sum">Quality setting here takes precedence over the setting of prefLowQualityMedia for metered network.</string>
     <string name="pref_feed_associated_queue">Associated queue</string>
     <string name="pref_feed_associated_queue_sum">The queue to which epiosdes in the feed will added by default</string>
+    <string name="pref_feed_type">Feed type</string>
+    <string name="pref_feed_type_sum">Feed type is needed for properly accessing some properties of the feed. For generic feed (not handled optimally), type is better set to null. Otherwise, all media in the feed should better be of the same type.</string>
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
 

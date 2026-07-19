@@ -428,9 +428,9 @@ fun ImportExportScreen() {
 
 
     if (processingText.isNotBlank()) {
-        CommonPopupCard(onDismissRequest = { processingText = "" }) {
+        CommonPopupCard(onDismiss = { processingText = "" }) {
             Column {
-                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp))
+                CircularProgressIndicator(strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp))
                 Text(processingText, color = textColor, modifier = Modifier)
             }
         }

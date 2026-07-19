@@ -166,14 +166,14 @@ fun LogsScreen() {
     }
 
     @Composable
-    fun SharedDetailDialog(status: ShareLog, onDismissRequest: () -> Unit) {
+    fun SharedDetailDialog(status: ShareLog, onDismiss: () -> Unit) {
         val message = when (status.status) {
             ShareLog.Status.ERROR.ordinal -> status.details
             ShareLog.Status.SUCCESS.ordinal -> stringResource(R.string.download_successful)
             ShareLog.Status.EXISTING.ordinal -> stringResource(R.string.share_existing)
             else -> ""
         }
-        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
                 
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
@@ -182,7 +182,7 @@ fun LogsScreen() {
                     Spacer(Modifier.weight(0.5f))
                     Text(stringResource(R.string.copy_to_clipboard), color = textColor, modifier = Modifier.clickable { copyToClipboard(message) })
                     Spacer(Modifier.weight(0.3f))
-                    Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                    Text("OK", color = textColor, modifier = Modifier.clickable { onDismiss() })
                     Spacer(Modifier.weight(0.2f))
                 }
             }
@@ -194,10 +194,10 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val showSharedDialog = remember { mutableStateOf(false) }
         val sharedlogState = remember { mutableStateOf(ShareLog()) }
-        if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismissRequest = { showSharedDialog.value = false })
+        if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismiss = { showSharedDialog.value = false })
 
         var sharedUrl by remember { mutableStateOf("") }
-        if (sharedUrl.isNotBlank()) ConfirmAddEpisodes(listOf(sharedUrl), onDismissRequest = { sharedUrl = "" })
+        if (sharedUrl.isNotBlank()) ConfirmAddEpisodes(listOf(sharedUrl), onDismiss = { sharedUrl = "" })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
@@ -262,10 +262,9 @@ fun LogsScreen() {
     }
 
     @Composable
-    fun SubscriptionDetailDialog(log: SubscriptionLog, onDismissRequest: () -> Unit) {
-        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+    fun SubscriptionDetailDialog(log: SubscriptionLog, onDismiss: () -> Unit) {
+        CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(log.title, color = textColor)
                 Text(log.comment, color = textColor)
@@ -273,7 +272,7 @@ fun LogsScreen() {
                 Text("Link: " + log.link, color = textColor)
                 Row(Modifier.padding(top = 10.dp)) {
                     Spacer(Modifier.weight(0.3f))
-                    Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                    Text("OK", color = textColor, modifier = Modifier.clickable { onDismiss() })
                     Spacer(Modifier.weight(0.2f))
                 }
             }
@@ -285,7 +284,7 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val showDialog = remember { mutableStateOf(false) }
         val dialogParam = remember { mutableStateOf(SubscriptionLog()) }
-        if (showDialog.value) SubscriptionDetailDialog(log = dialogParam.value, onDismissRequest = { showDialog.value = false })
+        if (showDialog.value) SubscriptionDetailDialog(log = dialogParam.value, onDismiss = { showDialog.value = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -319,7 +318,7 @@ fun LogsScreen() {
     }
 
     @Composable
-    fun DownlaodDetailDialog(status: DownloadResult, onDismissRequest: () -> Unit) {
+    fun DownlaodDetailDialog(status: DownloadResult, onDismiss: () -> Unit) {
         var url by remember { mutableStateOf("unknown") }
         var feed by remember(status.feedfileId) { mutableStateOf<Feed?>(null) }
         var media by remember(status.feedfileId) { mutableStateOf<Episode?>(null) }
@@ -338,7 +337,7 @@ fun LogsScreen() {
         }
         val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
         val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
-        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
                 
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
@@ -352,7 +351,7 @@ fun LogsScreen() {
                     Text(bynText, color = textColor, modifier = Modifier.clickable {
                         if (feed != null) navTo(FeedDetails(feedId=feed!!.id, modeName=FeedScreenMode.Info.name))
                         else if (media != null) navTo(EpisodeInfo(episodeId=media!!.id))
-                        onDismissRequest()
+                        onDismiss()
                     })
                     Spacer(Modifier.weight(0.2f))
                 }
@@ -365,7 +364,7 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val showDialog = remember { mutableStateOf(false) }
         val dialogParam = remember { mutableStateOf(DownloadResult()) }
-        if (showDialog.value) DownlaodDetailDialog(status = dialogParam.value, onDismissRequest = { showDialog.value = false })
+        if (showDialog.value) DownlaodDetailDialog(status = dialogParam.value, onDismiss = { showDialog.value = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.downloadLogs) { position, status ->

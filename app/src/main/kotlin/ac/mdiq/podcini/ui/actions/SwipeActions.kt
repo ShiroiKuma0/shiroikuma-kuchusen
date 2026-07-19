@@ -61,7 +61,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
     }
 
     @Composable
-    fun SwipeActionsSettingDialog(onDismissRequest: () -> Unit) {
+    fun SwipeActionsSettingDialog(onDismiss: () -> Unit) {
         val context by rememberUpdatedState(LocalContext.current)
 
         val leftAction = remember { mutableStateOf(left) }
@@ -71,7 +71,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
         var direction by remember { mutableIntStateOf(0) }
         var showPickerDialog by remember { mutableStateOf(false) }
         if (showPickerDialog) {
-            CommonPopupCard(onDismissRequest = { showPickerDialog = false }) {
+            CommonPopupCard(onDismiss = { showPickerDialog = false }) {
                 LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(8.dp)) {
                     items(keys) { key ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)
@@ -89,7 +89,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
                     }
                 }
             }
-        } else CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+        } else CommonPopupCard(onDismiss = { onDismiss() }) {
             Logd("SwipeActions", "SwipeActions tag: $tag")
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 val forScreen = remember(tag) {
@@ -134,7 +134,7 @@ class SwipeActions(private val tag: String, private val isSubscribed: Boolean = 
                 Button(onClick = {
                     initActions("${rightAction.value.id},${leftAction.value.id}")
                     runOnIOScope { upsert(appAttribs) { it.swipeActionsMap[tag] = "${rightAction.value.id},${leftAction.value.id}" } }
-                    onDismissRequest()
+                    onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }
             }
         }

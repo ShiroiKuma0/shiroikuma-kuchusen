@@ -401,7 +401,7 @@ fun QueuesScreen(id: Long = -1L) {
             }
         }
 
-        if (showAddQueueDialog.value) CommonPopupCard(onDismissRequest = { showAddQueueDialog.value = false }) {
+        if (showAddQueueDialog.value) CommonPopupCard(onDismiss = { showAddQueueDialog.value = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 var newName by remember { mutableStateOf("") }
                 TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
@@ -420,7 +420,7 @@ fun QueuesScreen(id: Long = -1L) {
 
         swipeActions.ActionOptionsDialog()
 
-        if (showSortDialog) EpisodeSortDialog(initOrder = vm.curQueue.sortOrder, onDismissRequest = { showSortDialog = false },
+        if (showSortDialog) EpisodeSortDialog(initOrder = vm.curQueue.sortOrder, onDismiss = { showSortDialog = false },
             includeConditionals = listOf(EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1, EpisodeSortOrder.SMART_SHUFFLE_ASC, EpisodeSortOrder.SMART_SHUFFLE_DESC )) { order ->
             upsertBlk(vm.curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
             runOnIOScope {
