@@ -18,6 +18,8 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.SourceGatewayClient
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
@@ -159,6 +161,8 @@ abstract class MediaPlayerBase {
 
     var playingVideo by mutableStateOf(false)
 
+    var curClient: SourceGatewayClient? = null
+
 //    internal var videoSize: Pair<Int, Int>? = null
 //    open val videoWidth: Int = 0
 //    open val videoHeight: Int = 0
@@ -238,6 +242,7 @@ abstract class MediaPlayerBase {
             episode_ != null -> {
                 bitrate = 0
                 curEpisode = episode_
+                curClient = clientByEpisode(curEpisode!!)
                 playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
                 skipSilence = null
                 shouldRepeat = false

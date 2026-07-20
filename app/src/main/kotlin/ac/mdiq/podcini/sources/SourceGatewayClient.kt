@@ -13,7 +13,7 @@ import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -49,6 +49,7 @@ fun clientByFeed(feed: Feed): SourceGatewayClient? {
 }
 
 fun clientByEpisode(episode: Episode): SourceGatewayClient? {
+    if (!episode.feedType.isNullOrBlank()) return typeClientMap[episode.feedType!!]
     if (!episode.feed?.type.isNullOrBlank()) return typeClientMap[episode.feed!!.type!!]
     val client = sourceClients.firstOrNull { it.withProviderBlocking { p-> p.canHandleUrl(episode.downloadUrl) == 1 } == true }
     return client
@@ -103,7 +104,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
     val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
     val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
     if (resolveInfos.isEmpty()) {
-        Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_app)}' is turned off")
+        Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_apps)}' is turned off")
         upsert(appPrefs) { p-> p.loadExternalApp = false }
         return listOf()
     }

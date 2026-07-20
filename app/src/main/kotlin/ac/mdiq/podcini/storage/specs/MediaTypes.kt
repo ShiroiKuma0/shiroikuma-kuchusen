@@ -21,3 +21,14 @@ enum class MediaType {
         }
     }
 }
+
+enum class FeedType {
+    RSS,
+    ATOM,
+    YouTube,
+    PeerTube,
+    SoundCloud;
+    companion object {
+        fun fromName(name: String?): FeedType? = FeedType.entries.firstOrNull { it.name == name }
+    }
+}

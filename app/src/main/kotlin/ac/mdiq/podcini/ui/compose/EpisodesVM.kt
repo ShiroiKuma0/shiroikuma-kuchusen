@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
+import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
@@ -19,6 +20,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -35,6 +37,8 @@ import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.handleBackSubScreens
 import ac.mdiq.podcini.ui.screens.navTo
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -202,12 +206,22 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     var showShelveDialog by remember { mutableStateOf(false) }
     var showMulticastDialog by remember { mutableStateOf(false) }
     var showEraseDialog by remember { mutableStateOf(false) }
-    val ytUrls = remember { mutableListOf<String>() }
+    val clientEpisodes = remember { mutableListOf<Episode>() }
     var showAddEpisodesDialog by remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
-        if (showAddEpisodesDialog) ConfirmAddEpisodes(ytUrls, onDismiss = { showAddEpisodesDialog = false })
+        if (showAddEpisodesDialog) ConfirmAddToFeed(onDismiss = { showAddEpisodesDialog = false }) { toFeed->
+            val existing = toFeed.episodes
+            for (episode in clientEpisodes) {
+                if (existing.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) continue
+                Logd(TAG, "addToFeed adding new episode: ${episode.title}")
+                episode.id = getEntityId()
+                episode.feedId = toFeed.id
+                upsertBlk(episode) {}
+            }
+            EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
+        }
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
@@ -710,13 +724,15 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                                     onSelected()
                                     CoroutineScope(Dispatchers.IO).launch {
-                                        ytUrls.clear()
+                                        clientEpisodes.clear()
                                         for (e in selected) {
                                             val client = clientByEpisode(e)
-                                            if (client != null) ytUrls.add(e.downloadUrl!!)
-                                            else addRemoteToMiscSyndicate(e)
+                                            if (client != null) {
+                                                e.feedType = client.attributes?.feedType
+                                                clientEpisodes.add(e)
+                                            } else addRemoteToMiscSyndicate(e)
                                         }
-                                        if (ytUrls.isNotEmpty()) showAddEpisodesDialog = true
+                                        if (clientEpisodes.isNotEmpty()) showAddEpisodesDialog = true
                                     }
                                 }) {
                                     Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")

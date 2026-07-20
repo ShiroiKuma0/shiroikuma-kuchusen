@@ -179,6 +179,7 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Library.name to NavItem(Library,R.drawable.ic_subscriptions, R.string.library),
     Screens.Queues.name to NavItem(Queues(), R.drawable.ic_playlist_play, R.string.queue_label),
     Screens.Facets.name to NavItem(Facets(), R.drawable.baseline_view_in_ar_24, R.string.facets),
+    Screens.Search.name to NavItem(Search, R.drawable.ic_search, R.string.search_label),
     Screens.Logs.name to NavItem(Logs, R.drawable.ic_history, R.string.logs_label),
     Screens.Statistics.name to NavItem(Statistics, R.drawable.ic_chart_box, R.string.statistics_label),
     Screens.FindFeeds.name to NavItem(FindFeeds, R.drawable.ic_add, R.string.add_feed_label),

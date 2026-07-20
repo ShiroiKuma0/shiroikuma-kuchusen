@@ -12,8 +12,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.receiver.PodciniWidget
-import ac.mdiq.podcini.sources.SourceGatewayClient
-import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -622,14 +620,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bufferingUpdateListener = null
     }
 
-    fun mediaSourceFromClient(media: Episode, needVideo: Boolean, client:  SourceGatewayClient): MediaSource? {
+    fun mediaSourceFromClient(media: Episode, needVideo: Boolean): MediaSource? {
+        if (curClient == null)  return null
+
         var mSource: MediaSource? = null
         val context = getAppContext()
         val metadata = buildMetadata(media)
-//        if (ytMediaSpecs.media.id != media.id) ytMediaSpecs = YTMediaSpecs(media)
 
         fun setMuxedVideo() {
-            videoSpecs = client.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
+            videoSpecs = curClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
             if (videoSpecs.isNotEmpty()) {
                 val videoSpec = setVideoStream(videoSpecs, media)
                 if (!videoSpec.url.isNullOrBlank()) {
@@ -643,8 +642,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
         audioSpecs = listOf()
         videoSpecs = listOf()
-        if (client.attributes?.hasSeparateAVs == true || client.attributes?.hasVideo != true) {
-            audioSpecs = client.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
+        if (curClient?.attributes?.hasSeparateAVs == true || curClient?.attributes?.hasVideo != true) {
+            audioSpecs = curClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
             var aSource: ProgressiveMediaSource? = null
             if (audioSpecs.isNotEmpty()) {
                 Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
@@ -657,10 +656,10 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 } else Loge(TAG, "audioStream or url is null or blank")
             } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
 
-            if ((aSource == null || needVideo) && client.attributes?.hasVideo == true) {
+            if ((aSource == null || needVideo) && curClient?.attributes?.hasVideo == true) {
                 if (aSource == null) setMuxedVideo()
                 else {
-                    videoSpecs = client.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+                    videoSpecs = curClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
                     Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
                     if (videoSpecs.isNotEmpty()) {
                         val videoSpec = setVideoStream(videoSpecs, media)
@@ -696,13 +695,13 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val password = feed?.password
         bitrate = 0
         try {
-            val client = clientByEpisode(media)
-            mediaSource = if (client != null) mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, client) else null
+            mediaSource = mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)
             if (mediaSource != null) {
                 Logd(TAG, "prepareDataSource setting with mediaSource")
                 mediaItem = mediaSource?.mediaItem
                 setSourceCredentials(user, password)
             } else {
+                curClient = null
                 Logd(TAG, "prepareDataSource setting date source")
                 prepareDataSource(media, url, user, password)
             }

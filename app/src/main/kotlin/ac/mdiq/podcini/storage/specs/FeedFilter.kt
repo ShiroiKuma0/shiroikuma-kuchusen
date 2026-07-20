@@ -3,7 +3,7 @@ package ac.mdiq.podcini.storage.specs
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 
 class FeedFilter(vararg properties_: String) {

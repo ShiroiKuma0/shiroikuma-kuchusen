@@ -370,7 +370,7 @@ fun NetworkStorageScreen() {
             }
             Text(stringResource(R.string.network_identifier_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
-        TitleSummarySwitchRow(R.string.pref_use_external_app, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
+        TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
             upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
             discoverSources(it)
         }

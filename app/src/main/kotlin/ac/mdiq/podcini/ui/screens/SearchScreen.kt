@@ -2,8 +2,10 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.MediaSearcher
 import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.sources.clientBySearcher
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.queueToVirtual
@@ -139,7 +141,7 @@ class SearchVM: ViewModel() {
     internal var pafeeds by mutableStateOf<List<PAFeed>>(listOf())
     internal var feeds by mutableStateOf<List<Feed>>(listOf())
 
-    var searchersAll: List<MediaSearcher> = listOf()
+    var searchersAll = mutableStateListOf<MediaSearcher>()
 
     var searchers = mutableStateListOf<MediaSearcher>()
 
@@ -156,10 +158,11 @@ class SearchVM: ViewModel() {
     init {
         Logd(TAG, "init $curSearchString")
         algo.setSearchByAll()
-        searchersAll = sourceClients.mapNotNull { it.mediaSearcher }
+        searchersAll.addAll(sourceClients.mapNotNull { it.mediaSearcher })
         searchers.addAll(searchersAll)
         viewModelScope.launch { snapshotFlow { Pair(curSearchString, searchers.size) }.collectLatest {
             onlineMedia.clear()
+            onlineMediaCache.remove(curSearchString)
             if (selectedTabIndex == 2) searchMediaOnline()
         } }
         viewModelScope.launch { snapshotFlow { selectedTabIndex }.collectLatest {
@@ -179,23 +182,28 @@ class SearchVM: ViewModel() {
             return
         }
         searchingOnline = true
-        for (s in searchers) {
-            val items = s.searchQuick(curSearchString)
-            Logd(TAG, "searchQuick items: ${items.size}")
+        fun addItems( items: List<EpisodeIPC>, type: String?) {
             if (items.isNotEmpty()) {
-                onlineMedia.addAll(items.map { it.toEpisode().apply { id = getEntityId() } })
+                onlineMedia.addAll(items.map { it.toEpisode().apply {
+                    id = getEntityId()
+                    feedType = type
+                } })
                 onlineMedia.reorderWith(episodeSortOrder)
             }
+        }
+        for (s in searchers) {
+            val type = clientBySearcher(s.name)?.attributes?.feedType
+            val items = s.searchQuick(curSearchString)
+            Logd(TAG, "searchQuick items: ${items.size}")
+            addItems(items, type)
         }
         var counter = onlineMedia.size
         while (onlineMedia.size < onlineMediaLimit) {
             for (s in searchers) {
+                val type = clientBySearcher(s.name)?.attributes?.feedType
                 val items = s.getMoreItems()
                 Logd(TAG, "getMoreItems items: ${items.size}")
-                if (items.isNotEmpty()) {
-                    onlineMedia.addAll(items.map { it.toEpisode().apply { id = getEntityId() } })
-                    onlineMedia.reorderWith(episodeSortOrder)
-                }
+                addItems(items, type)
             }
             if (counter >= onlineMedia.size) break
             counter = onlineMedia.size
@@ -360,7 +368,7 @@ fun SearchScreen() {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     vm.tabTitles.forEachIndexed { index, titleRes ->
-                        Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp), color = if (vm.selectedTabIndex == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
+                        if (index != 2 || vm.searchersAll.isNotEmpty()) Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp), color = if (vm.selectedTabIndex == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
                             selected = vm.selectedTabIndex == index, onClick = { vm.selectedTabIndex = index }, text = {
                             Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, color = if (vm.selectedTabIndex == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface })
                         })

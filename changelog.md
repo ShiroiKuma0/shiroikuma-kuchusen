@@ -1,3 +1,12 @@
+# 12.4.8
+
+* in SearchScreen, Remote tab is not shown external apps are not used/connected
+* in Remote tab of SearchScreen, ensure to clear cache and re-search when searchers are changed
+* improved getting client by media, fixed PeerTube media not playing in Remote tab of SearchScreen
+* added SearchScreen access in the drawer
+* "Use external app" is now "Use external apps"
+* some code refactoring
+
 # 12.4.7
 
 * in Remote tab in SearchScreen, on popup of "Reserve all"

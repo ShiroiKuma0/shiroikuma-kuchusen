@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.net.feed
 
-import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed

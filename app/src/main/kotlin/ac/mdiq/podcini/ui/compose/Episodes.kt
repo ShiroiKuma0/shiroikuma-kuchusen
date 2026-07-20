@@ -16,11 +16,9 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.clientshaveLikeCounts
 import ac.mdiq.podcini.sources.clientshaveViewCounts
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allFeeds
@@ -44,11 +42,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.intervalMillis
-import ac.mdiq.podcini.storage.model.ShareLog
-import ac.mdiq.podcini.storage.model.ShareLog.Status
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
-import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -1368,8 +1363,7 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
 }
 
 @Composable
-fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismiss: () -> Unit) {
-    val YTSyndMap = remember { mutableStateMapOf<Int, Boolean>() }
+fun ConfirmAddToFeed(onDismiss: () -> Unit, cb: suspend (Feed)-> Unit) {
     var synthetics by remember { mutableStateOf(allFeeds.filter { it.id in 1..1000 }) }
     Dialog(onDismissRequest = { onDismiss() }) {
         Card(modifier = Modifier.height(350.dp).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
@@ -1377,15 +1371,8 @@ fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismiss: () -> Unit) {
             var showComfirmButton by remember { mutableStateOf(toFeed != null) }
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.add_to_feed), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-//                if (YTSyndMap.size < 4) {
-//                    Button(onClick = {
-//                        createYTSyndicates()
-//                        synthetics = allFeeds.filter { it.id in 1..1000 }
-//                    }) { Text(stringResource(R.string.create_YT_syndicates)) }
-//                }
                 if (synthetics.isNotEmpty()) {
                     Text(text = stringResource(R.string.add_to_synthetic_note), style = MaterialTheme.typography.bodySmall, color = textColor)
-                    LaunchedEffect(synthetics) { synthetics.forEach { f-> if (f.id <= 4) YTSyndMap[f.id.toInt()] = true } }
                     LazyColumn(modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.Top) {
                         items(synthetics, key = { it.id }) { f ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1403,48 +1390,8 @@ fun ConfirmAddEpisodes(sharedUrls: List<String>, onDismiss: () -> Unit) {
                     Button(onClick = {
                         showComfirmButton = false
                         showProgress = true
-                        CoroutineScope(Dispatchers.IO).launch {
-                            fun addToSyndicate(episode: Episode, feed: Feed) : Int {
-                                Logd(TAG, "addToYoutubeSyndicate: feed: ${feed.title}")
-                                val episodes = feed.episodes
-                                if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return Status.EXISTING.ordinal
-                                Logd(TAG, "addToSyndicate adding new episode: ${episode.title}")
-                                episode.id = getEntityId()
-                                episode.feedId = feed.id
-                                upsertBlk(episode) {}
-                                EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-                                return 1
-                            }
-
-                            for (url in sharedUrls) {
-                                val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
-                                suspend fun addEpisode(client: SourceGatewayClient,  url: String) {
-                                    val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
-                                    if (episode != null) {
-                                        val status = addToSyndicate(episode, toFeed!!)
-                                        if (log != null) upsert(log) {
-                                            it.title = episode.title
-                                            it.status = status
-                                        }
-                                    } else {
-                                        Loge(TAG, "Error adding media at url: $url")
-                                        if (log != null) upsert(log) { it.details = "Can not build episode" }
-                                    }
-                                }
-                                try {
-                                    var client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) == 1 } == true }
-                                    if (client != null) addEpisode(client, url)
-                                    else {
-                                        client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(url) == 0 } == true }
-                                        if (client != null) addEpisode(client, url)
-                                    }
-                                } catch (e: Throwable) {
-                                    Loge(TAG, "Receive share error: ${e.message}")
-                                    if (log != null) upsert(log) { it.details = e.message ?: "error" }
-                                }
-                            }
-                            withContext(Dispatchers.Main) { onDismiss() }
-                        }
+                        CoroutineScope(Dispatchers.IO).launch { cb(toFeed!!) }
+                        onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
                 if (showProgress) CircularProgressIndicator(strokeWidth = 4.dp, modifier = Modifier.padding(start = 40.dp, end = 40.dp).width(30.dp).height(30.dp))

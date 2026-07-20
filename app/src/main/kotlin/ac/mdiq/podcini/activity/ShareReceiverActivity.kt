@@ -3,7 +3,9 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Extras
+import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.storage.database.addClientEpisode
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -11,7 +13,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.utils.toSafeUri
-import ac.mdiq.podcini.ui.compose.ConfirmAddEpisodes
+import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.LayoutMode
@@ -68,16 +70,25 @@ class ShareReceiverActivity : ComponentActivity() {
 
         var addAsNew by mutableStateOf(false)
         var failed by mutableStateOf(false)
+        var client by mutableStateOf<SourceGatewayClient?>(null)
         var existing by mutableStateOf<List<Episode>?>(null)
         setContent { PodciniTheme {
             when {
                 failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
                     confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddEpisodes(listOf(text), onDismiss = { finish() })
+                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed->
+                    val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
+                    if (client != null) addClientEpisode(client!!, text, toFeed, log)
+                    else Loge(TAG, "Failed adding episode: client is null")
+                }
                 existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddEpisodes(listOf(text), onDismiss = { finish() })
+                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed->
+                    val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
+                    if (client != null) addClientEpisode(client!!, text, toFeed, log)
+                    else Loge(TAG, "Failed adding episode: client is null")
+                }
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {
@@ -101,8 +112,8 @@ class ShareReceiverActivity : ComponentActivity() {
         runOnIOScope {
             var log = ShareLog(text)
             log = upsertBlk(log) {}
-            receiveShared(text, this, true, log) { f, ex ->
-                failed = f
+            receiveShared(text, this, true, log) { c, ex ->
+                client = c
                 existing = ex
             }
         }
@@ -111,7 +122,7 @@ class ShareReceiverActivity : ComponentActivity() {
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
 
-        fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (Boolean, List<Episode>)->Unit) {
+        fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
             Logd(TAG, "receiveShared sharedText: $sharedText")
             when {
 //            plain text
@@ -146,7 +157,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         else {
                             val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
                             if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Media.name }
-                            extMediaCB(false, existing)
+                            extMediaCB(client, existing)
                             return
                         }
                     }
@@ -157,7 +168,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         if (episode != null) {
                             val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
                             if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Media.name }
-                            extMediaCB(false, existing)
+                            extMediaCB(client, existing)
                             return
                         }
                     }

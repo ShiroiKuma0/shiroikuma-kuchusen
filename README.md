@@ -53,7 +53,7 @@ If you intend to sync through a server, NextCloud server has been tested, but no
 
 ## Usage and notable features description 
 
-To use an external server app, you need to first install the app. Then in Podcini.A -> Settings->Network and Storage, enable "Use external app".
+To use external server apps, you need to first install the apps. Then in Podcini.A -> Settings->Network and Storage, enable "Use external apps".
  
 <details> <summary>Click to expand</summary>
 

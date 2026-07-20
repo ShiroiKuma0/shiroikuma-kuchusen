@@ -5,6 +5,8 @@ import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.net.download.RequestTye
 import ac.mdiq.podcini.net.feed.FeedUpdater
+import ac.mdiq.podcini.sources.sourceClients
+import ac.mdiq.podcini.storage.database.addClientEpisode
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -18,7 +20,7 @@ import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.ConfirmAddEpisodes
+import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -197,7 +199,15 @@ fun LogsScreen() {
         if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismiss = { showSharedDialog.value = false })
 
         var sharedUrl by remember { mutableStateOf("") }
-        if (sharedUrl.isNotBlank()) ConfirmAddEpisodes(listOf(sharedUrl), onDismiss = { sharedUrl = "" })
+        if (sharedUrl.isNotBlank()) ConfirmAddToFeed(onDismiss = { sharedUrl = "" }) { toFeed->
+            val log = realm.query(ShareLog::class).query("url == $0", sharedUrl).first().find()
+            var client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 1 } == true }
+            if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
+            else {
+                client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 0 } == true }
+                if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
+            }
+        }
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->

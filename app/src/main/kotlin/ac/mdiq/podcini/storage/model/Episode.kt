@@ -79,6 +79,8 @@ class Episode : RealmObject {
 
     var trackNumber: Int = 0
 
+    var feedType: String? = null
+
     @Ignore
     val feed: Feed?
         get() = if (feedId != null) feedsMap[feedId!!] else null

@@ -20,7 +20,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.FeedType
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.allVolumes
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
