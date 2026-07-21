@@ -427,7 +427,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             return
         }
         offloadEnabled = enabled
-        LogtFor(TAG, curEpisode?.id, "switchOffload set audio offload $offloadEnabled")
+        Logt(TAG, "switchOffload set audio offload $offloadEnabled")
 
         val wasPlaying = castPlayer!!.isPlaying
         castPlayer!!.pause()

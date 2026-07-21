@@ -8,7 +8,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.isCallable
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
 import ac.mdiq.podcini.utils.shareLink
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -62,7 +62,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if ((ShownotesCleaner.isTimecodeLink(url) || ShownotesCleaner.isHTTPTimecodeLink(url)) && timecodeSelectedListener != null) timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
-                else openInBrowser(url)
+                else openInSystemDefault(url)
                 return true
             }
 
@@ -101,7 +101,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         if (selectedUrl == null) return false
         val itemId = item.itemId
         when (itemId) {
-            R.id.open_in_browser_item -> if (selectedUrl != null) openInBrowser(selectedUrl!!)
+            R.id.open_in_browser_item -> if (selectedUrl != null) openInSystemDefault(selectedUrl!!)
             R.id.share_url_item -> if (selectedUrl != null) shareLink(context, selectedUrl!!)
             R.id.copy_url_item -> {
                 val clipData: ClipData = ClipData.newPlainText(selectedUrl, selectedUrl)

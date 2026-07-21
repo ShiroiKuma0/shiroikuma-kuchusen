@@ -60,6 +60,10 @@ class Episode : RealmObject {
 
     var mimeType: String? = ""
 
+    @Ignore
+    val mediaType: MediaType
+        get() = MediaType.fromMimeType(mimeType)
+
     /**
      * The id/guid that can be found in the rss/atom feed. Might not be set, especially in youtube feeds
      */
@@ -74,6 +78,15 @@ class Episode : RealmObject {
     var transcript: String? = null
 
     var link: String? = null
+    @Ignore
+    val linkOrFeedlink: String?
+        get() {
+            return when {
+                !link.isNullOrBlank() -> link
+                !feed?.link.isNullOrEmpty() -> feed!!.link
+                else -> null
+            }
+        }
 
     var pubDate: Long = 0
 
@@ -337,18 +350,6 @@ class Episode : RealmObject {
         }
     }
 
-    /**
-     * Get the link for the feed item for the purpose of Share. It fallbacks to
-     * use the feed's link if the named feed item has no link.
-     */
-    fun getLinkWithFallback(): String? {
-        return when {
-            !link.isNullOrBlank() -> link
-            !feed?.link.isNullOrEmpty() -> feed!!.link
-            else -> null
-        }
-    }
-
 //    override fun toString(): String {
 //        return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
 //    }
@@ -377,8 +378,6 @@ class Episode : RealmObject {
         this.downloadUrl = downloadUrl
 //        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
     }
-
-    fun getMediaType(): MediaType = MediaType.fromMimeType(mimeType)
 
     suspend fun getMediaFileUriString(): String {
         val fileName = getMediafilename()

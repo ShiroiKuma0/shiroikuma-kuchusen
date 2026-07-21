@@ -64,7 +64,7 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.isCallable
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
 import ac.mdiq.podcini.utils.shareLink
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ActivityNotFoundException
@@ -469,7 +469,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 })
                                 if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
                                     val isCallable = if (!feed?.link.isNullOrEmpty()) isCallable(Intent(Intent.ACTION_VIEW, feed!!.link!!.toSafeUri())) else false
-                                    if (isCallable) openInBrowser(feed!!.link!!)
+                                    if (isCallable) openInSystemDefault(feed!!.link!!)
                                     else Loge(TAG, "feed link is not valid: ${feed?.link}")
                                     expanded = false
                                 })
@@ -616,7 +616,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 }
                 AsyncImage(model = feed?.imageUrl ?: "", contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
                 Text(text = feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
-                    onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInBrowser(feed!!.downloadUrl!!) },
+                    onClick = { if (!feed?.downloadUrl.isNullOrBlank()) openInSystemDefault(feed!!.downloadUrl!!) },
                     onLongClick = {
                         if (!feed?.downloadUrl.isNullOrBlank()) {
                             val url: String = feed!!.downloadUrl!!

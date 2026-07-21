@@ -1,6 +1,18 @@
+# 12.4.9
+
+* in PlayerDetailed
+	* added media url
+	* external media panel is shown only when not playing 
+	* when changing audio stream in the panel, clears the media from cache first
+* both url in EpisodeInfo and PlayerDetailed are long-clickable for sharing
+* in PlayerUI, fast rewind icon is changed to skipback and rewind icon (long-click rewinds to beginning)
+* adjusted Feed scoring algorithm a bit: partially played media does not penalize if the media is given a higher rating than OK
+* toasting of audio offload switching is no longer tied to a media
+* some code cleaning and refactoring
+
 # 12.4.8
 
-* in SearchScreen, Remote tab is not shown external apps are not used/connected
+* in SearchScreen, Remote tab is not shown if external apps are not used/connected
 * in Remote tab of SearchScreen, ensure to clear cache and re-search when searchers are changed
 * improved getting client by media, fixed PeerTube media not playing in Remote tab of SearchScreen
 * added SearchScreen access in the drawer

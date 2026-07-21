@@ -41,7 +41,8 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatShortFileSize
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
+import ac.mdiq.podcini.utils.shareLink
 import android.speech.tts.TextToSpeech
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -235,7 +236,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     IconButton(onClick = { comboAction.performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     if (!isExtFeed(episode.feed) && !episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
-                    IconButton(onClick = { episode.getLinkWithFallback()?.let { openInBrowser(it) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
+                    IconButton(onClick = { episode.linkOrFeedlink?.let { openInSystemDefault(it) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
@@ -243,7 +244,6 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                                 val notes = episode.description
                                 if (!notes.isNullOrEmpty()) {
                                     val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                                    val context = context
                                     val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
                                     context.startActivity(intent)
                                 }
@@ -316,11 +316,12 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
                 TopBar()
                 Column(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp)) {
-                    EpisodeDetails(episode) { episodeForInfo =  null }
+                    EpisodeDetails(episode)
                     AsyncImage(model = ImageRequest.Builder(context).data(episode.imageUrl ?: episodeFeed?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
-                    Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable {
-                        if (!episode.link.isNullOrBlank()) openInBrowser(episode.link!!)
-                    })
+                    Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
+                        onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
+                        onLongClick = { if (!episode.link.isNullOrBlank()) shareLink(context, episode.link!!) }
+                    ) )
                     Text("Time spent: " + durationStringShort(episode.timeSpent, true))
                     Text("Played duration: " + durationStringShort(episode.playedDuration.toLong(), true))
                 }
@@ -505,7 +506,7 @@ fun EpisodeWebView(episode: Episode) {
                             webViewClient = object : WebViewClient() {
                                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                                     val url = request?.url?.toString() ?: return false
-                                    openInBrowser(url)
+                                    openInSystemDefault(url)
                                     return true
                                 }
                                 override fun onPageFinished(view: WebView?, url: String?) {

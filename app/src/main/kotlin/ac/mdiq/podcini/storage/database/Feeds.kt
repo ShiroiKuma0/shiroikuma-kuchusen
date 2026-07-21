@@ -365,7 +365,7 @@ suspend fun sumup(feed_: Feed) {
         if (e.playState >= EpisodeState.PROGRESS.code) {
             scoreCount++
             if (e.rating != Rating.UNRATED.code) sumR += e.rating
-            if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
+            if (e.playState >= EpisodeState.SKIPPED.code) sumR += if (e.rating > Rating.OK.code) 1.0 else - 0.5 + 1.0 * e.playedDuration / e.duration
             else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
         }
     }
@@ -456,7 +456,7 @@ suspend fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, 
             episode.id = idLong++
             episode.feedId = savedFeed.id
             if (appPrefs.fetchmediaSizes && !savedFeed.isLocal && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(false)
-            if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
+            if (!savedFeed.hasVideoMedia && episode.mediaType == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             savedFeedAssistant.addidvToMap(episode)
             val pubDate = episode.pubDate
             if (priorMostRecentDate == null || priorMostRecentDate < pubDate || priorMostRecentDate == pubDate) {
@@ -550,7 +550,7 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
         episode.id = idLong++
         episode.feedId = savedFeed.id
         if (appPrefs.fetchmediaSizes && !savedFeed.isLocal && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
-        if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
+        if (!savedFeed.hasVideoMedia && episode.mediaType == MediaType.VIDEO) savedFeed.hasVideoMedia = true
 
         Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
         episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }

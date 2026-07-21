@@ -17,7 +17,7 @@ import ac.mdiq.podcini.ui.screens.defaultNavKey
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context.CLIPBOARD_SERVICE
@@ -201,9 +201,9 @@ fun PrefPortalScreen() {
         IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { pfBackStack.add(PFNav.Notification) }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-        IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInBrowser("${githubAddress}/blob/main/changelog.md") }
-        IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(githubAddress) }
-        IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(githubAddress) }
+        IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInSystemDefault("${githubAddress}/blob/main/changelog.md") }
+        IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInSystemDefault(githubAddress) }
+        IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInSystemDefault(githubAddress) }
         IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { context.startActivity(Intent(context, BugReportActivity::class.java)) }
         IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { pfBackStack.add(PFNav.About) }
     }
@@ -231,8 +231,8 @@ fun AboutScreen() {
                 Text(BuildConfig.VERSION_NAME, color = textColor)
             }
         }
-        IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(githubAddress) }
-        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInBrowser("${githubAddress}/blob/main/PrivacyPolicy.md") }
+        IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInSystemDefault(githubAddress) }
+        IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInSystemDefault("${githubAddress}/blob/main/PrivacyPolicy.md") }
         IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { pfBackStack.add(PFNav.Licenses) }
         IconTitleSummaryActionRow(R.drawable.baseline_mail_outline_24, R.string.email_developer, R.string.email_sum) {
             val emailIntent = Intent(Intent.ACTION_SEND).apply {
@@ -276,7 +276,7 @@ fun LicensesScreen() {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             Row {
-                Button(onClick = { openInBrowser(licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
+                Button(onClick = { openInSystemDefault(licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
                 Spacer(Modifier.weight(1f))
                 Button(onClick = {
                     try {

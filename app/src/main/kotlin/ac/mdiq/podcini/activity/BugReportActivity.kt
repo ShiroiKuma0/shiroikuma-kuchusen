@@ -16,7 +16,7 @@ import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -114,7 +114,7 @@ class BugReportActivity : ComponentActivity() {
                     runOnIOScope { exportLog() }
                     showConfirmExport.value = false
                 }
-                Button(modifier = Modifier.fillMaxWidth(), onClick = { openInBrowser("${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
+                Button(modifier = Modifier.fillMaxWidth(), onClick = { openInSystemDefault("${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), crashDetailsTextView)

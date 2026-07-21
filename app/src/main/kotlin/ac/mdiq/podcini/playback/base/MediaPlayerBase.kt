@@ -133,8 +133,6 @@ abstract class MediaPlayerBase {
 
     private var autoSkippedFeedMediaId: String? = null
 
-    private var mediaType: MediaType = MediaType.UNKNOWN
-
     private val startWhenPrepared = atomic(false)
     internal var isStartWhenPrepared: Boolean
         get() = startWhenPrepared.value
@@ -142,12 +140,12 @@ abstract class MediaPlayerBase {
             startWhenPrepared.value = s
         }
 
-    var audioSpecs: List<AudioSpec> = listOf()
-    var videoSpecs: List<VideoSpec> = listOf()
-
     var isStreaming = false
 
     var widgetId: String = ""
+
+    var audioSpecs: List<AudioSpec> = listOf()
+    var videoSpecs: List<VideoSpec> = listOf()
 
     private var prevPosition: Int = -1
 
@@ -179,7 +177,7 @@ abstract class MediaPlayerBase {
         get() = when {
             isCasting -> false
             playbackService != null -> currentMediaType == MediaType.VIDEO
-            else -> curEpisode?.getMediaType() == MediaType.VIDEO
+            else -> curEpisode?.mediaType == MediaType.VIDEO
         }
 
     init {
@@ -243,7 +241,7 @@ abstract class MediaPlayerBase {
                 bitrate = 0
                 curEpisode = episode_
                 curClient = clientByEpisode(curEpisode!!)
-                playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.getMediaType() == MediaType.VIDEO))
+                playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.mediaType == MediaType.VIDEO))
                 skipSilence = null
                 shouldRepeat = false
                 curSpeed = SPEED_USE_GLOBAL
@@ -267,7 +265,7 @@ abstract class MediaPlayerBase {
                 }
             }
             else -> {
-                curEpisode = episode
+                curEpisode = null
                 savePlayerStatus(null, null)
             }
         }
@@ -290,7 +288,7 @@ abstract class MediaPlayerBase {
                     statusSimple = playerStatus.toStatusInt()
                     upsert(curState) {
                         it.curMediaType = LONG_PLUS_1
-                        it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
+                        it.curIsVideo = episode.mediaType == MediaType.VIDEO
                         val feedId = episode.feed?.id
                         if (feedId != null) it.curFeedId = feedId
                         it.curMediaId = episode.id
@@ -396,24 +394,24 @@ abstract class MediaPlayerBase {
         positionSaverJob = scope.launch {
             while (isActive) {
                 delay(delayInterval.milliseconds)
-                val curPosition = getPosition()
-                val curDuration = getDuration()
-                Logd(TAG, "positionSaverTick currentPosition: $curPosition")
-                if (curPosition != prevPosition) {
+                val position = getPosition()
+                val duration = getDuration()
+                Logd(TAG, "positionSaverTick currentPosition: $position")
+                if (position != prevPosition) {
                     // skip ending
-                    val remainingTime = curDuration - curPosition
+                    val remainingTime = duration - position
                     val item = curEpisode ?: continue
                     val skipEnd = item.feed?.endingSkip ?: 0
                     val skipEndMS = skipEnd * 1000
                     //                  Logd(TAG, "skipEndingIfNecessary: checking " + remainingTime + " " + skipEndMS + " speed " + currentPlaybackSpeed)
-                    if (skipEnd > 0 && skipEndMS < curDuration && (remainingTime - skipEndMS < 0)) {
+                    if (skipEnd > 0 && skipEndMS < duration && (remainingTime - skipEndMS < 0)) {
                         Logd(TAG, "skipEndingIfNecessary: Skipping the remaining $remainingTime $skipEndMS")
                         Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_ending_toast, skipEnd))
                         autoSkippedFeedMediaId = item.identifyingValue
                         skip()
                     }
-                    persistCurrentPosition(false, curEpisode, curPosition)
-                    prevPosition = curPosition
+                    persistCurrentPosition(false, curEpisode, position)
+                    prevPosition = position
                 }
                 invokeBufferListener()
             }
@@ -440,9 +438,7 @@ abstract class MediaPlayerBase {
         //        showStackTrace()
         if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode?.id, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
         var retVal = getPlayerPosition()
-//        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
-//        Logd(TAG, "getPosition final position: $retVal")
         return retVal
     }
 
@@ -492,7 +488,7 @@ abstract class MediaPlayerBase {
         setAsCurEpisode(playable)
 
         this.isStreaming = streaming
-        if (curEpisode != null) mediaType = curEpisode!!.getMediaType()
+        if (curEpisode != null) currentMediaType = curEpisode!!.mediaType
 //        videoSize = null
         resetMediaPlayer()
 
@@ -869,7 +865,7 @@ abstract class MediaPlayerBase {
             }
         }
 
-        currentMediaType = mediaType
+//        currentMediaType = mediaType
         Logd(TAG, "setPlayerStatus $status")
         when {
             isInitialized -> savePlayerStatus(curEpisode, status)

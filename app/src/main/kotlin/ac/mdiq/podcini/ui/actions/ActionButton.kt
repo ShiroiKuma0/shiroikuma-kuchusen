@@ -46,7 +46,7 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.LogeFor
-import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.openInSystemDefault
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -139,7 +139,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
         }
         Logd(TAG, "onClick type: $type")
         when (type) {
-            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(item.link!!)
+            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInSystemDefault(item.link!!)
             ButtonTypes.CANCEL -> {
                 if (typeToCancel == ButtonTypes.DOWNLOAD) {
                     runBlocking { EpisodeAdrDLManager.manager?.cancel(item) }
@@ -505,7 +505,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
         fun playVideoIfNeeded(item: Episode) {
             for (i in 0..1) {
                 if (item.id != theatres[i].mPlayer?.curEpisode?.id) continue
-                if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO)) {
+                if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && item.mediaType == MediaType.VIDEO)) {
                     theatres[i].mPlayer?.playingVideo = true
                     psState = PSState.Expanded
                 } else theatres[i].mPlayer?.playingVideo = false

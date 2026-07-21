@@ -274,28 +274,26 @@ class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "onReceive")
         ensureAController()
+        val player = theatres[0].mPlayer
+        val episode = player?.curEpisode
         Logd(TAG, "ToggleAction onAction isPlaying: $theatres[0].isPlaying")
-        if (theatres[0].mPlayer?.curEpisode == null) {
+        if (episode == null) {
             val id = parameters[EPISODE_ID_KEY]
             if (id != null) {
                 val e = realm.query(Episode::class).query("id == $id").first().find()
-                if (e != null) theatres[0].mPlayer?.setAsCurEpisode(e)
+                if (e != null) player?.setAsCurEpisode(e)
             }
-        }
-        if (theatres[0].mPlayer?.curEpisode != null) {
-            fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
-                val mediaType = mediaType_ ?: theatres[0].mPlayer!!.currentMediaType
-                val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else theatres[0].mPlayer?.curState?.curIsVideo ?: false
-                theatres[0].mPlayer?.playingVideo = showVideoPlayer
-                return MainActivityStarter(context).withOpenPlayer().getIntent()
-            }
+        } else {
             withContext(Dispatchers.Main) {
-                if (theatres[0].mPlayer?.curEpisode!!.getMediaType() == MediaType.VIDEO && !theatres[0].mPlayer!!.isPlaying && (theatres[0].mPlayer?.curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                    theatres[0].mPlayer?.playPause()
-                    context.startActivity(getPlayerActivityIntent(context, theatres[0].mPlayer?.curEpisode!!.getMediaType()))
+                if (episode.mediaType == MediaType.VIDEO && !player.isPlaying && (episode.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                    player.playPause()
+                    val mediaType = episode.mediaType
+                    val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else player.curState.curIsVideo
+                    player.playingVideo = showVideoPlayer
+                    context.startActivity(MainActivityStarter(context).withOpenPlayer().getIntent())
                 } else {
-                    Logd(TAG, "Play button clicked: status: ${theatres[0].mPlayer?.status} is ready: ${playbackService?.isServiceReady()}")
-                    PlaybackStarter(theatres[0].mPlayer?.curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
+                    Logd(TAG, "Play button clicked: status: ${player.status} is ready: ${playbackService?.isServiceReady()}")
+                    PlaybackStarter(episode).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
                 }
             }
             PodciniWidget().update(context, glanceId)

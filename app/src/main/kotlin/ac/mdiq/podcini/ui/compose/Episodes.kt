@@ -69,8 +69,6 @@ import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sessionLogs
-import ac.mdiq.podcini.utils.shareFeedItemFile
-import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
 import android.app.Activity
 import android.content.Context
@@ -154,6 +152,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.app.ShareCompat
+import androidx.core.content.FileProvider
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.xilinjia.krdb.query.Sort
@@ -175,6 +175,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
+import java.io.File
 import kotlin.time.Instant
 
 private const val TAG = "ComposeEpisodes"
@@ -185,9 +186,8 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
     val downloaded = remember { hasMedia && item.downloaded }
     val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
 
-    var position by remember { mutableIntStateOf(1) }
-
-    var isChecked by remember { mutableStateOf(false) }
+    var option by remember { mutableIntStateOf(1) }
+    var withPosition by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
 
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
@@ -195,33 +195,70 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
         text = {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = position == 1, onClick = { position = 1 })
+                    RadioButton(selected = option == 1, onClick = { option = 1 })
                     Text(stringResource(R.string.share_dialog_for_social))
                 }
                 if (hasDownloadUrl) Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = position == 2, onClick = { position = 2 })
+                    RadioButton(selected = option == 2, onClick = { option = 2 })
                     Text(stringResource(R.string.share_dialog_media_address))
                 }
                 if (downloaded) Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = position == 3, onClick = { position = 3 })
+                    RadioButton(selected = option == 3, onClick = { option = 3 })
                     Text(stringResource(R.string.share_dialog_media_file_label))
                 }
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isChecked, onCheckedChange = { isChecked = it })
+                    Checkbox(checked = withPosition, onCheckedChange = { withPosition = it })
                     Text(stringResource(R.string.share_playback_position_dialog_label))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                when (position) {
-                    1 -> shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
+                when (option) {
+                    1 -> {
+                        var text: String? = item.feed?.title + ": " + item.title
+                        val context = getAppContext()
+                        var pos = 0
+                        if (withPosition) {
+                            text += """
+                
+                            ${context.getString(R.string.share_starting_position_label)}: ${durationStringFull(pos)}
+                            """.trimIndent()
+                            pos = item.position
+                        }
+
+                        val link = item.linkOrFeedlink
+                        if (link != null) {
+                            text += """
+                
+                
+                            ${context.getString(R.string.share_dialog_episode_website_label)}: $link
+                            """.trimIndent()
+                        }
+
+                        if (item.downloadUrl != null) {
+                            text += """
+                
+                
+                            ${context.getString(R.string.share_dialog_media_file_label)}: ${item.downloadUrl}
+                            """.trimIndent()
+                            if (withPosition) text += "#t=" + pos / 1000
+                        }
+                        shareLink(ctx, text!!)
+                    }
                     2 -> {
                         if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
                         else LogtFor(TAG, item.id, "Episode download url is not valid, ignored.")
                     }
-                    3 -> shareFeedItemFile(ctx, item)
+                    3 -> {
+                        val lurl = item.fileUrl
+                        if (!lurl.isNullOrEmpty()) {
+                            val fileUri = FileProvider.getUriForFile(ctx, ctx.getString(R.string.provider_authority), File(lurl))
+                            ShareCompat.IntentBuilder(ctx).setType(item.mimeType).addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
+                            Logd(TAG, "shareFeedItemFile called")
+                        }
+                    }
                 }
                 onDismiss()
             }) { Text(text = "OK") }
@@ -317,7 +354,7 @@ fun Context.findActivity(): Activity? = when (this) {
 }
 
 @Composable
-fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false, onDismiss: ()->Unit) {
+fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters: Boolean = false) {
     val context by rememberUpdatedState(LocalContext.current)
     val activity = context.findActivity() ?: error("WebView requires an Activity context")
 
@@ -501,7 +538,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
             Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable {
                 showTodayStats = true
-//                onDismiss()   // TODO: can't close the composable here
             })
         }
 
