@@ -13,6 +13,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.shared.prepareUrl
 import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientBySearcher
@@ -91,6 +92,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -126,6 +128,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URI
 
 class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = false): ViewModel() {
     var feedSource: String = ""
@@ -133,7 +136,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var isShared: Boolean = false
 
     internal var urlToLog: String = ""
-    internal var feedBuilder: FeedBuilder
     internal var showTabsDialog by mutableStateOf(false)
 
     internal var showEpisodes by mutableStateOf(false)
@@ -147,11 +149,11 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     var numEpisodes by mutableIntStateOf(0)
 
-    internal var selectedDownloadUrl: String? = null
+    internal var preparedUrl: String? = null
 
     internal var feedOptions: List<String?> = listOf()
 
-    internal var feedId: Long = 0L
+    internal var feedId by mutableLongStateOf(0L)
 
     internal var infoBarText = mutableStateOf("")
 
@@ -164,7 +166,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var password: String? = null
 
     internal var isPaused = false
-    internal var didPressSubscribe = false
+    internal var subscribePress = false
     internal var isFeedFoundBySearch = false
 
     var relatedResults by mutableStateOf<List<FeedSearchResult>>(listOf())
@@ -182,14 +184,11 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         feedUrl = url
         feedSource = source
         isShared = shared
-        for (f in allFeeds) {
-            if (isSameFeed(f, selectedDownloadUrl, feed?.title, feed?.author)) {
-                feedId = f.id
-                break
-            }
-        }
+        preparedUrl = prepareUrl(feedUrl)
 
         Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl feedSource: $feedSource isShared: $isShared")
+
+        checkExisting(feed)
 
         val showError = { message: String?, details: String ->
             errorMessage = message ?: "No message"
@@ -197,7 +196,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         }
         gatewayClient = clientBySearcher(source)
 
-        feedBuilder = FeedBuilder(showError)
         if (feedUrl.isEmpty()) {
             Loge(TAG, "feedUrl is null.")
             showNoPodcastFoundDialog = true
@@ -218,16 +216,27 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     feedOptions_.size <= 1 -> {
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
                         if (fipc != null) {
+                            val exist = checkExisting(fipc.toFeed())
+                            Logd(TAG, "handleClientFeeds feed exists: $exist ${fipc.title}")
+                            if (exist != null) {
+                                feed = exist
+                                showProgress = false
+                                showFeedDisplay = true
+                                enableSubscribe = true
+                                subButTextRes = R.string.open
+                                return true
+                            }
                             val eList = mutableListOf<EpisodeIPC>()
                             var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
                             while (episodes.isNotEmpty()) {
                                 eList.addAll(episodes)
                                 numEpisodes = eList.size
                                 if (limitEpisodesCount in 1..<numEpisodes || numEpisodes > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
-                                Logd(TAG, "Subscribing eList: ${eList.size}")
+                                Logd(TAG, "handleClientFeeds Subscribing eList: ${eList.size}")
                                 episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
                             }
                             fipc.episodes = eList
+                            Logd(TAG, "handleClientFeeds fipc: ${fipc.title} ${fipc.author}")
                             handleFeed(fipc.toFeed())
                             return true
                         }
@@ -254,6 +263,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     try {
                         val urlString = PodcastSearcherRegistry.lookupUrl(feedUrl)
                         Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
+                        val feedBuilder = FeedBuilder(showError)
                         feedBuilder.buildPodcast(getFinalRedirectedUrl(urlString), username, password) { feed_, _ -> handleFeed(feed_) }
                     } catch (error: FeedUrlNotFoundException) {
                         Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
@@ -273,6 +283,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                             urlToLog = url
                             Logd(TAG, "Successfully retrieve feed url: $url")
                             isFeedFoundBySearch = true
+                            val feedBuilder = FeedBuilder(showError)
                             feedBuilder.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, _ -> handleFeed(feed_) }
                         } else withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
                     }
@@ -282,10 +293,39 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         }
         timeIt("$TAG end of init")
     }
+
+    fun checkExisting(feed_: Feed?): Feed? {
+        Logd(TAG, "checkExisting check for ${feed_?.title} ${feed_?.author}")
+        fun isSameFeed(f: Feed, url: String, title: String?, author: String?): Boolean {
+            Logd(TAG, "isSameFeed check with feed: ${f.type} ${f.title} ${f.author}")
+            fun getDomain(url: String): String? = try { URI(url).host?.removePrefix("www.") } catch (e: Exception) { null }
+            return if (isExtFeed(f)) {
+                if (f.downloadUrl.isNullOrBlank()) false
+                else if (f.downloadUrl == url) true
+                // TODO: this may be problematic as author from NPEConnector is empty or null
+                else {
+                    val d1 = getDomain(f.downloadUrl!!)
+                    val d2 = getDomain(url)
+                    Logd(TAG, "isSameFeed d1: $d1 d2: $d2")
+                    (f.title == title && f.author == author && d1 == d2)
+                }
+            } else f.downloadUrl == url
+        }
+        if (!preparedUrl.isNullOrBlank()) for (f in allFeeds) {
+            if (isSameFeed(f, preparedUrl!!, feed_?.title, feed_?.author)) {
+                Logd(TAG, "checkExisting found existing feed: ${f.title}")
+                feedId = f.id
+                return f
+            }
+        }
+        return null
+    }
+
     internal fun handleFeed(feed_: Feed) {
-        Logd(TAG, "handleFeed feed_.title: ${feed_.title}")
-        selectedDownloadUrl = feedBuilder.selectedDownloadUrl
+        Logd(TAG, "handleFeed feed_.title: ${feed_.title} ${feed_.author}")
         feed = feed_
+        checkExisting(feed)
+
         numEpisodes = feed_.episodes.size
         if (isShared) {
             val log = realm.query(ShareLog::class).query("url == $0", urlToLog).first().find()
@@ -302,12 +342,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         showFeedDisplay = true
         if (isFeedFoundBySearch) Loge(TAG, getAppContext().getString(R.string.no_feed_url_podcast_found_by_search))
         handleUpdatedFeedStatus()
-    }
-
-    fun isSameFeed(feed: Feed, url: String?, title: String?, author: String?): Boolean {
-        if (url == null) return false
-        return if (isExtFeed(feed)) (feed.downloadUrl == url || (feed.title == title && feed.author == author))
-        else feed.downloadUrl == url
     }
 
     internal fun showEpisodes() {
@@ -332,24 +366,24 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal fun handleUpdatedFeedStatus() {
         val dli = EpisodeAdrDLManager.manager
-        if (dli == null || selectedDownloadUrl == null) return
+        if (dli == null || preparedUrl == null) return
 
         when {
-            dli.isDownloading(selectedDownloadUrl!!) -> {
+            dli.isDownloading(preparedUrl!!) -> {
+                Logd(TAG, "handleUpdatedFeedStatus isDownloading")
                 enableSubscribe = false
                 subButTextRes = R.string.subscribe_label
             }
             feedId != 0L -> {
+                Logd(TAG, "handleUpdatedFeedStatus feedId != 0L")
                 enableSubscribe = true
                 subButTextRes = R.string.open
-                if (didPressSubscribe) {
-                    didPressSubscribe = false
+                if (subscribePress) {
+                    subscribePress = false
                     val feedExisting = getFeed(feedId, true)?: return
-                    if (feedSource == "VistaGuide") {
-                        feedExisting.prefStreamOverDownload = true
-                        feedExisting.autoDownload = false
-                    } else if (appPrefs.enableAutoDl) feedExisting.autoDownload = autoDownloadChecked
-                    if (username != null) {
+                    Logd(TAG, "handleUpdatedFeedStatus ${feedExisting.title} ${feedExisting.author}")
+                    if (appPrefs.enableAutoDl && !isExtFeed(feedExisting)) feedExisting.autoDownload = autoDownloadChecked
+                    if (!username.isNullOrBlank()) {
                         feedExisting.username = username
                         feedExisting.password = password
                     }
@@ -357,6 +391,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                 }
             }
             else -> {
+                Logd(TAG, "handleUpdatedFeedStatus else")
                 enableSubscribe = true
                 subButTextRes = R.string.subscribe_label
             }
@@ -518,7 +553,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     }) {
                         Spacer(modifier = Modifier.weight(0.2f))
                         if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
-                            if (vm.feed == null) return@Button
                             if (vm.feedId != 0L) {
                                 if (vm.isShared) {
                                     val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
@@ -526,6 +560,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                 }
                                 navTo(FeedDetails(feedId = vm.feedId, modeName = FeedScreenMode.Info.name))
                             } else {
+                                if (vm.feed == null) return@Button
                                 vm.enableSubscribe = false
                                 vm.enableEpisodes = false
                                 CoroutineScope(Dispatchers.IO).launch {
@@ -539,7 +574,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                         vm.feedId = vm.feed?.id ?: 0L
                                         vm.enableSubscribe = true
                                         vm.subButTextRes = R.string.open
-                                        vm.didPressSubscribe = true
+                                        vm.subscribePress = true
                                         vm.handleUpdatedFeedStatus()
                                     }
                                 }
@@ -548,7 +583,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         Spacer(modifier = Modifier.weight(0.1f))
                         when {
                             vm.showEpisodes -> Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
-                            vm.enableEpisodes && vm.feed != null -> Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
+                            vm.enableEpisodes && vm.feed != null && vm.numEpisodes > 0 -> Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
                             else -> {}
                         }
                         Spacer(modifier = Modifier.weight(0.2f))

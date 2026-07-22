@@ -561,8 +561,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp)) {
             SelectionContainer {
                 Column {
-                    Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
-                    Text(stringResource(R.string.by) + ": " + (feed?.author ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    Text(feed?.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
+                    Text(stringResource(R.string.by) + ": " + (feed?.author ?: "Anonymous"), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) {
                         Text(stringResource(R.string.score) + ": " + (feed?.score).toString() + " (" + feed?.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.2f))

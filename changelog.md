@@ -1,3 +1,8 @@
+# 12.4.10
+
+* show external media panel even when playing
+* in OnlineFeed, improved handling existing feed
+
 # 12.4.9
 
 * in PlayerDetailed

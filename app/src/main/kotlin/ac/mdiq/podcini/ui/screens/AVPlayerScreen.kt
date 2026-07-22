@@ -496,7 +496,7 @@ fun ControlUI(vm: AVPlayerVM) {
             onClick = { player?.seekDelta(-rewindSecs * 1000) }, onLongClick = { player?.seekTo(0) })) {
             val rewindSecs = remember(rewindSecs) { formatWithGrouping(rewindSecs.toLong()) }
             Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.TopCenter))
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = buttonColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).graphicsLayer(scaleX = -1f).align(Alignment.TopCenter))
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_skip_previous_24), tint = buttonColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
         }
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
@@ -888,7 +888,7 @@ fun AVPlayerScreen() {
 
         @Composable
         fun ClientMediaPanel() {
-            if (episode == null || player.isPlaying) return
+            if (episode == null) return
             val client = remember(episode.id) { clientByEpisode(episode) }
             if (client?.attributes?.hasMultiQualities == true) {
                 var reset by remember { mutableStateOf(false) }
@@ -970,6 +970,7 @@ fun AVPlayerScreen() {
                     } else Text(bitrate.toString(), color = textColor)
                     Spacer(Modifier.weight(1f))
                     if (reset) IconButton(onClick = {
+                        player.pause(false)
                         getCache().removeResource(episode.id.toString())
                         player.reinit()
                         reset = false

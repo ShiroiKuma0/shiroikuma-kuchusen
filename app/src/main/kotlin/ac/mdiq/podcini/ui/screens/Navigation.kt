@@ -9,9 +9,6 @@ import ac.mdiq.podcini.utils.Logd
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateSetOf
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.entryProvider
 import kotlinx.serialization.Serializable
 
