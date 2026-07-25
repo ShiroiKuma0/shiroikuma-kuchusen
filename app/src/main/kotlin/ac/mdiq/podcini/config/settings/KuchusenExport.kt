@@ -1,9 +1,12 @@
 package ac.mdiq.podcini.config.settings
 
+import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.config
 import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.AppPrefs
@@ -14,6 +17,8 @@ import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
+import io.github.xilinjia.krdb.RealmConfiguration
+import io.github.xilinjia.krdb.types.TypedRealmObject
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -22,9 +27,11 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 
 /**
@@ -43,18 +50,33 @@ object KuchusenExport {
     private const val EXIMPORT_PREFS = "kuchusen_eximport"   // device-local; never exported
     private const val KEY_DIR_URI = "dir_uri"
 
-    private const val FILE_PREFIX = "shiroikuma-kuchusen-"
+    // 白い熊's family convention (2026-07-25): every sister app writes `<english-app-name>_<stamp>.zip`
+    // into one shared directory, so the names must sort and read uniformly — no version, no infix.
+    private const val FILE_PREFIX = "shiroikuma-kuchusen_"
+    private const val LEGACY_FILE_PREFIX = "shiroikuma-kuchusen-"   // pre-2026-07-25 exports
     private const val FORMAT = "shiroikuma-kuchusen-export"
     private const val VERSION = 1
+
+    /** The realm snapshot's entry name inside the zip (and of the temporary snapshot file). */
+    private const val DB_ENTRY = "database.realm"
 
     /** A selectable category; `id` is the entry name (`<id>.json`) inside the zip. */
     enum class Cat(val id: String, @param:StringRes val labelRes: Int) {
         FEEDS("feeds", R.string.kuchusen_eim_cat_feeds),
+        DATABASE("database", R.string.kuchusen_eim_cat_database),
         COLORS("colors", R.string.kuchusen_eim_cat_colors),
         TYPOGRAPHY("typography", R.string.kuchusen_eim_cat_typography),
         SHAPE("shape", R.string.kuchusen_eim_cat_shape),
         APP_SETTINGS("app_settings", R.string.kuchusen_eim_cat_app),
     }
+
+    fun catById(id: String): Cat? = Cat.entries.firstOrNull { it.id == id }
+
+    /**
+     * One progress step of an export. `text` is the numbers-first display line 白い熊 reads;
+     * `current`/`total`/`unit` carry the same fact structurally, for bars and logic.
+     */
+    class Progress(val text: String, val current: Long, val total: Long, val unit: String)
 
     // ---- Export directory (device-local) --------------------------------------------------------
 
@@ -68,20 +90,33 @@ object KuchusenExport {
     fun exportDir(context: Context): DocumentFile? =
         dirUri(context)?.let { runCatching { DocumentFile.fromTreeUri(context, it) }.getOrNull() }?.takeIf { it.isDirectory }
 
-    /** The newest export file in the directory, by modification time. */
+    /** The newest export file in the directory, by modification time (legacy names included). */
     fun latestExport(context: Context): DocumentFile? =
         exportDir(context)?.let { dir ->
             runCatching {
-                dir.listFiles().filter { it.isFile && it.name?.startsWith(FILE_PREFIX) == true && it.name?.endsWith(".zip") == true }
-                    .maxByOrNull { it.lastModified() }
+                dir.listFiles().filter { it.isFile && isExportName(it.name) }.maxByOrNull { it.lastModified() }
             }.getOrNull()
         }
 
+    private fun isExportName(name: String?): Boolean =
+        name != null && name.endsWith(".zip") && (name.startsWith(FILE_PREFIX) || name.startsWith(LEGACY_FILE_PREFIX))
+
     fun formatTimestamp(epochMs: Long): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT).format(Date(epochMs))
 
-    /** Datetime-stamped export filename, e.g. `shiroikuma-kuchusen-export_2026-07-25_10-00-00.zip`. */
+    /** Datetime-stamped export filename, e.g. `shiroikuma-kuchusen_2026-07-25_10-00-00.zip`. */
     fun exportFileName(): String =
-        FILE_PREFIX + "export_" + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.ROOT).format(Date()) + ".zip"
+        FILE_PREFIX + SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.ROOT).format(Date()) + ".zip"
+
+    /** Display size for a byte count — `4.6 MB`, `1.20 GB` — as the automation reply carries it. */
+    fun humanSize(bytes: Long): String {
+        val k = 1024.0
+        return when {
+            bytes < k -> "$bytes B"
+            bytes < k * k -> String.format(Locale.ROOT, "%.1f KB", bytes / k)
+            bytes < k * k * k -> String.format(Locale.ROOT, "%.1f MB", bytes / (k * k))
+            else -> String.format(Locale.ROOT, "%.2f GB", bytes / (k * k * k))
+        }
+    }
 
     // ---- The UI prefs partition (kuchusen_ui prefs file) ----------------------------------------
 
@@ -178,9 +213,17 @@ object KuchusenExport {
         return settingsJson(entries)
     }
 
-    private fun feedsJson(): String {
+    private fun feedsJson(onProgress: (Progress) -> Unit): String {
         val arr = JSONArray()
-        for (feed in getFeedList().filterNot { it.isSynthetic() }) {
+        val context = getAppContext()
+        val feeds = getFeedList().filterNot { it.isSynthetic() }
+        val total = feeds.size.toLong()
+        var done = 0L
+        for (feed in feeds) {
+            done++
+            if (done % 20L == 0L || done == total)
+                onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_feeds, done, total), done, total,
+                    context.getString(R.string.kuchusen_eim_unit_feeds)))
             if (feed.downloadUrl.isNullOrBlank()) continue
             arr.put(JSONObject()
                 .put("title", feed.title ?: "")
@@ -191,6 +234,57 @@ object KuchusenExport {
         return JSONObject().put("_format", FORMAT).put("_version", VERSION).put("feeds", arr).toString(2)
     }
 
+    // ---- The Realm database ---------------------------------------------------------------------
+
+    /** Scratch directory for the realm snapshot — never reused across runs, always cleaned up. */
+    private fun snapshotDir(): File = File(getAppContext().cacheDir, "kuchusen-db-snapshot")
+
+    /**
+     * A consistent, compacted copy of the live database. `writeCopyTo` takes a transactional
+     * snapshot — copying the open realm file byte-wise could catch a half-written transaction.
+     */
+    private fun snapshotDatabase(): File {
+        val dir = snapshotDir()
+        dir.deleteRecursively()
+        dir.mkdirs()
+        @Suppress("UNCHECKED_CAST")
+        val schema = config.schema as Set<KClass<out TypedRealmObject>>
+        realm.writeCopyTo(RealmConfiguration.Builder(schema)
+            .directory(dir.absolutePath).name(DB_ENTRY).schemaVersion(config.schemaVersion).build())
+        return File(dir, DB_ENTRY)
+    }
+
+    /** Streams the realm snapshot into the zip, reporting real byte counts as it goes. */
+    private fun writeDatabaseEntry(zip: ZipOutputStream, onProgress: (Progress) -> Unit) {
+        val context = getAppContext()
+        val snapshot = snapshotDatabase()
+        try {
+            val total = snapshot.length()
+            val unit = context.getString(R.string.kuchusen_eim_unit_bytes)
+            // A realm file is large and already compact; speed beats ratio here.
+            zip.setLevel(Deflater.BEST_SPEED)
+            zip.putNextEntry(ZipEntry(DB_ENTRY))
+            var written = 0L
+            var reported = 0L
+            snapshot.inputStream().buffered().use { input ->
+                val buf = ByteArray(256 * 1024)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n <= 0) break
+                    zip.write(buf, 0, n)
+                    written += n
+                    if (written - reported >= 2L * 1024 * 1024 || written == total) {
+                        reported = written
+                        onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_db,
+                            humanSize(written), humanSize(total)), written, total, unit))
+                    }
+                }
+            }
+            zip.closeEntry()
+            zip.setLevel(Deflater.DEFAULT_COMPRESSION)
+        } finally { snapshotDir().deleteRecursively() }
+    }
+
     // ---- Export ---------------------------------------------------------------------------------
 
     private fun writeEntry(zip: ZipOutputStream, name: String, bytes: ByteArray) {
@@ -199,20 +293,32 @@ object KuchusenExport {
         zip.closeEntry()
     }
 
-    /** Streams the selected categories into a ZIP; any failure surfaces as an exception. */
-    fun export(cats: Set<Cat>, openOutput: () -> OutputStream) {
+    /**
+     * Streams the selected categories into a ZIP; any failure surfaces as an exception.
+     * The whole backup is this one file — the UI panel and the automation receiver are two thin
+     * callers of this same function, and `onProgress` is what the caller reports outward.
+     */
+    fun export(cats: Set<Cat>, openOutput: () -> OutputStream, onProgress: (Progress) -> Unit = {}) {
+        val context = getAppContext()
+        val selected = Cat.entries.filter { it in cats }
+        val steps = selected.size.toLong()
+        var step = 0L
         ZipOutputStream(openOutput().buffered()).use { zip ->
             val manifest = JSONObject()
                 .put("format", FORMAT)
                 .put("version", VERSION)
-                .put("app", getAppContext().packageName)
+                .put("app", context.packageName)
+                .put("appVersion", BuildConfig.VERSION_NAME)
                 .put("createdTs", System.currentTimeMillis())
-                .put("categories", JSONArray(cats.map { it.id }))
+                .put("categories", JSONArray(selected.map { it.id }))
             writeEntry(zip, "manifest.json", manifest.toString(2).toByteArray())
-            for (cat in Cat.entries) {
-                if (cat !in cats) continue
+            for (cat in selected) {
+                step++
+                onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_cat, step, steps,
+                    context.getString(cat.labelRes)), step, steps, context.getString(R.string.kuchusen_eim_unit_cats)))
                 when (cat) {
-                    Cat.FEEDS -> writeEntry(zip, "feeds.json", feedsJson().toByteArray())
+                    Cat.FEEDS -> writeEntry(zip, "feeds.json", feedsJson(onProgress).toByteArray())
+                    Cat.DATABASE -> writeDatabaseEntry(zip, onProgress)
                     Cat.COLORS, Cat.SHAPE -> writeEntry(zip, "${cat.id}.json", uiSettingsJson(cat).toByteArray())
                     Cat.TYPOGRAPHY -> {
                         writeEntry(zip, "typography.json", uiSettingsJson(cat).toByteArray())
@@ -226,15 +332,24 @@ object KuchusenExport {
 
     // ---- Import ---------------------------------------------------------------------------------
 
-    private class Staged(val manifest: JSONObject, val entries: Map<String, ByteArray>)
+    private class Staged(val manifest: JSONObject, val entries: Map<String, ByteArray>, val dbFile: File?)
+
+    private fun stagingDir(): File = File(getAppContext().cacheDir, "kuchusen-import-staging")
 
     /** Single streaming pass over the zip; nothing is applied until the manifest validates. */
     private fun stage(openInput: () -> InputStream): Staged {
         val entries = mutableMapOf<String, ByteArray>()
+        var dbFile: File? = null
+        val staging = stagingDir().also { it.deleteRecursively(); it.mkdirs() }
         ZipInputStream(openInput().buffered()).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
-                if (!entry.isDirectory) entries[entry.name] = zip.readBytes()
+                if (!entry.isDirectory) {
+                    // The database entry can be hundreds of MB — it goes to disk, never through memory.
+                    if (entry.name == DB_ENTRY) dbFile = File(staging, DB_ENTRY)
+                        .also { f -> f.outputStream().buffered().use { zip.copyTo(it) } }
+                    else entries[entry.name] = zip.readBytes()
+                }
                 zip.closeEntry()
                 entry = zip.nextEntry
             }
@@ -244,7 +359,7 @@ object KuchusenExport {
         val manifest = JSONObject(String(manifestBytes))
         if (manifest.optString("format") != FORMAT)
             throw IllegalArgumentException(getAppContext().getString(R.string.kuchusen_eim_import_not_ours))
-        return Staged(manifest, entries)
+        return Staged(manifest, entries, dbFile)
     }
 
     private fun readEntries(bytes: ByteArray): Map<String, Any> {
@@ -257,11 +372,18 @@ object KuchusenExport {
         return out
     }
 
+    /** What an import did: the per-category summary, and whether the database was swapped. */
+    class ImportResult(val summary: String, val databaseRestored: Boolean)
+
     /** Applies the selected categories from a staged export; returns per-category summary lines. */
-    suspend fun import(cats: Set<Cat>, openInput: () -> InputStream): String {
+    suspend fun import(cats: Set<Cat>, openInput: () -> InputStream): ImportResult = try {
+        importStaged(cats, stage(openInput))
+    } finally { stagingDir().deleteRecursively() }
+
+    private suspend fun importStaged(cats: Set<Cat>, staged: Staged): ImportResult {
         val context = getAppContext()
-        val staged = stage(openInput)
         val parts = mutableListOf<String>()
+        var databaseRestored = false
 
         if (Cat.FEEDS in cats) staged.entries["feeds.json"]?.let { bytes ->
             val arr = JSONObject(String(bytes)).optJSONArray("feeds") ?: JSONArray()
@@ -319,6 +441,17 @@ object KuchusenExport {
             parts.add(context.getString(R.string.kuchusen_eim_sum_settings, context.getString(Cat.APP_SETTINGS.labelRes), applied))
         }
 
-        return if (parts.isEmpty()) context.getString(R.string.kuchusen_eim_sum_nothing) else parts.joinToString("\n")
+        // The database goes last: it replaces the file every other category just wrote through,
+        // and the app must restart onto the restored one.
+        if (Cat.DATABASE in cats) staged.dbFile?.let { source ->
+            val target = File(realm.configuration.path)
+            target.delete()
+            source.copyTo(target, overwrite = true)
+            databaseRestored = true
+            parts.add(context.getString(R.string.kuchusen_eim_sum_database, humanSize(target.length())))
+        }
+
+        val summary = if (parts.isEmpty()) context.getString(R.string.kuchusen_eim_sum_nothing) else parts.joinToString("\n")
+        return ImportResult(summary, databaseRestored)
     }
 }
