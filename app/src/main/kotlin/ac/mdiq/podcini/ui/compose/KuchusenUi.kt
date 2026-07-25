@@ -84,6 +84,11 @@ object KuchusenUi {
     private var recentsState by mutableStateOf<List<Int>>(emptyList())
 
     init {
+        reloadFromPrefs()
+    }
+
+    /** (Re-)read every Compose state from the backing prefs — also called after a settings import. */
+    fun reloadFromPrefs() {
         bgState = Color(prefs.getInt(K_BG, DEF_BG.toArgb()))
         textState = Color(prefs.getInt(K_TEXT, DEF_TEXT.toArgb()))
         text2State = Color(prefs.getInt(K_TEXT2, DEF_TEXT2.toArgb()))
@@ -95,6 +100,39 @@ object KuchusenUi {
         roundnessState = prefs.getInt(K_ROUNDNESS, DEF_ROUNDNESS)
         borderWidthState = prefs.getInt(K_BORDER_WIDTH, DEF_BORDER_WIDTH)
         recentsState = (prefs.getString(K_RECENTS, "") ?: "").split(",").mapNotNull { it.toIntOrNull() }
+    }
+
+    // ---- Settings export/import hooks (KuchusenExport) ------------------------------------------
+
+    /** Snapshot of every stored UI pref, keyed as in the prefs file. */
+    fun prefsSnapshot(): Map<String, Any?> = prefs.all
+
+    /** Merge typed values back into the prefs store (never clears), then refresh the live states. */
+    fun importPrefValues(values: Map<String, Any>) {
+        prefs.edit {
+            for ((key, v) in values) {
+                when (v) {
+                    is Boolean -> putBoolean(key, v)
+                    is Int -> putInt(key, v)
+                    is Long -> putLong(key, v)
+                    is Float -> putFloat(key, v)
+                    is String -> putString(key, v)
+                }
+            }
+        }
+        reloadFromPrefs()
+    }
+
+    /** Every imported font file on disk (for settings export). */
+    fun fontFiles(): List<File> =
+        fontsDir().listFiles()?.filter { it.isFile && it.extension.lowercase() in FONT_EXTENSIONS } ?: emptyList()
+
+    /** Write a font file back from a settings import (basename only — no path traversal). */
+    fun writeFontFile(name: String, bytes: ByteArray) {
+        val safe = File(name).name
+        if (safe.substringAfterLast('.', "").lowercase() !in FONT_EXTENSIONS) return
+        File(fontsDir(), safe).writeBytes(bytes)
+        familyCache.remove(safe)
     }
 
     var backgroundColor: Color
