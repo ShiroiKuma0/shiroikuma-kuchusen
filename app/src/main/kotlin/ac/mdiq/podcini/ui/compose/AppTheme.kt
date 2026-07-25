@@ -190,6 +190,13 @@ fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit)
         primary = KuchusenUi.accentColor,
         secondary = KuchusenUi.accentColor,
         tertiary = KuchusenUi.accentColor,
+        // Menus and dialogs draw on the surfaceContainer* roles, which the copy() above does not
+        // touch — without these they keep Material's elevated grey instead of the house background.
+        surfaceContainerLowest = KuchusenUi.backgroundColor,
+        surfaceContainerLow = KuchusenUi.backgroundColor,
+        surfaceContainer = KuchusenUi.backgroundColor,
+        surfaceContainerHigh = KuchusenUi.backgroundColor,
+        surfaceContainerHighest = KuchusenUi.backgroundColor,
     )
     MaterialTheme(
         colorScheme = themedScheme,
