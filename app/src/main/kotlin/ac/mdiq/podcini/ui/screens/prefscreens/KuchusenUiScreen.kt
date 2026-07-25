@@ -1,8 +1,15 @@
 package ac.mdiq.podcini.ui.screens.prefscreens
 
+import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.settings.KuchusenExport
 import ac.mdiq.podcini.ui.compose.KuchusenUi
+import ac.mdiq.podcini.ui.screens.PopMode
+import ac.mdiq.podcini.ui.screens.defaultNavKey
+import ac.mdiq.podcini.ui.screens.navTo
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,6 +25,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,6 +34,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -33,23 +43,35 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.io.OutputStream
 import kotlin.math.roundToInt
 
 private const val TAG = "KuchusenUiScreen"
@@ -60,15 +82,70 @@ private fun indent(level: Int): Dp = INDENT_STEP * level
 
 private const val SAMPLE = "Aa Bb Cc  0123  白い熊 空中線"
 
+// Warn-prominent red for export/import status lines (same value as the sister forks).
+private val EXIM_WARN = Color(0xFFFF5252)
+
 @Composable
 fun KuchusenUiScreen() {
     BackHandler(enabled = true) { pfBackStack.removeLastOrNull() }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Fork spec: the export directory is queried when the page opens for the latest export;
+    // the Export/Import row summary carries the answer.
+    var eximDirName by remember { mutableStateOf<String?>(null) }
+    var eximStatus by remember { mutableStateOf("") }
+    var eximWarn by remember { mutableStateOf(false) }
+    var showExim by remember { mutableStateOf(false) }
+
+    fun refreshEximStatus() {
+        scope.launch(Dispatchers.IO) {
+            val dir = KuchusenExport.exportDir(context)
+            val name = dir?.name ?: KuchusenExport.dirUri(context)?.lastPathSegment
+            val (text, warn) = when {
+                dir == null -> context.getString(R.string.kuchusen_eim_warn_nodir) to true
+                else -> {
+                    val newest = KuchusenExport.latestExport(context)
+                    if (newest == null) context.getString(R.string.kuchusen_eim_warn_none) to true
+                    else context.getString(R.string.kuchusen_eim_last, KuchusenExport.formatTimestamp(newest.lastModified())) to false
+                }
+            }
+            withContext(Dispatchers.Main) {
+                eximDirName = name
+                eximStatus = text
+                eximWarn = warn
+            }
+        }
+    }
+    LaunchedEffect(Unit) { refreshEximStatus() }
+
+    if (showExim) EximPanelDialog(
+        dirName = eximDirName, status = eximStatus, warn = eximWarn,
+        onRefresh = { refreshEximStatus() },
+        onDismiss = { showExim = false },
+        onCloseChain = {
+            // Acknowledging success closes the whole chain: the info dialog and panel are gone,
+            // and the UI settings page closes down to the app's main page.
+            showExim = false
+            pfBackStack.clear()
+            pfBackStack.add(PFNav.Portal)
+            navTo(defaultNavKey, PopMode.Clear)
+        })
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         .background(KuchusenUi.backgroundColor).padding(start = 10.dp, end = 10.dp, bottom = 24.dp)) {
 
-        // ---- Live preview (kept at the very top so every change is visible without scrolling) -----
-        CatHeading(stringResource(R.string.kuchusen_cat_preview), first = true)
+        // ---- Export / Import (the Kōjiki flow: first separated section of the page) --------------
+        CatHeading(stringResource(R.string.kuchusen_cat_eximport), first = true)
+        Column(modifier = Modifier.fillMaxWidth().clickable { showExim = true }
+            .padding(start = indent(1), top = 6.dp, bottom = 6.dp)) {
+            Text(stringResource(R.string.kuchusen_eim_row_title), color = KuchusenUi.textColor)
+            Text(eximStatus, color = if (eximWarn) EXIM_WARN else KuchusenUi.secondaryTextColor, fontSize = 13.sp)
+        }
+
+        // ---- Live preview (kept high so every change is visible without scrolling) ---------------
+        CatHeading(stringResource(R.string.kuchusen_cat_preview))
         PreviewCard(indent(1))
 
         // ---- Colours -----------------------------------------------------------------------------
@@ -108,11 +185,25 @@ fun KuchusenUiScreen() {
     }
 }
 
+// kxkb-style section heading: a full-width hairline separator above (except the first section),
+// then a big bold heading underlined exactly as wide as its text.
 @Composable
-private fun CatHeading(text: String, first: Boolean = false) {
-    Text(text, color = KuchusenUi.accentColor, style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline,
-        modifier = Modifier.padding(top = if (first) 8.dp else 20.dp, bottom = 4.dp))
+fun CatHeading(text: String, first: Boolean = false) {
+    if (!first) HorizontalDivider(thickness = Dp.Hairline, color = KuchusenUi.accentColor,
+        modifier = Modifier.padding(top = 10.dp))
+    Column(modifier = Modifier.padding(top = if (first) 12.dp else 8.dp, bottom = 2.dp).width(IntrinsicSize.Max)) {
+        Text(text, color = KuchusenUi.accentColor, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Box(Modifier.fillMaxWidth().padding(top = 2.dp).height(2.5.dp).background(KuchusenUi.accentColor))
+    }
+}
+
+// kxkb-style sub-heading: smaller, thinner text-wide underline, no full-width separator.
+@Composable
+fun SubHeading(text: String, start: Dp = 0.dp) {
+    Column(modifier = Modifier.padding(start = start, top = 10.dp, bottom = 2.dp).width(IntrinsicSize.Max)) {
+        Text(text, color = KuchusenUi.accentColor, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Box(Modifier.fillMaxWidth().padding(top = 2.dp).height(1.5.dp).background(KuchusenUi.accentColor))
+    }
 }
 
 @Composable
@@ -250,6 +341,219 @@ private fun ChannelSlider(name: String, value: Int, tint: Color, onChange: (Int)
             modifier = Modifier.weight(1f).height(24.dp).padding(horizontal = 8.dp),
             colors = SliderDefaults.colors(thumbColor = tint, activeTrackColor = tint))
         Text(value.toString(), color = KuchusenUi.textColor, modifier = Modifier.width(36.dp))
+    }
+}
+
+// ---- Export / Import (the Kōjiki flow, ArcaneChat pill buttons) ---------------------------------
+
+private class EximInfo(val title: String, val body: String, val isImport: Boolean)
+
+/** An ArcaneChat-style round pill: house-background fill, accent stroke, accent text. */
+@Composable
+private fun PillButton(label: String, enabled: Boolean = true, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(50)
+    Text(label, color = KuchusenUi.accentColor, fontSize = 14.sp, fontWeight = FontWeight.Medium,
+        modifier = Modifier.alpha(if (enabled) 1f else 0.4f).clip(shape)
+            .border(1.5.dp, KuchusenUi.accentColor, shape).background(KuchusenUi.backgroundColor)
+            .clickable(enabled = enabled) { onClick() }
+            .padding(horizontal = 20.dp, vertical = 8.dp))
+}
+
+/**
+ * The black, accent-bordered info dialog: "✓ Export finished" (OK closes the whole chain) or
+ * "✓ Import finished" (Later closes the chain, Restart now relaunches the app).
+ */
+@Composable
+private fun EximInfoDialog(info: EximInfo, onCloseChain: () -> Unit, onRestart: () -> Unit) {
+    Dialog(onDismissRequest = { }, properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
+        val shape = RoundedCornerShape(16.dp)
+        Column(modifier = Modifier.clip(shape).border(2.dp, KuchusenUi.accentColor, shape)
+            .background(KuchusenUi.backgroundColor).padding(start = 22.dp, top = 20.dp, end = 22.dp, bottom = 16.dp)) {
+            Text(info.title, color = KuchusenUi.accentColor, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(info.body, color = KuchusenUi.accentColor, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                if (info.isImport) {
+                    PillButton(stringResource(R.string.kuchusen_eim_restart_later)) { onCloseChain() }
+                    PillButton(stringResource(R.string.kuchusen_eim_restart_now)) { onRestart() }
+                } else PillButton(stringResource(R.string.kuchusen_eim_ok)) { onCloseChain() }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EximPanelDialog(dirName: String?, status: String, warn: Boolean,
+                            onRefresh: () -> Unit, onDismiss: () -> Unit, onCloseChain: () -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    // While set, overrides the page-level status line inside the panel (progress/failure messages).
+    var localStatus by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    // Every category starts ticked — exporting everything is the common case.
+    val checks = remember { mutableStateMapOf<KuchusenExport.Cat, Boolean>().apply { KuchusenExport.Cat.entries.forEach { put(it, true) } } }
+    var selectAll by remember { mutableStateOf(true) }
+    var infoDialog by remember { mutableStateOf<EximInfo?>(null) }
+    var pendingExportCats by remember { mutableStateOf<Set<KuchusenExport.Cat>>(emptySet()) }
+    var pendingExportName by remember { mutableStateOf("") }
+
+    val dirPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri: Uri? ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            KuchusenExport.setDirUri(context, uri)
+            localStatus = null
+            onRefresh()
+        }
+    }
+
+    fun selectedCats(): Set<KuchusenExport.Cat> = KuchusenExport.Cat.entries.filter { checks[it] == true }.toSet()
+
+    fun runExport(cats: Set<KuchusenExport.Cat>, displayName: String, openOutput: () -> OutputStream) {
+        busy = true
+        localStatus = context.getString(R.string.kuchusen_eim_exporting) to false
+        scope.launch(Dispatchers.IO) {
+            try {
+                KuchusenExport.export(cats, openOutput)
+                withContext(Dispatchers.Main) {
+                    localStatus = null
+                    onRefresh()
+                    infoDialog = EximInfo(context.getString(R.string.kuchusen_eim_export_done_title),
+                        context.getString(R.string.kuchusen_eim_export_done_body, cats.size, displayName), isImport = false)
+                }
+            } catch (e: Exception) {
+                Logs(TAG, e, "settings export failed")
+                withContext(Dispatchers.Main) {
+                    localStatus = context.getString(R.string.kuchusen_eim_export_failed, e.message ?: e.javaClass.simpleName) to true
+                }
+            } finally { withContext(Dispatchers.Main) { busy = false } }
+        }
+    }
+
+    val saveAsPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri: Uri? ->
+        if (uri != null) runExport(pendingExportCats, pendingExportName) {
+            context.contentResolver.openOutputStream(uri) ?: throw IOException("could not open $pendingExportName for writing")
+        }
+    }
+
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+        if (uri != null) {
+            val cats = selectedCats()
+            busy = true
+            localStatus = context.getString(R.string.kuchusen_eim_importing) to false
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val summary = KuchusenExport.import(cats) {
+                        context.contentResolver.openInputStream(uri) ?: throw IOException("could not open the import file")
+                    }
+                    withContext(Dispatchers.Main) {
+                        localStatus = null
+                        onRefresh()
+                        infoDialog = EximInfo(context.getString(R.string.kuchusen_eim_import_done_title),
+                            context.getString(R.string.kuchusen_eim_import_done_body, summary), isImport = true)
+                    }
+                } catch (e: Exception) {
+                    Logs(TAG, e, "settings import failed")
+                    withContext(Dispatchers.Main) {
+                        localStatus = context.getString(R.string.kuchusen_eim_import_failed, e.message ?: e.javaClass.simpleName) to true
+                    }
+                } finally { withContext(Dispatchers.Main) { busy = false } }
+            }
+        }
+    }
+
+    fun onExportClicked() {
+        val cats = selectedCats()
+        if (cats.isEmpty()) {
+            localStatus = context.getString(R.string.kuchusen_eim_none_selected) to true
+            return
+        }
+        val name = KuchusenExport.exportFileName()
+        val dir = KuchusenExport.exportDir(context)
+        if (dir == null) {
+            // No directory configured — fall back to a save-as picker.
+            pendingExportCats = cats
+            pendingExportName = name
+            saveAsPicker.launch(name)
+            return
+        }
+        runExport(cats, name) {
+            val file = dir.createFile("application/zip", name) ?: throw IOException("could not create $name in the export directory")
+            context.contentResolver.openOutputStream(file.uri) ?: throw IOException("could not open $name for writing")
+        }
+    }
+
+    fun onImportClicked() {
+        val cats = selectedCats()
+        if (cats.isEmpty()) {
+            localStatus = context.getString(R.string.kuchusen_eim_none_selected) to true
+            return
+        }
+        importPicker.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+    }
+
+    infoDialog?.let { EximInfoDialog(it, onCloseChain = onCloseChain, onRestart = { forceRestart() }) }
+
+    Dialog(onDismissRequest = { if (!busy) onDismiss() }) {
+        val shape = RoundedCornerShape(16.dp)
+        val checkboxColors = CheckboxDefaults.colors(checkedColor = KuchusenUi.accentColor,
+            checkmarkColor = KuchusenUi.backgroundColor, uncheckedColor = KuchusenUi.accentColor)
+        Column(modifier = Modifier.clip(shape).border(2.dp, KuchusenUi.accentColor, shape)
+            .background(KuchusenUi.backgroundColor).padding(start = 20.dp, top = 16.dp, end = 20.dp, bottom = 20.dp)
+            .verticalScroll(rememberScrollState())) {
+            Text(stringResource(R.string.kuchusen_eim_title), color = KuchusenUi.accentColor, fontSize = 18.sp,
+                fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 6.dp),
+                textAlign = TextAlign.Center)
+            Text(stringResource(R.string.kuchusen_eim_desc), color = KuchusenUi.secondaryTextColor, fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 10.dp))
+
+            // The persisted export directory — a bordered, clearly-tappable box.
+            val dirShape = RoundedCornerShape(10.dp)
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(dirShape)
+                .border(1.5.dp, KuchusenUi.accentColor, dirShape)
+                .clickable(enabled = !busy) { dirPicker.launch(KuchusenExport.dirUri(context)) }
+                .padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Text(stringResource(R.string.kuchusen_eim_dir), color = KuchusenUi.accentColor, fontSize = 12.sp)
+                Text(dirName ?: stringResource(R.string.kuchusen_eim_dir_unset), fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                    color = if (dirName == null) EXIM_WARN else KuchusenUi.secondaryTextColor)
+            }
+
+            val (statusText, statusWarn) = localStatus ?: (status to warn)
+            Text(statusText, color = if (statusWarn) EXIM_WARN else KuchusenUi.secondaryTextColor, fontSize = 14.sp,
+                modifier = Modifier.padding(start = 2.dp, bottom = 8.dp))
+
+            HorizontalDivider(thickness = Dp.Hairline, color = KuchusenUi.accentColor)
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.kuchusen_eim_select_all), color = KuchusenUi.textColor,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Checkbox(checked = selectAll, colors = checkboxColors, onCheckedChange = { checked ->
+                    selectAll = checked
+                    KuchusenExport.Cat.entries.forEach { checks[it] = checked }
+                })
+            }
+            KuchusenExport.Cat.entries.forEach { cat ->
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(cat.labelRes), color = KuchusenUi.textColor, modifier = Modifier.weight(1f))
+                    Checkbox(checked = checks[cat] == true, colors = checkboxColors,
+                        onCheckedChange = { checks[cat] = it })
+                }
+            }
+
+            HorizontalDivider(thickness = Dp.Hairline, color = KuchusenUi.accentColor, modifier = Modifier.padding(top = 8.dp))
+
+            // ArcaneChat-style action row: round pills, Cancel alone on the left,
+            // Import / Export grouped on the right.
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 14.dp)) {
+                PillButton(stringResource(R.string.cancel_label), enabled = !busy) { onDismiss() }
+                Spacer(Modifier.weight(1f))
+                PillButton(stringResource(R.string.kuchusen_eim_import_label), enabled = !busy) { onImportClicked() }
+                Spacer(Modifier.width(8.dp))
+                PillButton(stringResource(R.string.kuchusen_eim_export_label), enabled = !busy) { onExportClicked() }
+            }
+        }
     }
 }
 
