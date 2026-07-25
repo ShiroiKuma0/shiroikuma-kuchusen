@@ -47,6 +47,8 @@ import ac.mdiq.podcini.storage.utils.findRootForUri
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.compose.AmendSyntheticFeed
+import ac.mdiq.podcini.ui.screens.prefscreens.PFNav
+import ac.mdiq.podcini.ui.screens.prefscreens.pfBackStack
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -118,6 +120,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -159,6 +162,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
@@ -811,7 +815,15 @@ fun LibraryScreen() {
                 navTo(Facets(modeName = QuickAccess.Custom.name))
             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
-                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                // Long-press jumps straight to the fork's 白い熊 空中線 UI page (same as the drawer cog).
+                Box(modifier = Modifier.size(48.dp).clip(CircleShape).combinedClickable(
+                    onClick = { expanded = true },
+                    onLongClick = {
+                        pfBackStack.clear()
+                        pfBackStack.add(PFNav.Portal)
+                        pfBackStack.add(PFNav.KuchusenUI)
+                        navTo(Settings, PopMode.Clear)
+                    }), contentAlignment = Alignment.Center) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
                         runOnIOScope { vm.subPrefs = upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
