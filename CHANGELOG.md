@@ -2,6 +2,75 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.4.10+5 (versionCode 820005)
+
+Implements 白い熊's **保存復元** state-export contract, and turns the category backup into a full restore point.
+
+### Major features
+
+- **Headless, token-gated state export.** An exported broadcast receiver answers two actions —
+  `shiroikuma.kuchusen.action.EXPORT_STATE` and `shiroikuma.kuchusen.action.LIST_CATEGORIES` — with no
+  Activity and no user interaction, so a sister automation app can back this app up unattended. The
+  receiver declares **no `android:permission`** (the caller cannot hold one): the automation token is the
+  entire gate, checked on every request together with the master switch, before any work is done.
+  - `LIST_CATEGORIES` replies `OK:` plus one `id<TAB>label` line per exportable category, the ids being
+    exactly the ones accepted in `items` and exactly the entry names used inside the ZIP.
+  - `EXPORT_STATE` accepts `token`, `path` (an absolute directory that overrides the app's own configured
+    one, created if missing), `items` (comma-separated category ids; absent or empty means everything),
+    `progress_action`, and the `reply_action` / `reply_package` / `reply_id` reply channel. Directory
+    precedence is `path` → the configured export directory → `ERROR:no-directory`.
+  - The reply is **always a fresh broadcast** carrying `reply_id` and `result`, with
+    `FLAG_INCLUDE_STOPPED_PACKAGES` so a backgrounded caller still hears it — never a `ResultReceiver`,
+    `PendingIntent` or `Messenger`, and never the ordered-broadcast result alone (it is still set, but only
+    when the broadcast really was ordered). Success reads
+    `OK:<absolute path>|<bytes>|<human size>|<n> categories`; both numbers are computed by this app, since
+    the caller cannot stat the file.
+  - **Exactly one terminal reply per request**, guarded by an `AtomicBoolean`, so an async success and a
+    synchronous error can never both fire. Distinct errors for `automation disabled`, `bad token`,
+    `no-directory`, `no-storage-access` and `unknown category in items: …` — they debug differently.
+  - The work runs under `goAsync()` on a background dispatcher, and every reply is written to logcat
+    unconditionally as `StateExportReceiver: <reply_id> → <result>`, because the app's own log helpers are
+    gated behind a debug preference and would otherwise hide a failing automation run.
+- **Progress broadcasts with real numbers, never a percentage** — `Category 3/6 — Colours`,
+  `Feeds 120/312`, `Database 24.0 MB / 61.3 MB` — each carrying the structured `current` / `total` / `unit`
+  extras alongside the display line and the app's label, throttled to at most one every 500 ms with a final
+  one always sent at completion. The Export/Import panel shows the same progress for manual exports.
+- **The database is now part of the backup.** A new **Database** category writes a transactionally
+  consistent, compacted snapshot of the Realm database — episodes, play positions, queues, ratings —
+  taken with `writeCopyTo` rather than a byte copy of the live file, which could catch a half-written
+  transaction. One request still produces **exactly one ZIP**: never a second file, never a split by
+  category, never a companion `.json` next to the archive.
+  - On import the database entry is **streamed to disk, never through memory** (it can be hundreds of MB),
+    and applied **last**, after every other category has finished writing through the database it replaces.
+  - A restored database offers only **Restart now** — "Later" would leave the app running against a file it
+    no longer has open.
+- **Automation controls inside the Export/Import section** of the 白い熊 空中線 UI page, directly below the
+  existing export rows (never a section of their own): a **master switch, off by default**, and a **token
+  row** showing the token abbreviated (`80922d8c…4c49a87c`), copying the full value to the clipboard on tap
+  with a confirmation toast, and carrying a **Regenerate** action that warns pasted copies must be updated.
+- **Automation token infrastructure**: 24 random bytes from `SecureRandom`, hex-encoded, generated lazily on
+  first read so the row always shows a value, and compared **constant-time** — a length-or-prefix leak is
+  enough to walk a token out. It lives in its own device-local preferences file that no export category
+  touches, so the token can never travel inside a backup ZIP.
+
+### Fixes & behavior
+
+- **Family backup file-name convention** (白い熊, 2026-07-25): every backup this app writes — from the
+  automation path *and* from the Export/Import panel — is now named
+  `shiroikuma-kuchusen_<yyyy-MM-dd_HH-mm-ss>.zip`, with no version, no `-export` infix and no other
+  decoration, so all apps' backups sort and read uniformly in one shared directory. The "last export"
+  lookup still recognises the previous `shiroikuma-kuchusen-export_…` names.
+- The export manifest now also records the fork's `appVersion`.
+- The database entry is deflated at `BEST_SPEED`: a realm file is large and already compact, so the time
+  saved matters more than the ratio.
+
+### Packaging & identity
+
+- Declares **`MANAGE_EXTERNAL_STORAGE`**, so an automation run can honour the directory its caller names.
+  Without the grant the `path` extra is ignored in favour of the configured SAF directory (and only fails
+  with `no-storage-access` when there is none); a warning row under the token opens the grant screen while
+  the permission is missing.
+
 ## 12.4.10+4 (versionCode 820004)
 
 Rebased onto upstream **v12.4.10** (versionCode 82) — the fork layer replayed from the 12.1.7 line.
