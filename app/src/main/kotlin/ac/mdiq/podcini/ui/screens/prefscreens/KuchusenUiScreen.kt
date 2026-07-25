@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.automation.AutomationAuth
 import ac.mdiq.podcini.config.settings.KuchusenExport
 import ac.mdiq.podcini.ui.compose.KuchusenUi
 import ac.mdiq.podcini.ui.screens.PopMode
@@ -9,8 +10,14 @@ import ac.mdiq.podcini.ui.screens.defaultNavKey
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +47,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -67,6 +76,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -143,6 +153,9 @@ fun KuchusenUiScreen() {
             Text(stringResource(R.string.kuchusen_eim_row_title), color = KuchusenUi.textColor)
             Text(eximStatus, color = if (eximWarn) EXIM_WARN else KuchusenUi.secondaryTextColor, fontSize = 13.sp)
         }
+        // Backup automation lives with backup — directly below the rows above, never in a section
+        // of its own, so every sister app looks the same.
+        AutomationRows(indent(1))
 
         // ---- Live preview (kept high so every change is visible without scrolling) ---------------
         CatHeading(stringResource(R.string.kuchusen_cat_preview))
@@ -344,9 +357,92 @@ private fun ChannelSlider(name: String, value: Int, tint: Color, onChange: (Int)
     }
 }
 
+// ---- 保存復元 automation (token-gated headless export, driven by 白い熊 自由作業盤) --------------
+
+private fun hasAllFilesAccess(): Boolean =
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
+
+@Composable
+private fun AutomationRows(start: Dp) {
+    val context = LocalContext.current
+    var enabled by remember { mutableStateOf(AutomationAuth.isEnabled(context)) }
+    var token by remember { mutableStateOf(AutomationAuth.token(context)) }
+    var showRegen by remember { mutableStateOf(false) }
+    var filesAccess by remember { mutableStateOf(hasAllFilesAccess()) }
+    // The grant screen returns no result — re-read the real state when we come back from it.
+    val grantLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        filesAccess = hasAllFilesAccess()
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = start, top = 6.dp, bottom = 2.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(stringResource(R.string.kuchusen_auto_title), color = KuchusenUi.textColor)
+            Text(stringResource(R.string.kuchusen_auto_sum), color = KuchusenUi.secondaryTextColor, fontSize = 13.sp)
+        }
+        Switch(checked = enabled, onCheckedChange = { on ->
+            enabled = on
+            AutomationAuth.setEnabled(context, on)
+        }, colors = SwitchDefaults.colors(
+            checkedThumbColor = KuchusenUi.backgroundColor, checkedTrackColor = KuchusenUi.accentColor,
+            uncheckedThumbColor = KuchusenUi.secondaryTextColor, uncheckedTrackColor = KuchusenUi.backgroundColor,
+            uncheckedBorderColor = KuchusenUi.accentColor))
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = start)) {
+        Column(modifier = Modifier.weight(1f).clickable {
+            val clip = context.getSystemService(ClipboardManager::class.java)
+            clip?.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.kuchusen_auto_token), token))
+            Toast.makeText(context, R.string.kuchusen_auto_token_copied, Toast.LENGTH_SHORT).show()
+        }.padding(top = 4.dp, bottom = 4.dp, end = 8.dp)) {
+            Text(stringResource(R.string.kuchusen_auto_token), color = KuchusenUi.textColor)
+            Text(AutomationAuth.abbreviated(token), color = KuchusenUi.secondaryTextColor,
+                fontSize = 13.sp, fontFamily = FontFamily.Monospace)
+            Text(stringResource(R.string.kuchusen_auto_token_hint), color = KuchusenUi.secondaryTextColor, fontSize = 12.sp)
+        }
+        TextButton(onClick = { showRegen = true }) {
+            Text(stringResource(R.string.kuchusen_auto_regen), color = KuchusenUi.accentColor)
+        }
+    }
+
+    // Without All-files access an automation run cannot honour its own target directory.
+    if (!filesAccess) Text(stringResource(R.string.kuchusen_auto_files_warn), color = EXIM_WARN, fontSize = 13.sp,
+        modifier = Modifier.fillMaxWidth().clickable {
+            runCatching {
+                grantLauncher.launch(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    "package:${context.packageName}".toUri()))
+            }.onFailure { grantLauncher.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+        }.padding(start = start, top = 2.dp, bottom = 4.dp))
+
+    if (showRegen) HouseConfirmDialog(
+        title = stringResource(R.string.kuchusen_auto_regen_title),
+        body = stringResource(R.string.kuchusen_auto_regen_body),
+        confirmLabel = stringResource(R.string.kuchusen_auto_regen),
+        onConfirm = { token = AutomationAuth.regenerate(context); showRegen = false },
+        onDismiss = { showRegen = false })
+}
+
+/** The house-style (black, accent-bordered, pill-buttoned) confirmation used across this page. */
+@Composable
+private fun HouseConfirmDialog(title: String, body: String, confirmLabel: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        val shape = RoundedCornerShape(16.dp)
+        Column(modifier = Modifier.clip(shape).border(2.dp, KuchusenUi.accentColor, shape)
+            .background(KuchusenUi.backgroundColor).padding(start = 22.dp, top = 20.dp, end = 22.dp, bottom = 16.dp)) {
+            Text(title, color = KuchusenUi.accentColor, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Text(body, color = KuchusenUi.accentColor, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                PillButton(stringResource(R.string.cancel_label)) { onDismiss() }
+                PillButton(confirmLabel) { onConfirm() }
+            }
+        }
+    }
+}
+
 // ---- Export / Import (the Kōjiki flow, ArcaneChat pill buttons) ---------------------------------
 
-private class EximInfo(val title: String, val body: String, val isImport: Boolean)
+private class EximInfo(val title: String, val body: String, val isImport: Boolean, val mustRestart: Boolean = false)
 
 /** An ArcaneChat-style round pill: house-background fill, accent stroke, accent text. */
 @Composable
@@ -373,10 +469,16 @@ private fun EximInfoDialog(info: EximInfo, onCloseChain: () -> Unit, onRestart: 
             Text(info.body, color = KuchusenUi.accentColor, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
-                if (info.isImport) {
-                    PillButton(stringResource(R.string.kuchusen_eim_restart_later)) { onCloseChain() }
-                    PillButton(stringResource(R.string.kuchusen_eim_restart_now)) { onRestart() }
-                } else PillButton(stringResource(R.string.kuchusen_eim_ok)) { onCloseChain() }
+                when {
+                    // A restored database is live only after the restart — "Later" would run the
+                    // app against a file that is no longer the one it opened.
+                    info.mustRestart -> PillButton(stringResource(R.string.kuchusen_eim_restart_now)) { onRestart() }
+                    info.isImport -> {
+                        PillButton(stringResource(R.string.kuchusen_eim_restart_later)) { onCloseChain() }
+                        PillButton(stringResource(R.string.kuchusen_eim_restart_now)) { onRestart() }
+                    }
+                    else -> PillButton(stringResource(R.string.kuchusen_eim_ok)) { onCloseChain() }
+                }
             }
         }
     }
@@ -416,7 +518,8 @@ private fun EximPanelDialog(dirName: String?, status: String, warn: Boolean,
         localStatus = context.getString(R.string.kuchusen_eim_exporting) to false
         scope.launch(Dispatchers.IO) {
             try {
-                KuchusenExport.export(cats, openOutput)
+                // The same progress the automation path broadcasts, shown in the panel.
+                KuchusenExport.export(cats, openOutput) { localStatus = it.text to false }
                 withContext(Dispatchers.Main) {
                     localStatus = null
                     onRefresh()
@@ -445,14 +548,15 @@ private fun EximPanelDialog(dirName: String?, status: String, warn: Boolean,
             localStatus = context.getString(R.string.kuchusen_eim_importing) to false
             scope.launch(Dispatchers.IO) {
                 try {
-                    val summary = KuchusenExport.import(cats) {
+                    val result = KuchusenExport.import(cats) {
                         context.contentResolver.openInputStream(uri) ?: throw IOException("could not open the import file")
                     }
                     withContext(Dispatchers.Main) {
                         localStatus = null
                         onRefresh()
                         infoDialog = EximInfo(context.getString(R.string.kuchusen_eim_import_done_title),
-                            context.getString(R.string.kuchusen_eim_import_done_body, summary), isImport = true)
+                            context.getString(R.string.kuchusen_eim_import_done_body, result.summary),
+                            isImport = true, mustRestart = result.databaseRestored)
                     }
                 } catch (e: Exception) {
                     Logs(TAG, e, "settings import failed")
