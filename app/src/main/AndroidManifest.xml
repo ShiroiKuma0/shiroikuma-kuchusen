@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
+    <!-- 白い熊 保存復元: an automation run names its own backup directory, so the export must be
+         able to write an arbitrary absolute path. Granted by hand in system settings. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -263,6 +266,17 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
+        </receiver>
+
+        <!-- 白い熊 保存復元: the token-gated, headless state export. No android:permission —
+             the caller cannot hold one, so the automation token is the gate. -->
+        <receiver
+            android:name=".config.automation.StateExportReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="${applicationId}.action.EXPORT_STATE" />
+                <action android:name="${applicationId}.action.LIST_CATEGORIES" />
+            </intent-filter>
         </receiver>
 
         <provider
