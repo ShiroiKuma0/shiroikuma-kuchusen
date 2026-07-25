@@ -213,7 +213,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
                     try {
                         getEpisodesAsFlow(feed.episodeFilter, feed.episodeSortOrder, feed.id)
                     } catch (e: Throwable) {
-                        Loge(TAG, "getEpisodesAsFlow error, retry: ${e.message}")
+                        Loge(TAG, e, "getEpisodesAsFlow error, retry")
                         val feed_ = upsert(feed) {
                             it.episodeFilter = EpisodeFilter("")
                             it.episodeSortOrder = EpisodeSortOrder.DATE_DESC

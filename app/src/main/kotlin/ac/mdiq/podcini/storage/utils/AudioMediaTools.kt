@@ -51,7 +51,7 @@ fun mergeAudios(selection: Array<String>, outpath: String?, callback: OperationC
                     dataBytes[1] = mergeFilesStream[b]!!.readByte()
                 } catch (e: EOFException) {
                     amplifyOutputStream.close()
-                    Loge(TAG, "mergeAudios error: ${e.message}")
+                    Loge(TAG, e, "mergeAudios error")
                 }
 
                 val dataInShort = ByteBuffer.wrap(dataBytes).order(ByteOrder.LITTLE_ENDIAN).getShort()

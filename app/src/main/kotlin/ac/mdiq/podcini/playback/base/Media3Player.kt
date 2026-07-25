@@ -263,7 +263,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                         castPlayer?.clearMediaItems()
                         setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                     }
-                    Loge(TAG, "exoplayerListener onPlayerError ${error.message}")
+                    Loge(TAG, error, "exoplayerListener onPlayerError")
                     when (error.errorCode) {
                         PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED -> {
                             if (curEpisode != null) getCache().removeResource(curEpisode!!.id.toString())
@@ -526,7 +526,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 bufferForPlaybackUsField?.set(delegate, playbackMs * 1000L)
                 bufferForPlaybackAfterRebufferUsField?.set(delegate, rebufferMs * 1000L)
                 prioritizeTimeOverSizeThresholdsField?.set(delegate, prioritizeTime)
-            }.onFailure { e -> Loge(TAG, "Failed to dynamically update buffer parameters ${e.message}") }
+            }.onFailure { e -> Loge(TAG, e, "Failed to dynamically update buffer parameters ") }
         }
 
         override fun onPrepared(playerId: PlayerId) = delegate.onPrepared(playerId)
@@ -741,7 +741,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             val enabled = speedEnablesOffload && silenceEnablesOffload
             if (enabled != offloadEnabled) {
                 offloadEnabled = enabled
-                LogtFor(TAG, curEpisode?.id, "setSource set audio offload $offloadEnabled")
+                Logt(TAG, "switchOffload set audio offload $offloadEnabled")
                 exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon().setAudioOffloadPreferences(AudioOffloadPreferences.Builder().setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build()).build()
             }
             needChangeOffload = false

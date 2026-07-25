@@ -159,7 +159,7 @@ fun ImportExportScreen() {
                     withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
                     processingText = ""
-                    Logs(TAG, e, "export error: ${e.message}")
+                    Logs(TAG, e, "export error")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
                 } finally { processingText = "" }
@@ -172,7 +172,7 @@ fun ImportExportScreen() {
                     withContext(Dispatchers.Main) { showExportSuccess(output.toAndroidUri(), exportType.contentType) }
                 } catch (e: Exception) {
                     processingText = ""
-                    Logs(TAG, e, "export error: ${e.message}")
+                    Logs(TAG, e, "export error")
                     importErrorMessage = e.message?:"Reason unknown"
                     showImporErrortDialog.value = true
                 } finally { processingText = "" }
@@ -215,7 +215,7 @@ fun ImportExportScreen() {
                         }
                     } catch (e: Throwable) {
                         processingText = ""
-                        Logs(TAG, e, "export error: ${e.message}")
+                        Logs(TAG, e, "export error")
                         importErrorMessage = e.message?:"Reason unknown"
                         showImporErrortDialog.value = true
                     }
@@ -291,7 +291,7 @@ fun ImportExportScreen() {
                             }
                         } catch (e: Throwable) {
                             processingText = ""
-                            Logs(TAG, e, "export error: ${e.message}")
+                            Logs(TAG, e, "export error")
                             importErrorMessage = e.message?:"Reason unknown"
                             showImporErrortDialog.value = true
                         }
@@ -510,7 +510,7 @@ fun ImportExportScreen() {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 }
                 backupComboLauncher.launch(intent)
-            } catch (e: Exception) { Loge(TAG, "Export failed: ${e.message}")}
+            } catch (e: Exception) { Loge(TAG, e, "Export failed")}
         }
         val showComboImportDialog = remember { mutableStateOf(false) }
         ComfirmDialog(titleRes = R.string.combo_import_label, message = stringResource(R.string.combo_import_warning), showDialog = showComboImportDialog) {
@@ -519,7 +519,7 @@ fun ImportExportScreen() {
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 intent.addCategory(Intent.CATEGORY_DEFAULT)
                 restoreComboLauncher.launch(intent)
-            } catch (e: Exception) { Loge(TAG, "Import failed: ${e.message}")}
+            } catch (e: Exception) { Loge(TAG, e, "Import failed")}
         }
         TitleSummaryActionColumn(R.string.combo_import_label, R.string.combo_import_summary) { showComboImportDialog.value = true }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))

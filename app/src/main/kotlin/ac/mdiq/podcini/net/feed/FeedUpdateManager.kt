@@ -248,7 +248,7 @@ object FeedUpdateManager {
                 if (isPeriodic) rescheduleUpdateTaskOnce()
                 return Result.success()
             } catch (e: Throwable) {
-                Logs(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
+                Logs(TAG, e,"Some errors occurred during refresh, will retry")
                 if (isPeriodic) {
                     if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
                         upsertBlk(appAttribs) { it.feedIdsToRefresh.clear() }

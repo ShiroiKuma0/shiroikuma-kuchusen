@@ -94,7 +94,7 @@ object TTSEngine {
             commonMessage = CommonMessageAttrib(
                 title = "",
                 message = readerText!!,
-                OKRes = R.string.stop,
+                okRes = R.string.stop,
                 onOK = {
                     tts?.stop()
                     commonMessage = null

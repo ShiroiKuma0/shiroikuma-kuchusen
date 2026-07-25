@@ -110,7 +110,7 @@ abstract class VorbisCommentReader internal constructor(private val source: Coun
             Logd(TAG, "commentHeader: $commentHeader")
             val count = commentHeader.userCommentLength.coerceAtMost(1000)
             repeat(count.toInt()) { readUserComment() }
-        } catch (e: Throwable) { Loge(TAG, "Vorbis parser: ${e.message}") }
+        } catch (e: Throwable) { Loge(TAG, e, "Vorbis parser") }
     }
 
     /**

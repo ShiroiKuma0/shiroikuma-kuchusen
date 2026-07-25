@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.Media3Player.Companion.nuclearCacheWipe
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
+import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.clientByFeed
@@ -137,7 +138,6 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -764,7 +764,8 @@ fun AVPlayerScreen() {
                 if (client?.attributes?.hasSeparateAVs == true) IconButton(onClick = {
                     if (episode != null) {
                         val media = upsertBlk(episode) { it.forceVideo = false }
-                        PlaybackStarter(media).shouldStreamThisTime(null).start(force = true)
+                        forcePlaybackReset = true
+                        PlaybackStarter(media).shouldStreamThisTime(null).start()
                         player.playingVideo = false
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_audiotrack_24), contentDescription = "audio only") }
@@ -833,7 +834,8 @@ fun AVPlayerScreen() {
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     val media = upsertBlk(episode!!) { it.forceVideo = true }
-                    PlaybackStarter(media).shouldStreamThisTime(null).start(force = true)
+                    forcePlaybackReset = true
+                    PlaybackStarter(media).shouldStreamThisTime(null).start()
                     theatres[vm.playerId].mPlayer?.playingVideo = true
                 })
             if (episode != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {

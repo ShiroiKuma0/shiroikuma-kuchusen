@@ -486,6 +486,7 @@ abstract class MediaPlayerBase {
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
         setAsCurEpisode(playable)
+        if (forceReset) curClient = clientByEpisode(curEpisode!!)
 
         this.isStreaming = streaming
         if (curEpisode != null) currentMediaType = curEpisode!!.mediaType

@@ -167,7 +167,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
                         delay(1000)
                     } catch (e: CancellationException) { return@launch
                     } catch (e: Exception) {
-                        Loge(TAG, "Episode download progressUpdaterJob exception: ${e.message}")
+                        Loge(TAG, e, "Episode download progressUpdaterJob exception")
                         return@launch
                     }
                 }

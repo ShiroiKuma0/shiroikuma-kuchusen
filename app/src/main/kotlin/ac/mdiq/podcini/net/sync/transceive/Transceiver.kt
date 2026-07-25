@@ -95,7 +95,7 @@ suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatch
             delay(2000)
         }
     } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
-    } catch (e: Exception) { Loge(TAG, "broadcastPresence error: ${e.message}")
+    } catch (e: Exception) { Loge(TAG, e, "broadcastPresence error")
     } finally { socket.close() }
 }
 
@@ -158,11 +158,11 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
             } catch (e: CancellationException) { Logd(TAG, "listener socket is canceled")
             } catch (e: Throwable) {
-                Loge(TAG, "listenForBroadcasts socket exception: ${e.message}")
+                Loge(TAG, e, "listenForBroadcasts socket exception")
                 break
             }
         }
-    } catch (e: Exception) { Loge(TAG, "listenForBroadcasts error: ${e.message}")
+    } catch (e: Exception) { Loge(TAG, e, "listenForBroadcasts error")
     } finally { socket?.close() }
 }
 
@@ -176,7 +176,7 @@ abstract class Receiver(private val port: Int) {
             serverSocket = aSocket(socketSelector).tcp().bind("0.0.0.0", port)
             Logd(TAG, "Server listening on port $port")
         } catch (e: Exception) {
-            Loge(TAG, "Error starting server socket: ${e.message}")
+            Loge(TAG, e, "Error starting server socket")
             return
         }
     }

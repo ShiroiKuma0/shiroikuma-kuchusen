@@ -337,7 +337,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
                             todo_.dueTime = dueTime
                         }
                         if (dueTime > 0) playEpisodeAtTime(dueTime, episode.id)
-                    } catch (e: Throwable) { Loge(TAG, "editing Todo error: ${e.message}")}
+                    } catch (e: Throwable) { Loge(TAG, e, "editing Todo error")}
                 }
                 onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }
@@ -399,7 +399,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                         curItem_ = upsertBlk(curItem_) { it.description = desc }
                         shownotesCleaner?.processShownotes(desc, curItem_.duration)
                     } else shownotesCleaner?.processShownotes(curItem_.description ?: "", curItem_.duration)
-                } catch (e: Exception) { Loge(TAG, "StreamInfo error: ${e.message}") }
+                } catch (e: Exception) { Loge(TAG, e, "StreamInfo error") }
             } else cleanedNotes = shownotesCleaner?.processShownotes(curItem_.description ?: "", curItem_.duration)
             return Pair(curItem_, cleanedNotes)
         }
@@ -841,7 +841,7 @@ fun EditTimerDialog(timer: Timer, onDismiss: () -> Unit) {
                         val timer_ = upsertBlkEmb(timer) { it.triggerTime = triggerTime }
                         timer_.reset()
                     } catch (e: Throwable) {
-                        Loge(TAG, "editing timer error: ${e.message}")
+                        Loge(TAG, e, "editing timer error")
                     }
                 }
                 onDismiss()
@@ -881,7 +881,7 @@ fun AddTimerDialog(episode: Episode, onDismiss: () -> Unit) {
                     try {
                         val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         playEpisodeAtTime(triggerTime, episode.id, isRepeat)
-                    } catch (e: Throwable) { Loge(TAG, "editing timer error: ${e.message}") }
+                    } catch (e: Throwable) { Loge(TAG, e, "editing timer error") }
                 }
                 onDismiss()
             }) { Text(stringResource(R.string.confirm_label)) }

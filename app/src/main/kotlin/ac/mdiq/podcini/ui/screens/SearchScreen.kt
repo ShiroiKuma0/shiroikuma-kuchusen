@@ -11,7 +11,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
@@ -38,6 +38,7 @@ import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatWithGrouping
 import androidx.activity.compose.BackHandler
@@ -133,7 +134,7 @@ fun setSearchTerms(query: String? = null) {
     if (query != null) curSearchString = query
 }
 
-private val onlineMediaCache = LruCache<String, List<Episode>>(1)
+private val remoteMediaCache = LruCache<String, List<Episode>>(1)
 
 class SearchVM: ViewModel() {
     val algo = SearchAlgo()
@@ -145,8 +146,8 @@ class SearchVM: ViewModel() {
 
     var searchers = mutableStateListOf<MediaSearcher>()
 
-    var searchingOnline by mutableStateOf(false)
-    internal var onlineMedia = mutableStateListOf<Episode>()
+    var searchingRemote by mutableStateOf(false)
+    internal var remoteMedia = mutableStateListOf<Episode>()
 
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
 
@@ -161,34 +162,34 @@ class SearchVM: ViewModel() {
         searchersAll.addAll(sourceClients.mapNotNull { it.mediaSearcher })
         searchers.addAll(searchersAll)
         viewModelScope.launch { snapshotFlow { Pair(curSearchString, searchers.size) }.collectLatest {
-            onlineMedia.clear()
-            onlineMediaCache.remove(curSearchString)
-            if (selectedTabIndex == 2) searchMediaOnline()
+            remoteMedia.clear()
+            remoteMediaCache.remove(curSearchString)
+            if (selectedTabIndex == 2) searchRemoteMedia()
         } }
         viewModelScope.launch { snapshotFlow { selectedTabIndex }.collectLatest {
-            if (selectedTabIndex == 2 && onlineMedia.isEmpty()) searchMediaOnline()
+            if (selectedTabIndex == 2 && remoteMedia.isEmpty()) searchRemoteMedia()
         } }
         viewModelScope.launch { snapshotFlow { episodeSortOrder }.collectLatest {
-            if (selectedTabIndex == 2 && onlineMedia.isNotEmpty()) onlineMedia.reorderWith(episodeSortOrder)
+            if (selectedTabIndex == 2 && remoteMedia.isNotEmpty()) remoteMedia.reorderWith(episodeSortOrder)
         } }
     }
 
-    suspend fun searchMediaOnline() {
-        val onlineMediaLimit = 1000
-        val fromCache = onlineMediaCache[curSearchString]
+    suspend fun searchRemoteMedia() {
+        val remoteMediaLimit = 1000
+        val fromCache = remoteMediaCache[curSearchString]
         if (fromCache != null) {
-            onlineMedia.clear()
-            onlineMedia.addAll(fromCache)
+            remoteMedia.clear()
+            remoteMedia.addAll(fromCache)
             return
         }
-        searchingOnline = true
+        searchingRemote = true
         fun addItems( items: List<EpisodeIPC>, type: String?) {
             if (items.isNotEmpty()) {
-                onlineMedia.addAll(items.map { it.toEpisode().apply {
+                remoteMedia.addAll(items.map { it.toEpisode().apply {
                     id = getEntityId()
                     feedType = type
                 } })
-                onlineMedia.reorderWith(episodeSortOrder)
+                remoteMedia.reorderWith(episodeSortOrder)
             }
         }
         for (s in searchers) {
@@ -197,19 +198,19 @@ class SearchVM: ViewModel() {
             Logd(TAG, "searchQuick items: ${items.size}")
             addItems(items, type)
         }
-        var counter = onlineMedia.size
-        while (onlineMedia.size < onlineMediaLimit) {
+        var counter = remoteMedia.size
+        while (remoteMedia.size < remoteMediaLimit) {
             for (s in searchers) {
                 val type = clientBySearcher(s.name)?.attributes?.feedType
                 val items = s.getMoreItems()
                 Logd(TAG, "getMoreItems items: ${items.size}")
                 addItems(items, type)
             }
-            if (counter >= onlineMedia.size) break
-            counter = onlineMedia.size
+            if (counter >= remoteMedia.size) break
+            counter = remoteMedia.size
         }
-        onlineMediaCache.put(curSearchString, onlineMedia)
-        searchingOnline = false
+        remoteMediaCache.put(curSearchString, remoteMedia)
+        searchingRemote = false
     }
     data class Triplet(val episodes: Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
@@ -219,10 +220,15 @@ class SearchVM: ViewModel() {
             else {
                 val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
                 listIdentity = "Search.${queryWords.joinToString()}"
-                val items = algo.searchEpisodes(0L, queryWords, sortBY = order)
-                val feeds: List<Feed> = algo.searchFeeds(queryWords)
-                val pafeeds = algo.searchPAFeeds(queryWords)
-                Triplet(items, feeds, pafeeds)
+                try {
+                    val items = algo.searchEpisodes(0L, queryWords, sortBY = order)
+                    val feeds = algo.searchFeeds(queryWords)
+                    val pafeeds = algo.searchPAFeeds(queryWords)
+                    Triplet(items, feeds, pafeeds)
+                } catch (e: Exception) {
+                    Loge(TAG, e, "Search failed")
+                    Triplet(emptyFlow(), listOf(), listOf())
+                }
             }
         }
         withContext(Dispatchers.Main) {
@@ -290,7 +296,7 @@ fun SearchScreen() {
     if (showReserveAllDialog) AmendSyntheticFeed(name_ = "$curSearchString. By ${vm.searchers.joinToString { it.name }}", onDismiss = { showReserveAllDialog = false }) { feed->
         runOnIOScope {
             realm.write {
-                for (e in vm.onlineMedia) {
+                for (e in vm.remoteMedia) {
                     e.feedId = feed.id
                     copyToRealm(e)
                 }
@@ -305,19 +311,20 @@ fun SearchScreen() {
     }
 
     @Composable
-    fun MyTopAppBar() {
+    fun TopBar() {
         Box {
             TopAppBar(
                 title = { Row(verticalAlignment = Alignment.CenterVertically) {
                     SearchBarRow(R.string.search_hint, defaultText = curSearchString, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
                         if (str.isBlank()) return@SearchBarRow
                         curSearchString = str
-                        upsertBlk(appAttribs) {
-                            if (str in it.searchHistory) it.searchHistory.remove(str)
-                            it.searchHistory.add(0, str)
-                            if (it.searchHistory.size > SearchHistorySize+4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
+                        runOnIOScope {
+                            upsert(appAttribs) {
+                                if (str in it.searchHistory) it.searchHistory.remove(str)
+                                it.searchHistory.add(0, str)
+                                if (it.searchHistory.size > SearchHistorySize + 4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
+                            }
                         }
-                        curSearchString = str
                     }
                     if (vm.selectedTabIndex in listOf(0, 2)) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
                 } },
@@ -345,7 +352,7 @@ fun SearchScreen() {
                                 showRemoteSearchers = true
                                 expanded = false
                             })
-                            if (!vm.searchingOnline) DropdownMenuItem(text = { Text(stringResource(R.string.reserve_all)) }, onClick = {
+                            if (!vm.searchingRemote) DropdownMenuItem(text = { Text(stringResource(R.string.reserve_all)) }, onClick = {
                                 showReserveAllDialog = true
                                 expanded = false
                             })
@@ -360,11 +367,11 @@ fun SearchScreen() {
     val assFeeds by vm.assFeedsFlow.collectAsStateWithLifecycle()
 
     val infoBarText = remember(episodes.size) { mutableStateOf("${episodes.size} episodes") }
-    val tabCounts = remember(episodes.size, assFeeds.size, vm.feeds.size, vm.onlineMedia.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size + assFeeds.size, vm.onlineMedia.size, vm.pafeeds.size) }
+    val tabCounts = remember(episodes.size, assFeeds.size, vm.feeds.size, vm.remoteMedia.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size + assFeeds.size, vm.remoteMedia.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+        Scaffold(topBar = { TopBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     vm.tabTitles.forEachIndexed { index, titleRes ->
@@ -377,7 +384,6 @@ fun SearchScreen() {
                 @Composable
                 fun FeedsColumn() {
                     val context = LocalContext.current
-
                     @Composable
                     fun FeedRow(feed: Feed) {
                         Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
@@ -385,7 +391,6 @@ fun SearchScreen() {
                                 Logd(TAG, "icon clicked!")
                                 if (!feed.isBuilding) navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
                             })
-
                             Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (!feed.isBuilding) navTo(FeedDetails(feedId = feed.id)) }) {
                                 Row {
                                     if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
@@ -415,16 +420,14 @@ fun SearchScreen() {
                         }
                     }
                 }
-
                 @Composable
                 fun PAFeedsColumn() {
                     val context = LocalContext.current
                     val lazyListState = rememberLazyListState()
                     LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
+                        itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { _, feed ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(60.dp).height(60.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url = feed.feedUrl)) })
-
                                 Column(Modifier.weight(1f).padding(start = 10.dp).clickable { if (feed.feedUrl.isNotBlank()) navTo(OnlineFeed(url = feed.feedUrl)) }) {
                                     Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                     Text(feed.author, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
@@ -449,13 +452,13 @@ fun SearchScreen() {
                     1 -> FeedsColumn()
                     2 -> {
                         InforBar(null) {
-                            if (vm.searchingOnline) CircularProgressIndicator(strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(20.dp))
+                            if (vm.searchingRemote) CircularProgressIndicator(strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.weight(0.1f))
-                            Text(vm.onlineMedia.size.toString(), style = MaterialTheme.typography.bodyMedium)
+                            Text(vm.remoteMedia.size.toString(), style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(0.1f))
-                            PlayRandom(vm.onlineMedia)
+                            PlayRandom(vm.remoteMedia)
                         }
-                        EpisodeLazyColumn(vm.onlineMedia, isExternal = true, layoutMode = LayoutMode.WideImage.ordinal, swipeActions = null, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+                        EpisodeLazyColumn(vm.remoteMedia, isExternal = true, layoutMode = LayoutMode.WideImage.ordinal, swipeActions = null, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
                     }
                     3 -> PAFeedsColumn()
                 }

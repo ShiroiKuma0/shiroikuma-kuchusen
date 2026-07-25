@@ -48,6 +48,16 @@ fun Loge(t: String, m: String) {
     }
 }
 
+fun Loge(t: String, e: Throwable, m: String) {
+    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m + ": "+ e.message)
+    val me = e.message
+    LogScope.launch {
+        trimToasts()
+        if (appPrefs.showErrorToasts) toastMassege = "$t: $m: $me"
+        sessionLogs.add("${fullDateTimeString()} $t: Error: $m: $me")
+    }
+}
+
 fun LogeFor(t: String, episodeId: Long?, m: String) {
     if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.e(t, m)
     LogScope.launch {

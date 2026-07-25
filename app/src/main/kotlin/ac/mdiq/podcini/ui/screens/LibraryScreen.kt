@@ -730,7 +730,7 @@ fun LibraryScreen() {
                                 val worker = DocumentFileExportWorker(OpmlWriter(), uri)
                                 worker.exportFile(feedsSelected)
                             }
-                        } catch (e: Exception) { Loge(TAG, "exportOPML error: ${e.message}") }
+                        } catch (e: Exception) { Loge(TAG, e, "exportOPML error") }
                     }
                 }?.launch(intentPickAction)
                 return@clickable

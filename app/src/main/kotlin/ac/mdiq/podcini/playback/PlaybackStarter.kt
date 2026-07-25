@@ -4,10 +4,10 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.database.isMediaDownloadable
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
@@ -16,6 +16,7 @@ import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
 import androidx.core.content.ContextCompat
 
+var forcePlaybackReset: Boolean = false
 
 class PlaybackStarter(private val media: Episode) {
     private val TAG = "PlaybackStarter"
@@ -43,15 +44,16 @@ class PlaybackStarter(private val media: Episode) {
         return this
     }
 
-    fun start(playerId: Int = 0, force: Boolean = false) {
+    fun start(playerId: Int = 0) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
 //        showStackTrace()
         var media_ = media
-        var sameMedia = !force
+        if (forcePlaybackReset) getCache().removeResource(media.id.toString())
+        var sameMedia = !forcePlaybackReset
         if (theatres[playerId].mPlayer?.curEpisode?.id != media.id) {
             sameMedia = false
             media_ = checkAndMarkDuplicates(media)
-            theatres[playerId].mPlayer?.setAsCurEpisode(media_)
+//            theatres[playerId].mPlayer?.setAsCurEpisode(media_)   // seems redundant
         }
         theatres[playerId].mPlayer?.shouldRepeat = repeat
         Logd(TAG, "start: status: ${theatres[playerId].mPlayer?.status} sameMedia: $sameMedia")
@@ -66,7 +68,7 @@ class PlaybackStarter(private val media: Episode) {
                     theatres[playerId].mPlayer?.pause(false)
                     if (!sameMedia) {
                         theatres[playerId].mPlayer?.isSkipping = true
-                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
+                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = forcePlaybackReset)
                         sleepManager?.restart()
                     }
                 }
@@ -74,26 +76,28 @@ class PlaybackStarter(private val media: Episode) {
                     if (sameMedia) theatres[playerId].mPlayer?.play()
                     else {
                         theatres[playerId].mPlayer?.isSkipping = true
-                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
+                        theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = forcePlaybackReset)
                     }
                     sleepManager?.restart()
                 }
                 theatres[playerId].mPlayer!!.isStopped -> {
                     // TODO: test
 //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
-                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
+                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = forcePlaybackReset)
                     sleepManager?.restart()
                 }
                 // TODO: test
                 theatres[playerId].mPlayer!!.isInitialized -> {
-                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = force)
+                    theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = forcePlaybackReset)
                     sleepManager?.restart()
                 }
                 else -> {
+                    theatres[playerId].mPlayer?.setAsCurEpisode(media_)
                     theatres[playerId].mPlayer?.reinit()
                     sleepManager?.restart()
                 }
             }
+            forcePlaybackReset = false
         }
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {

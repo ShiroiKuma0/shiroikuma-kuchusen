@@ -296,7 +296,7 @@ open class ID3Reader(private val source: CountingSource) {
                 val c = buffer_.readByte()
                 if (c.toInt() != 0) tempBuffer.writeByte(c.toInt())
             }
-            return try { tempBuffer.readString(tempBuffer.size, charset) } catch (e: Exception) { Loge(TAG, "readEncodedString2 failed: ${e.message}"); "" }
+            return try { tempBuffer.readString(tempBuffer.size, charset) } catch (e: Exception) { Loge(TAG, e, "readEncodedString2 failed"); "" }
         }
 
         return when (encoding) {

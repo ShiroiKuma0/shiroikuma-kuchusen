@@ -21,15 +21,18 @@ val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "RE
 configure<ApplicationExtension> {
     namespace = "ac.mdiq.podcini"
 
-    compileSdk = 37
-    buildToolsVersion = "37.0.0"
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 82
-        versionName = "12.4.10"
+        versionCode = 83
+        versionName = "12.4.11"
 
         ndkVersion = "29.0.14206865"
 

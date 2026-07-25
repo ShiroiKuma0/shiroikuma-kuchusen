@@ -36,11 +36,11 @@ fun autoBackup() {
                 if (file.isDirectory()) deleteDirectoryAndContents(file)
                 Logd(TAG, "deleting ${file.name}")
                 try { file.delete() } catch (e: Throwable) {
-                    Loge(TAG, "deleteDirectoryAndContents: failed to delete ${file.name} ${e.message}")
+                    Loge(TAG, e, "deleteDirectoryAndContents: failed to delete ${file.name} ")
                 }
             }
         }
-        try { return  directory.delete() } catch (e: Throwable) { Loge(TAG, "deleteDirectoryAndContents: failed to delete ${directory.name} ${e.message}") }
+        try { return  directory.delete() } catch (e: Throwable) { Loge(TAG, e, "deleteDirectoryAndContents: failed to delete ${directory.name} ") }
         return false
     }
 

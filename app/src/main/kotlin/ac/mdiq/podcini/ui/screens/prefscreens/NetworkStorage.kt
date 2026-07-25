@@ -436,7 +436,7 @@ fun NetworkStorageScreen() {
                             intent.addCategory(Intent.CATEGORY_DEFAULT)
                             selectCustomMediaDirLauncher.launch(intent)
                             showSetCustomFolderDialog = false
-                        } catch (e: Exception) { Loge(TAG, "Can't select custom dir: ${e.message}")}
+                        } catch (e: Exception) { Loge(TAG, e, "Can't select custom dir")}
                     }) { Text(stringResource(R.string.confirm_label)) }
                 },
                 dismissButton = { TextButton(onClick = { showSetCustomFolderDialog = false }) { Text(stringResource(R.string.cancel_label)) } }

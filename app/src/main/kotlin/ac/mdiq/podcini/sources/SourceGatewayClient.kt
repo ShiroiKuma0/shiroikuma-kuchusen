@@ -3,6 +3,8 @@ package ac.mdiq.podcini.sources
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searcherInfos
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
+import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.FeedSearcher
@@ -94,8 +96,11 @@ fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<R
 }
 
 fun discoverSources(loadExternal: Boolean) {
-    if (!loadExternal) sourceClients = listOf()
-    else CoroutineScope(Dispatchers.IO).launch { sourceClients = getSourceClients() }
+    CoroutineScope(Dispatchers.IO).launch {
+        sourceClients.forEach { it.disconnect() }
+        sourceClients = if (!loadExternal) listOf() else getSourceClients()
+    }
+    forcePlaybackReset = true
 }
 
 suspend fun getSourceClients(): List<SourceGatewayClient> {
@@ -153,6 +158,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
             override fun onServiceDisconnected(name: ComponentName) {
                 Logt(TAG, "Service disconnected")
                 searcherInfos.clear()
+                client.attributes?.apply { typeClientMap.remove(feedType) }
                 client.attributes = null
                 client.gateway = null
                 client.feedSearcher = null
@@ -237,14 +243,14 @@ class SourceGatewayClient() {
     }
 
     suspend fun disconnect() {
-        mutex.withLock { disconnectLocked() }
-    }
-
-    private fun disconnectLocked() {
-        gateway = null
-        connection?.let { try { getAppContext().unbindService(it) } catch (_: Exception) { } }
-        connection = null
-        bindDeferred = null
+        mutex.withLock {
+            if (gateway != null) Logt(TAG, "Disconnecting ${gateway!!.attributes?.name}")
+            attributes?.apply { typeClientMap.remove(feedType) }
+            gateway = null
+            connection?.let { try { getAppContext().unbindService(it) } catch (_: Exception) { } }
+            connection = null
+            bindDeferred = null
+        }
     }
 }
 

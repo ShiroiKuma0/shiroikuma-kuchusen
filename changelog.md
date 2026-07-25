@@ -1,7 +1,17 @@
+# 12.4.11
+
+* in Search screen, catch exception when search string contains special characters the DB doesn't accept
+* when PlayerUI is swiped away, note "Player UI is in the drawer" at bottom of main screen
+* in Settings->Network and Storage, amended "Use external apps" summary, and ensure disconnecting services on toggle
+* when "Use external apps" is toggled, playback of current media is force reset
+* toasting of audio offload switching is no longer tied to a media
+* some toast tuning and code refactoring
+* AGP upped to 9.3.1, compileSDK upped to 37.1
+
 # 12.4.10
 
-* show external media panel even when playing
-* in OnlineFeed, improved handling existing feed
+* in PlayerDetailed, show external media panel even when playing
+* in OnlineFeed, improved handling existing feed from external app
 
 # 12.4.9
 

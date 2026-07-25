@@ -98,10 +98,10 @@ object OKHTTP {
                     call.isCanceled() -> Logd(TAG, "callFailed Cancelled: ${ioe.message}")
                     ioe is java.net.SocketTimeoutException -> Logt(TAG, "callFailed socket timeout: ${ioe.message}")
                     ioe is java.net.UnknownHostException || ioe is javax.net.ssl.SSLException || ioe is java.net.ConnectException -> {
-                        Loge(TAG, "callFailed Network failure ${ioe::class.java.name}: ${ioe.message}")
+                        Loge(TAG, ioe, "callFailed Network failure ${ioe::class.java.name}")
                         var cause = ioe.cause
                         while (cause != null) {
-                            Loge(TAG, "callFailed Cause: ${cause::class.java.name}: ${cause.message}")
+                            Loge(TAG, cause, "callFailed Cause: ${cause::class.java.name}")
                             cause = cause.cause
                         }
                     }

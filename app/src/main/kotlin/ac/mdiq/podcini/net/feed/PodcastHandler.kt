@@ -908,7 +908,7 @@ object PodcastHandler {
                             val chapter = Chapter(start, title, link, imageUrl)
                             currentItem.chapters.add(chapter)
                             currentItem.chaptersLoaded = true
-                        } catch (e: NumberFormatException) { Logs(TAG, e, "Unable to read chapter. ${e.message}") }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Unable to read chapter") }
                     }
                 }
             }

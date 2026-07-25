@@ -42,7 +42,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -71,7 +70,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -339,7 +337,7 @@ var commonMessage by mutableStateOf<CommonMessageAttrib?>(null)
 data class CommonMessageAttrib(
     val title: String,
     val message: String,
-    val OKRes: Int,
+    val okRes: Int,
     val onOK: ()->Unit
 )
 
@@ -348,7 +346,7 @@ fun LargePoster(c: CommonMessageAttrib) {
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { },
         title = { Text(c.title) },
         text = { Box(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) } },
-        confirmButton = { TextButton(onClick = { c.onOK() }) { Text(stringResource(c.OKRes)) } },
+        confirmButton = { TextButton(onClick = { c.onOK() }) { Text(stringResource(c.okRes)) } },
         dismissButton = { }
     )
 }

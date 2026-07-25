@@ -51,7 +51,7 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
                     else -> type
                 }
             } catch (e: Exception) {
-                Loge(TAG, "Feed detection failed: ${e.message}")
+                Loge(TAG, e, "Feed detection failed")
                 null
             }
         }
@@ -67,7 +67,7 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
                         buildPodcast(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
                     }
                     return
-                } catch (e: Throwable) { Loge(TAG, "buildPodcast error: ${e.message}")}
+                } catch (e: Throwable) { Loge(TAG, e, "buildPodcast error")}
             }
             "XML" -> {}
             else -> {
