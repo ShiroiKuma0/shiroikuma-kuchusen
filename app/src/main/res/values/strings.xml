@@ -662,6 +662,7 @@
     <string name="kuchusen_eim_restart_later">Later</string>
     <string name="kuchusen_eim_restart_now">Restart now</string>
     <string name="kuchusen_eim_cat_feeds">Subscribed feeds</string>
+    <string name="kuchusen_eim_cat_database">Database (episodes, positions, queues)</string>
     <string name="kuchusen_eim_cat_colors">Colours</string>
     <string name="kuchusen_eim_cat_typography">Typography &amp; fonts</string>
     <string name="kuchusen_eim_cat_shape">Shape &amp; borders</string>
@@ -669,7 +670,29 @@
     <string name="kuchusen_eim_sum_feeds">Subscribed feeds: %1$d added, %2$d already subscribed</string>
     <string name="kuchusen_eim_sum_settings">%1$s: %2$d settings</string>
     <string name="kuchusen_eim_sum_fonts"> (+%1$d font files)</string>
+    <string name="kuchusen_eim_sum_database">Database restored (%1$s) — the app must restart onto it</string>
     <string name="kuchusen_eim_sum_nothing">Nothing imported</string>
+    <string name="kuchusen_eim_restart_required">The restored database only takes effect after a restart.</string>
+
+    <!-- Export progress: real counts, never a percentage. -->
+    <string name="kuchusen_eim_prog_cat">Category %1$d/%2$d — %3$s</string>
+    <string name="kuchusen_eim_prog_feeds">Feeds %1$d/%2$d</string>
+    <string name="kuchusen_eim_prog_db">Database %1$s / %2$s</string>
+    <string name="kuchusen_eim_prog_done">Backup written — %1$s</string>
+    <string name="kuchusen_eim_unit_cats">categories</string>
+    <string name="kuchusen_eim_unit_feeds">feeds</string>
+    <string name="kuchusen_eim_unit_bytes">bytes</string>
+
+    <!-- 保存復元 automation (inside the Export / Import section) -->
+    <string name="kuchusen_auto_title">Automation export</string>
+    <string name="kuchusen_auto_sum">Let a sister app (白い熊 自由作業盤) trigger this backup headlessly through a token-gated intent.</string>
+    <string name="kuchusen_auto_token">Automation token</string>
+    <string name="kuchusen_auto_token_hint">Tap to copy the full token</string>
+    <string name="kuchusen_auto_token_copied">Automation token copied</string>
+    <string name="kuchusen_auto_regen">Regenerate</string>
+    <string name="kuchusen_auto_regen_title">Regenerate the token?</string>
+    <string name="kuchusen_auto_regen_body">Every copy already pasted elsewhere — the 「保存復元の設定」 page in 自由作業盤 above all — stops working and must be replaced with the new token.</string>
+    <string name="kuchusen_auto_files_warn">All-files access is off, so a task cannot choose the backup directory. Tap to grant it.</string>
     <string name="pref_black_theme_title">Full black</string>
     <string name="pref_black_theme_message">Use full black for the dark theme</string>
     <string name="pref_dynamic_theme_title">Use dynamic themes</string>
