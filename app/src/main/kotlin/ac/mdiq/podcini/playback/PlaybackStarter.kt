@@ -14,9 +14,12 @@ import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 
-var forcePlaybackReset: Boolean = false
+var forcePlaybackReset by mutableStateOf(false)
 
 class PlaybackStarter(private val media: Episode) {
     private val TAG = "PlaybackStarter"

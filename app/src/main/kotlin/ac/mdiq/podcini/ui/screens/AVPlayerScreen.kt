@@ -359,7 +359,7 @@ fun VolumeDialog(vm: AVPlayerVM, onDismiss: () -> Unit) {
                             }
                         }
                     )
-                    Text(text = stringResource(setting.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                    Text(text = stringResource(setting.resId), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                 }
             }
         }
@@ -392,6 +392,8 @@ fun ControlUI(vm: AVPlayerVM) {
     var showSleepTimeDialog by remember { mutableStateOf(false) }
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
+    LaunchedEffect(forcePlaybackReset) { if (forcePlaybackReset) player?.pause(false)}
+
     @Composable
     fun SpeedometerWithArc(speed: Float, maxSpeed: Float, trackColor: Color, modifier: Modifier) {
         val needleAngleRad = remember(speed) { Math.toRadians(((speed / maxSpeed) * 270f - 225).toDouble()) }
@@ -414,10 +416,7 @@ fun ControlUI(vm: AVPlayerVM) {
     val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
     Row(Modifier.pointerInput(Unit) {
         detectHorizontalDragGestures(
-            onDragStart = {
-                Logd(TAG, "detectHorizontalDragGestures onDragStart")
-                velocityTracker.resetTracking()
-            },
+            onDragStart = { velocityTracker.resetTracking() },
             onHorizontalDrag = { change, dragAmount ->
                 Logd(TAG, "detectHorizontalDragGestures onHorizontalDrag $dragAmount")
                 if (abs(dragAmount) > 4) {
@@ -460,10 +459,7 @@ fun ControlUI(vm: AVPlayerVM) {
             }))
         val buttonSize = 46.dp
         Spacer(Modifier.weight(0.1f))
-        Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
-            onClick = { showSpeedDialog = true },
-            onLongClick = { showVolumeDialog = true }
-        )) {
+        Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(onClick = { showSpeedDialog = true }, onLongClick = { showVolumeDialog = true })) {
             SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = buttonColor, modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter))
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = buttonColor1, contentDescription = "Volume adaptation", modifier = Modifier.align(Alignment.Center))
             Text(formatNumberKmp(vm.curPlaybackSpeed.toDouble()), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
@@ -583,7 +579,7 @@ fun ProgressBar(vm: AVPlayerVM) {
                     val mime = if (player.mimeType.isBlank()) "" else player.mimeType + " "
                     val sample = formatLargeIntegerBrief(player.sampleRate) + "Hz"
                     val bitrate = if (player.bitrate > 0) " ${formatLargeIntegerBrief(player.bitrate)}bps" else ""
-                    mime + player.channelCount + ": " + sample + bitrate
+                    "$mime${player.channelCount}: $sample$bitrate ${player.resolution}"
                 }
             }
         }

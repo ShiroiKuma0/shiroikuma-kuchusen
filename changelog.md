@@ -1,9 +1,24 @@
+# 12.4.12
+
+* amended VideoMode dialog
+	* confirm is needed to set the option
+	* in VideoMode setting of a feed, added "Use muxed video" option if use video, to use the muxed video stream
+		* regardless it's set or not, if separate audio/video is not available, muxed video stream is the last resort
+		* the option is currently only applicable to sources from UT.urn (others don't have separate streams)
+* force reset playback of current media when feed VideoMode, audio quality, or video quality changes
+* in PlayerUI, resolution is shown when playing video
+* not throwing exception when client provides empty eligible audio stream list
+* likely fixed clients mal-functioning after toggling "Use external apps"
+* corrected color of error toasts
+* some code refactoring and cleaning
+
 # 12.4.11
 
 * in Search screen, catch exception when search string contains special characters the DB doesn't accept
 * when PlayerUI is swiped away, note "Player UI is in the drawer" at bottom of main screen
-* in Settings->Network and Storage, amended "Use external apps" summary, and ensure disconnecting services on toggle
-* when "Use external apps" is toggled, playback of current media is force reset
+* on "Use external apps" in Settings->Network and Storage
+	* amended summary text
+	* on toggle, ensure disconnecting services and force reset playback of current media
 * toasting of audio offload switching is no longer tied to a media
 * some toast tuning and code refactoring
 * AGP upped to 9.3.1, compileSDK upped to 37.1

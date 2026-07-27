@@ -537,12 +537,12 @@ fun ImportExportScreen() {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = importPADB, onCheckedChange = { importPADB = it })
-                            Text(text = stringResource(R.string.import_PA_DB_label), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                            Text(text = stringResource(R.string.import_PA_DB_label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
                         }
                         Text(stringResource(R.string.import_PA_DB_message), color = textColor, style = MaterialTheme.typography.bodySmall)
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = importPADirectory, onCheckedChange = { importPADirectory = it })
-                            Text(text = stringResource(R.string.import_PA_directory_label), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                            Text(text = stringResource(R.string.import_PA_directory_label), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
                         }
                         Text(stringResource(R.string.import_PA_directory_message), color = textColor, style = MaterialTheme.typography.bodySmall)
                         Text(stringResource(R.string.import_PA_message), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 10.dp))

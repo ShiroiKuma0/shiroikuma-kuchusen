@@ -53,7 +53,7 @@ fun Loge(t: String, e: Throwable, m: String) {
     val me = e.message
     LogScope.launch {
         trimToasts()
-        if (appPrefs.showErrorToasts) toastMassege = "$t: $m: $me"
+        if (appPrefs.showErrorToasts) toastMassege = "$t: Error: $m: $me"
         sessionLogs.add("${fullDateTimeString()} $t: Error: $m: $me")
     }
 }

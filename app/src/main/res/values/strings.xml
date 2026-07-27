@@ -187,6 +187,8 @@
     <string name="feed_auto_download_never">Never</string>
 
     <string name="video_mode_label">Video mode</string>
+    <string name="use_muxed_video">Use muxed video</string>
+    <string name="use_muxed_video_sum">This is only applicable when the source provides separate audio/video streams, as well as muxed video streams.</string>
     <string name="video_mode_window">Window mode</string>
     <string name="video_mode_fullscreen">Full screen</string>
     <string name="video_mode_audio_only">Audio only</string>

@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdater
+import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientByFeed
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
@@ -489,14 +490,25 @@ fun FeedsSettingsScreen() {
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         var showDialog by remember { mutableStateOf(false) }
-                        if (showDialog) VideoModeDialog(initMode = feedToSet.videoModePolicy, onDismiss = { showDialog = false }) { mode ->
+                        val isDemuxed = remember { clientByFeed(feedToSet)?.attributes?.hasSeparateAVs == true }
+                        if (showDialog) VideoModeDialog(initMode = feedToSet.videoModePolicy, isDemuxed = isDemuxed, muxed = feedToSet.useMuxedVideo, onDismiss = { showDialog = false }) { mode, muxed ->
                             videoModeSummaryResId = when (mode) {
                                 VideoMode.DEFAULT -> R.string.global_default
                                 VideoMode.WINDOW -> R.string.video_mode_window
                                 VideoMode.FULL_SCREEN -> R.string.video_mode_fullscreen
                                 VideoMode.AUDIO_ONLY -> R.string.video_mode_audio_only
                             }
-                            runOnIOScope { realm.write { for (f in feedsToSet) { if (f.hasVideoMedia) findLatest(f)?.videoModePolicy = mode } } }
+                            runOnIOScope {
+                                realm.write {
+                                    for (f in feedsToSet) {
+                                        if (f.hasVideoMedia) findLatest(f)?.let {
+                                            it.videoModePolicy = mode
+                                            it.useMuxedVideo = if (mode == VideoMode.AUDIO_ONLY) false else muxed
+                                        }
+                                    }
+                                }
+                                forcePlaybackReset = true
+                            }
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
@@ -510,18 +522,22 @@ fun FeedsSettingsScreen() {
             val haveMultiQ = remember(feedsToSet.size) { (feedsToSet.size > 1 && clientsHaveMultiQ()) }
             if (extClient?.attributes?.hasMultiQualities == true || feedToSet.isSynthetic() || haveMultiQ) {
                 //                    audio quality
-                if (extClient?.attributes?.hasSeparateAVs == true || feedToSet.isSynthetic() || haveMultiQ) Column {
+                if ((!feedToSet.useMuxedVideo && (extClient?.attributes?.hasSeparateAVs == true || feedToSet.isSynthetic())) || haveMultiQ) Column {
                     var showDialog by remember { mutableStateOf(false) }
                     if (showDialog) SetAVQuality(selectedOption = audioQuality, onDismiss = { showDialog = false }) { type ->
                         audioQuality = type.tag
-                        runOnIOScope { realm.write {
-                            for (f in feedsToSet) {
-                                val client = clientByFeed(f)
-                                if (client?.attributes?.hasSeparateAVs == true) findLatest(f)?.let {
-                                    if (!it.hasVideoMedia) it.hasVideoMedia = true
-                                    it.audioQuality = type.code
+                        runOnIOScope {
+                            realm.write {
+                                for (f in feedsToSet) {
+                                    val client = clientByFeed(f)
+                                    if (client?.attributes?.hasSeparateAVs == true) findLatest(f)?.let {
+                                        if (!it.hasVideoMedia) it.hasVideoMedia = true
+                                        it.audioQuality = type.code
+                                    }
                                 }
-                            } } }
+                            }
+                            forcePlaybackReset = true
+                        }
                     }
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.baseline_audiotrack_24), "", tint = textColor)
@@ -536,16 +552,21 @@ fun FeedsSettingsScreen() {
                     }
                     Text(text = stringResource(R.string.pref_feed_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
-                if (feedToSet.videoModePolicy != VideoMode.AUDIO_ONLY || extClient?.attributes?.hasSeparateAVs == false || feedToSet.isSynthetic() || haveMultiQ) {
+                if (feedToSet.useMuxedVideo || feedToSet.videoModePolicy != VideoMode.AUDIO_ONLY || extClient?.attributes?.hasSeparateAVs == false || feedToSet.isSynthetic() || haveMultiQ) {
                     //                    video quality
                     Column {
                         var showDialog by remember { mutableStateOf(false) }
                         if (showDialog) SetAVQuality(selectedOption = videoQuality, onDismiss = { showDialog = false }) { type->
                             videoQuality = type.tag
-                            runOnIOScope { realm.write { for (f in feedsToSet) {
-                                val client = clientByFeed(f)
-                                if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
-                            } } }
+                            runOnIOScope {
+                                realm.write {
+                                    for (f in feedsToSet) {
+                                        val client = clientByFeed(f)
+                                        if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
+                                    }
+                                }
+                            }
+                            forcePlaybackReset = true
                         }
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)
@@ -725,7 +746,7 @@ fun FeedsSettingsScreen() {
                                                 }
                                             }
                                         )
-                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                                     }
                                 }
                             }
@@ -915,7 +936,7 @@ fun FeedsSettingsScreen() {
                                 AutoDownloadPolicy.entries.forEach { item ->
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(checked = (item == selectedPolicy), onCheckedChange = { onPolicySelected(item) })
-                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 8.dp))
+                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
                                     }
                                     if (selectedPolicy == AutoDownloadPolicy.ONLY_NEW && item == selectedPolicy)
                                         Row(Modifier.fillMaxWidth().padding(start = 30.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -925,7 +946,7 @@ fun FeedsSettingsScreen() {
                                                 selectedPolicy.replace = it
                                                 item.replace = it
                                             })
-                                            Text(text = stringResource(R.string.replace), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.padding(start = 8.dp))
+                                            Text(text = stringResource(R.string.replace), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
                                         }
                                 }
                             }
@@ -987,7 +1008,7 @@ fun FeedsSettingsScreen() {
                                                 markPlayedChecked = false
                                             }
                                         })
-                                        Text(text = stringResource(textRes), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.weight(1f))
+                                        Text(text = stringResource(textRes), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                     }
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                         termList.forEach {
@@ -1045,7 +1066,7 @@ fun FeedsSettingsScreen() {
                                                 filtermodifier = isFilterEnabled()
                                                 markPlayedChecked = isChecked
                                             })
-                                            Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium.merge())
+                                            Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium)
                                         }
                                     }
                                     Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
@@ -1158,7 +1179,7 @@ fun FeedsSettingsScreen() {
                                                     }
                                                 }
                                             )
-                                            Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                                            Text(text = text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                                         }
                                     }
                                 }

@@ -220,8 +220,11 @@ fun PlaybackScreen() {
             upsertBlk(appPrefs) { p-> p.useAdaptiveProgressUpdate = it }
         }
         var showVideoModeDialog by remember { mutableStateOf(false) }
-        if (showVideoModeDialog) VideoModeDialog(initMode =  VideoMode.fromCode(appPrefs.videoPlaybackMode), onDismiss = { showVideoModeDialog = false }) { mode ->
-            upsertBlk(appPrefs) { it.videoPlaybackMode = mode.code }
+        if (showVideoModeDialog) VideoModeDialog(initMode =  VideoMode.fromCode(appPrefs.videoPlaybackMode), isDemuxed = false, muxed = appPrefs.useMuxedVideo, onDismiss = { showVideoModeDialog = false }) { mode, muxed ->
+            upsertBlk(appPrefs) {
+                it.videoPlaybackMode = mode.code
+//                it.useMuxedVideo = muxed  // not used now
+            }
         }
         TitleSummaryActionColumn(R.string.pref_playback_video_mode, R.string.pref_playback_video_mode_sum) { showVideoModeDialog = true }
 

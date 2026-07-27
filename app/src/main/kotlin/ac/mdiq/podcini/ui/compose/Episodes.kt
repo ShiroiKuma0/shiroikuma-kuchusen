@@ -277,7 +277,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
             var addNote by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = addNote, onCheckedChange = { addNote = it })
-                Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
             }
             var note by remember { mutableStateOf(TextFieldValue(todo?.note ?: "")) }
             if (addNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 12.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
@@ -292,7 +292,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
                         else 0
                     }
                 })
-                Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
             }
             val zdt = remember(addDueTime) {
                 val epochMillis = if (todo != null) {
@@ -435,11 +435,11 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 })
                 Spacer(Modifier.width(50.dp))
                 Checkbox(checked = show, onCheckedChange = { show = it })
-                Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge.merge())
+                Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge)
                 if (show) {
                     Spacer(Modifier.width(50.dp))
                     Checkbox(checked = showDone, onCheckedChange = { showDone = it })
-                    Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge.merge())
+                    Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge)
                 }
             }
             if (show) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
@@ -452,7 +452,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                                 done = it
                                 upsertBlkEmb(todo) { todo -> todo.completed = done }
                             })
-                            Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable {
+                            Text(text = todo.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.clickable {
                                 onTodo = todo
                                 showTodoDialog = true
                             })
@@ -716,7 +716,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismiss: () -> Unit) {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = removeChecked, onCheckedChange = { removeChecked = it })
-                Text(text = stringResource(R.string.remove_from_other_queues), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                Text(text = stringResource(R.string.remove_from_other_queues), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
             }
             Row {
                 Spacer(Modifier.weight(1f))
@@ -762,7 +762,7 @@ fun ShelveDialog(selected: List<Episode>, onDismiss: () -> Unit) {
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = removeChecked, onCheckedChange = { removeChecked = it })
-                    Text(text = stringResource(R.string.remove_from_current_feed), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                    Text(text = stringResource(R.string.remove_from_current_feed), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
                 }
             } else Text(text = stringResource(R.string.create_synthetic_first_note))
             if (toFeed != null) Row {

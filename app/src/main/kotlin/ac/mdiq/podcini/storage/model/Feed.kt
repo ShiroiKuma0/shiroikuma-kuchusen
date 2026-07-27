@@ -201,6 +201,8 @@ class Feed : RealmObject {
         }
     var videoMode: Int = VideoMode.DEFAULT.code
 
+    var useMuxedVideo: Boolean = false
+
     var playSpeed: Float = SPEED_USE_GLOBAL
     var playPitch: Float = SPEED_USE_GLOBAL
 
@@ -555,6 +557,7 @@ class Feed : RealmObject {
         if (useWideLayout != other.useWideLayout) return false
         if (keepUpdated != other.keepUpdated) return false
         if (videoMode != other.videoMode) return false
+        if (useMuxedVideo != other.useMuxedVideo) return false
         if (playSpeed != other.playSpeed) return false
         if (skipSilence != other.skipSilence) return false
         if (introSkip != other.introSkip) return false
@@ -635,6 +638,7 @@ class Feed : RealmObject {
         result = 31 * result + useWideLayout.hashCode()
         result = 31 * result + keepUpdated.hashCode()
         result = 31 * result + videoMode
+        result = 31 * result + useMuxedVideo.hashCode()
         result = 31 * result + playSpeed.hashCode()
         result = 31 * result + (skipSilence?.hashCode() ?: 0)
         result = 31 * result + introSkip

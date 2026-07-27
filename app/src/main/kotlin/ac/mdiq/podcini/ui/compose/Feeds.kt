@@ -248,7 +248,7 @@ fun AmendSyntheticFeed(feed_: Feed? = null, name_: String? = null, volume: Volum
             var name by remember { mutableStateOf(feed_?.title ?: name_ ?: "") }
             TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
             var hasVideo by remember { mutableStateOf(true) }
-            var feedType by remember { mutableStateOf<FeedType?>(FeedType.fromName(feed_?.type)) }
+            var feedType by remember { mutableStateOf(FeedType.fromName(feed_?.type)) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
                 Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
@@ -330,24 +330,34 @@ fun OpmlImportSelectionDialog(readElements: List<OpmlTransporter.OpmlElement>, o
 }
 
 @Composable
-fun VideoModeDialog(initMode: VideoMode?, onDismiss: () -> Unit, callback: (VideoMode) -> Unit) {
-    var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.DEFAULT.tag) }
+fun VideoModeDialog(initMode: VideoMode?, isDemuxed: Boolean? = null, muxed: Boolean = false, onDismiss: () -> Unit, callback: (VideoMode, Boolean) -> Unit) {
+    var selectedOption by remember { mutableStateOf(initMode ?: VideoMode.DEFAULT) }
+    var useMuxed by remember { mutableStateOf(muxed) }
     CommonPopupCard(onDismiss = { onDismiss() }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {
                 VideoMode.entries.forEach { mode ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        val text = remember { mode.tag }
-                        Checkbox(checked = (text == selectedOption), onCheckedChange = {
-                            if (text != selectedOption) {
-                                selectedOption = text
-                                callback(mode)
-                                onDismiss()
-                            }
-                        })
-                        Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                        Checkbox(checked = (mode == selectedOption), onCheckedChange = { if (mode != selectedOption) selectedOption = mode })
+                        Text(text = mode.tag, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
+                if (isDemuxed != false && selectedOption != VideoMode.AUDIO_ONLY) {
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = useMuxed, onCheckedChange = { useMuxed = it })
+                        Text(stringResource(R.string.use_muxed_video), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
+                    }
+                    Text(stringResource(R.string.use_muxed_video_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp))
+                }
+            }
+            Row {
+                Button({ onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
+                Spacer(Modifier.weight(1f))
+                Button({
+                    callback(selectedOption, useMuxed)
+                    onDismiss()
+                }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
     }

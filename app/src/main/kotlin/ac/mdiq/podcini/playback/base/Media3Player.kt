@@ -642,7 +642,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
         audioSpecs = listOf()
         videoSpecs = listOf()
-        if (curClient?.attributes?.hasSeparateAVs == true || curClient?.attributes?.hasVideo != true) {
+        if ((curClient?.attributes?.hasSeparateAVs == true && media.feed?.useMuxedVideo != true) || curClient?.attributes?.hasVideo != true) {
             audioSpecs = curClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
             var aSource: ProgressiveMediaSource? = null
             if (audioSpecs.isNotEmpty()) {
@@ -653,7 +653,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
                     aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
                     Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
-                } else Loge(TAG, "audioStream or url is null or blank")
+                } else Loge(TAG, "eligible audioStream or its url is null or blank")
             } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
 
             if ((aSource == null || needVideo) && curClient?.attributes?.hasVideo == true) {
@@ -694,6 +694,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val user = feed?.username
         val password = feed?.password
         bitrate = 0
+        resolution = ""
         try {
             mediaSource = mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)
             if (mediaSource != null) {

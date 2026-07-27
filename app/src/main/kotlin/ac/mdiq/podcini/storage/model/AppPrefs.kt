@@ -115,6 +115,8 @@ class AppPrefs: RealmObject {
     var streamingCacheSizeMB: Int = 100
     var videoPlaybackMode: Int = 1
 
+    var useMuxedVideo: Boolean = false  // not used now
+
     // TODO: not changed
     var content_country: String? = null
 
@@ -184,6 +186,7 @@ class AppPrefs: RealmObject {
         if (rewindSecs != other.rewindSecs) return false
         if (streamingCacheSizeMB != other.streamingCacheSizeMB) return false
         if (videoPlaybackMode != other.videoPlaybackMode) return false
+        if (useMuxedVideo != other.useMuxedVideo) return false
         if (lastVersion != other.lastVersion) return false
         if (theme != other.theme) return false
         if (defaultPage != other.defaultPage) return false
@@ -263,6 +266,7 @@ class AppPrefs: RealmObject {
         result = 31 * result + rewindSecs
         result = 31 * result + streamingCacheSizeMB
         result = 31 * result + videoPlaybackMode
+        result = 31 * result + useMuxedVideo.hashCode()
         result = 31 * result + lastVersion.hashCode()
         result = 31 * result + theme.hashCode()
         result = 31 * result + defaultPage.hashCode()

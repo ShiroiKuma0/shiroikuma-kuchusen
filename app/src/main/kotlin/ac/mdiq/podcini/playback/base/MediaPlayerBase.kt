@@ -167,6 +167,7 @@ abstract class MediaPlayerBase {
 
     var skipSilence: Boolean? = null
     var bitrate by mutableIntStateOf(0)
+    var resolution by mutableStateOf("")
     var mimeType by mutableStateOf("")
     var channelCount by mutableIntStateOf(0)
     var sampleRate by mutableIntStateOf(0)
@@ -239,6 +240,7 @@ abstract class MediaPlayerBase {
         when {
             episode_ != null -> {
                 bitrate = 0
+                resolution = ""
                 curEpisode = episode_
                 curClient = clientByEpisode(curEpisode!!)
                 playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.mediaType == MediaType.VIDEO))
@@ -342,7 +344,7 @@ abstract class MediaPlayerBase {
     fun startPlaying() {
         Logd(TAG, "startPlaying called")
         if (curEpisode == null) {
-            LogtFor(TAG, curEpisode?.id, "startPlaying: No media to play")
+            Logt(TAG, "startPlaying: No media to play")
             return
         }
         val media = curEpisode!!
@@ -436,7 +438,7 @@ abstract class MediaPlayerBase {
 
     fun getPosition(): Int {
         //        showStackTrace()
-        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) LogtFor(TAG, curEpisode?.id, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
+        if (castPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "exoPlayer playbackState ${castPlayer?.playbackState} player status $status")
         var retVal = getPlayerPosition()
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
         return retVal
@@ -505,15 +507,13 @@ abstract class MediaPlayerBase {
                         if (!curEpisode?.downloadUrl.isNullOrBlank()) prepareDataSource(curEpisode!!)
                         else throw IOException("episode downloadUrl is null or empty ${curEpisode?.title}")
                     }
-                    else -> {   // TODO: playing video often gets here??
+                    else -> {
                         Logd(TAG, "prepareMedia localMediaurl: ${curEpisode?.fileUrl}")
                         if (!curEpisode?.fileUrl.isNullOrBlank()) prepareDataSource(curEpisode!!, curEpisode!!.fileUrl!!, null, null)
                         else throw IOException("Unable to read local file ${curEpisode?.fileUrl}")
                     }
                 }
                 withContext(Dispatchers.Main) {
-//                    val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-//                    if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
                     if (!isAutoController) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
                     if (prepareImmediately) prepare()
                 }
@@ -542,7 +542,7 @@ abstract class MediaPlayerBase {
                 isStartWhenPrepared = true
                 prepare()
             }
-            else -> LogeFor(TAG, curEpisode?.id, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
+            else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
         }
     }
 
@@ -558,7 +558,7 @@ abstract class MediaPlayerBase {
             setPlaybackParams()
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
             sleepManager?.restart()
-        } else LogtFor(TAG, curEpisode?.id, "Call to play() was ignored because current state of PSMP object is $status")
+        } else Logd(TAG, "Call to play() was ignored because current state of PSMP object is $status")
     }
 
     fun pause(reinit: Boolean) {
@@ -572,7 +572,7 @@ abstract class MediaPlayerBase {
             isSpeedForward = false
             isFallbackSpeed = false
             if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
-        } else LogtFor(TAG, curEpisode?.id, "Ignoring call to pause: Player is in $status state")
+        } else Logd(TAG, "Ignoring call to pause: Player is in $status state")
     }
 
     internal abstract fun setSource()
@@ -939,9 +939,6 @@ abstract class MediaPlayerBase {
                     s.audioLocale in useLocales -> asl.add(s)
                 }
             }
-            //            if ((s.audioLocale == null || s.audioLocale in useLocales) && (useCodex == "Any" || s.codec == useCodex) && (useABPS == 0 || s.averageBitrate == useABPS)) {
-            //                asl.add(s)
-            //            }
         }
         if (langset.isNotEmpty() && media.feed != null) runOnIOScope { upsert(media.feed!!) { it.langSet.addAll(langset) } }
         Logd(TAG, "setAudioStream asl: ${asl.size}")
@@ -953,8 +950,11 @@ abstract class MediaPlayerBase {
         //            }
         //        }
         if (asl.isEmpty()) {
-            Loge(TAG, "setAudioStream: audio stream list is empty")
-            throw IllegalStateException("setAudioStream: audio stream list is empty")
+            Loge(TAG, "setAudioStream: eligible audio stream list is empty")
+//            throw IllegalStateException("setAudioStream: audio stream list is empty")
+            bitrate = 0
+            resolution = ""
+            return null
         }
         val prefLowQualityMedia: Boolean = appPrefs.lowQualityOnMobile
         val audioIndex =
@@ -978,7 +978,7 @@ abstract class MediaPlayerBase {
         for (a in asl) Logd(TAG, "setAudioStream asl: bitrate: ${a.bitrate} averageBitrate: ${a.averageBitrate} quality: ${a.quality}  codec: ${a.codec} audioLocale: ${a.audioLocale.toString()} id: ${a.audioTrackId} name: ${a.audioTrackName} format: ${a.format} ${a.url}")
 
         val audioSpec = if (audioIndex >= 0 && audioIndex < asl.size) asl[audioIndex] else null
-        bitrate = audioSpec?.bitrate ?: 0   // TODO
+        bitrate = audioSpec?.bitrate ?: 0
         Logd(TAG, "setAudioStream use audio quality: ${audioSpec?.bitrate} forceVideo: ${media.forceVideo}")
         Logd(TAG, "audioStream: ${audioSpec?.url}")
         return audioSpec
@@ -1006,6 +1006,7 @@ abstract class MediaPlayerBase {
         for (i in videoSpecs.indices) Logd(TAG, "setVideoStream $i ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
 
         val videoStream = videoSpecs[videoIndex]
+        resolution = videoStream.resolution ?: ""
         Logd(TAG, "setVideoStream use video quality: ${videoStream.resolution}")
         return videoStream
     }
@@ -1040,7 +1041,7 @@ abstract class MediaPlayerBase {
                 return false
             }
             if (!networkMonitor.isConnected) {
-                LogeFor(TAG, media.id, "streaming media but network is not available, abort")
+                Loge(TAG, "streaming media but network is not available, abort")
                 return false
             }
             return true

@@ -294,7 +294,7 @@ fun StatisticsScreen() {
                         showFeedStats = true
                     }) {
                         val chipColor = lineChartData.getComposeColorOfItem(index)
-                        Text("⬤" + (feedStats.feed.title?:"No title"), maxLines = 1, color = chipColor, style = MaterialTheme.typography.bodyMedium.merge())
+                        Text("⬤" + (feedStats.feed.title?:"No title"), maxLines = 1, color = chipColor, style = MaterialTheme.typography.bodyMedium)
                         infoCB(feedStats)
                     }
                 }
@@ -521,7 +521,7 @@ fun StatisticsScreen() {
                 itemsIndexed(vm.monthStats) { index, item ->
                     Row(Modifier.background(MaterialTheme.colorScheme.surface).clickable { onMonthClicked(index) }) {
                         Column {
-                            Text("${item.year}-${item.month}", color = textColor, style = MaterialTheme.typography.headlineSmall.merge())
+                            Text("${item.year}-${item.month}", color = textColor, style = MaterialTheme.typography.headlineSmall)
                             OverviewNumbers(item.stats.statTotal, center = false)
                         }
                     }

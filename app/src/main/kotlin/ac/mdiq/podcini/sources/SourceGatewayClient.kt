@@ -3,7 +3,6 @@ package ac.mdiq.podcini.sources
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry.searcherInfos
-import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
@@ -41,7 +40,7 @@ private const val TAG = "GatewayClient"
 
 const val EPISODE_BATCH_SIZE = 100
 
-var sourceClients: List<SourceGatewayClient> = listOf()
+val sourceClients = mutableListOf<SourceGatewayClient>()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
 
@@ -98,7 +97,11 @@ fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<R
 fun discoverSources(loadExternal: Boolean) {
     CoroutineScope(Dispatchers.IO).launch {
         sourceClients.forEach { it.disconnect() }
-        sourceClients = if (!loadExternal) listOf() else getSourceClients()
+        sourceClients.clear()
+        if (loadExternal) {
+            val cs = getSourceClients()
+            if (cs.isNotEmpty()) sourceClients.addAll(cs)
+        }
     }
     forcePlaybackReset = true
 }

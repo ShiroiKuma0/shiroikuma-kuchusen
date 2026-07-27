@@ -467,7 +467,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                     checked = it
                                     if (checked) ytTabsMap[i] = urlEnd else ytTabsMap.remove(i)
                                 })
-                                Text(text = urlEnd, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+                                Text(text = urlEnd, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
                             }
                         }
                     }
@@ -600,7 +600,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     val isAudoDL = remember(vm.feed) { vm.feed?.type in listOf(FeedType.RSS.name, FeedType.ATOM.name) }
                     if (appPrefs.enableAutoDl && isAudoDL) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                        Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
+                        Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
