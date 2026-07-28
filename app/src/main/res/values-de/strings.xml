@@ -159,7 +159,7 @@
     <string name="no_action_label">Keine Aktion</string>
 
 
-    <string name="cancelled_on_label">Abgebrochen am</string>
+
     <string name="choose_tab">Wähle einen Tab im Kanal</string>
     <string name="set_play_state_label">Gespielter Status festlegen</string>
     <string name="combo_action">Combo-Aktion</string>

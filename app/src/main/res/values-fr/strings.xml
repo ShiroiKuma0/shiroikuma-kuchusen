@@ -159,7 +159,7 @@
     <string name="no_action_label">Aucune action</string>
 
 
-    <string name="cancelled_on_label">Annulé le</string>
+
     <string name="choose_tab">Choisissez un onglet dans le canal</string>
     <string name="set_play_state_label">Définir l\'état de lecture</string>
     <string name="combo_action">Action Combo</string>

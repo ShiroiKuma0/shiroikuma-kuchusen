@@ -158,7 +158,7 @@
     <string name="no_action_label">Без действий</string>
 
 
-    <string name="cancelled_on_label">Отменено на</string>
+
     <string name="choose_tab">Выберите вкладку в канале</string>
     <string name="set_play_state_label">Задать состояние игры</string>
     <string name="combo_action">Комбо действие</string>

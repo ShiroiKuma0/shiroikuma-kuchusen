@@ -388,7 +388,7 @@ class MainActivity : BaseActivity() {
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
                 val source = intent.getStringExtra(Extras.source.name) ?: ""
                 Logd(TAG, "handleNavIntent feedurl: $feedurl")
-                if (feedurl != null) navTo(OnlineFeed(url = feedurl, source = source, shared = isShared))
+                if (!feedurl.isNullOrBlank()) navTo(OnlineFeed(url = feedurl, source = source, shared = isShared))
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 searchFeedsOnline(query = intent.getStringExtra(Extras.search_string.name))

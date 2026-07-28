@@ -1,0 +1,6 @@
+* avoid reset playback of current media when feed changed is unrelated
+* "Use muxed video" is changed to "Prefer muxed video"
+* fixed OnlineFeed might get open twice when sharing feed from other apps
+* in OnlineFeed
+	* further improved handling existing feed from external app
+	* ensure to show prior cancellation logs (if any) of the feed from external apps

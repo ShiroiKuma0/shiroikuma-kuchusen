@@ -149,7 +149,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     var numEpisodes by mutableIntStateOf(0)
 
-    internal var preparedUrl: String? = null
+    internal var preparedUrl = ""
 
     internal var feedOptions: List<String?> = listOf()
 
@@ -159,11 +159,13 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
 
-    internal var episodes = mutableStateListOf<Episode>()
+    internal val episodes = mutableStateListOf<Episode>()
 
     internal var feed by mutableStateOf<Feed?>(null)
     internal var username: String? = null
     internal var password: String? = null
+
+//    val subLogs = mutableStateListOf<SubscriptionLog>()
 
     internal var isPaused = false
     internal var subscribePress = false
@@ -188,7 +190,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
         Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl feedSource: $feedSource isShared: $isShared")
 
-        checkExisting(feed)
+        checkExisting(preparedUrl, feed)
 
         val showError = { message: String?, details: String ->
             errorMessage = message ?: "No message"
@@ -216,7 +218,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     feedOptions_.size <= 1 -> {
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
                         if (fipc != null) {
-                            val exist = checkExisting(fipc.toFeed())
+                            val exist = checkExisting(preparedUrl, fipc.toFeed())
                             Logd(TAG, "handleClientFeeds feed exists: $exist ${fipc.title}")
                             if (exist != null) {
                                 feed = exist
@@ -294,25 +296,28 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         timeIt("$TAG end of init")
     }
 
-    fun checkExisting(feed_: Feed?): Feed? {
+    fun checkExisting(url: String, feed_: Feed?): Feed? {
         Logd(TAG, "checkExisting check for ${feed_?.title} ${feed_?.author}")
-        fun isSameFeed(f: Feed, url: String, title: String?, author: String?): Boolean {
+        fun isSameFeed(f: Feed, title: String?, author: String?): Boolean {
             Logd(TAG, "isSameFeed check with feed: ${f.type} ${f.title} ${f.author}")
             fun getDomain(url: String): String? = try { URI(url).host?.removePrefix("www.") } catch (e: Exception) { null }
             return if (isExtFeed(f)) {
-                if (f.downloadUrl.isNullOrBlank()) false
-                else if (f.downloadUrl == url) true
-                // TODO: this may be problematic as author from NPEConnector is empty or null
-                else {
-                    val d1 = getDomain(f.downloadUrl!!)
-                    val d2 = getDomain(url)
-                    Logd(TAG, "isSameFeed d1: $d1 d2: $d2")
-                    (f.title == title && f.author == author && d1 == d2)
+                when {
+                    f.downloadUrl.isNullOrBlank() -> false
+                    f.downloadUrl == url -> true
+                    else -> {
+                        val d1 = getDomain(f.downloadUrl!!)
+                        val d2 = getDomain(url)
+                        val ds1 = f.description?.take(100).orEmpty()
+                        val ds2 = f.description?.take(100).orEmpty()
+                        Logd(TAG, "isSameFeed d1: $d1 d2: $d2")
+                        (f.title == title && f.author == author && d1 == d2 && ds1 == ds2)
+                    }
                 }
             } else f.downloadUrl == url
         }
-        if (!preparedUrl.isNullOrBlank()) for (f in allFeeds) {
-            if (isSameFeed(f, preparedUrl!!, feed_?.title, feed_?.author)) {
+        if (url.isNotBlank()) for (f in allFeeds) {
+            if (isSameFeed(f, feed_?.title, feed_?.author)) {
                 Logd(TAG, "checkExisting found existing feed: ${f.title}")
                 feedId = f.id
                 return f
@@ -324,7 +329,13 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal fun handleFeed(feed_: Feed) {
         Logd(TAG, "handleFeed feed_.title: ${feed_.title} ${feed_.author}")
         feed = feed_
-        checkExisting(feed)
+        checkExisting(preparedUrl, feed)
+
+//        val result = realm.query(SubscriptionLog::class).query("title == $0 OR url == $1", feed_.title, feed_.downloadUrl).find()
+//        if (result.isNotEmpty()) {
+//            subLogs.clear()
+//            subLogs.addAll(result)
+//        }
 
         numEpisodes = feed_.episodes.size
         if (isShared) {
@@ -366,10 +377,10 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal fun handleUpdatedFeedStatus() {
         val dli = EpisodeAdrDLManager.manager
-        if (dli == null || preparedUrl == null) return
+        if (dli == null || preparedUrl.isBlank()) return
 
         when {
-            dli.isDownloading(preparedUrl!!) -> {
+            dli.isDownloading(preparedUrl) -> {
                 Logd(TAG, "handleUpdatedFeedStatus isDownloading")
                 enableSubscribe = false
                 subButTextRes = R.string.subscribe_label
@@ -589,7 +600,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         Spacer(modifier = Modifier.weight(0.2f))
                     }
                 }
-                Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) { //                    TODO: alternate_urls_spinner
+                Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                    //                    TODO: alternate_urls_spinner
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
                         NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = false, modifier = Modifier.weight(0.5f)) {
@@ -604,19 +616,18 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-                    val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
+                    val sLog = remember(vm.feed?.downloadUrl, vm.feed?.title) { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
                     if (sLog != null) {
-                        val commentTextState = remember(sLog.comment) { TextFieldValue(sLog.comment) }
                         val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
                         val ratingRes = remember { fromCode(sLog.rating).res }
-                        if (commentTextState.text.isNotEmpty()) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
-                                Text(stringResource(R.string.comments), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
-                            }
-                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
+                            Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
+                            Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
                         }
+                        Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        Text(sLog.url?:"no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                     }
                     Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
@@ -625,7 +636,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                         Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     }
-
                     Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp).clickable {
                         searchFeedsOnline(query = "${vm.feed?.author} podcasts")
                         navTo(FindFeeds)
@@ -637,11 +647,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                             })
                         }
                     }
-                    val info = remember(vm.feed) {
-                        if (vm.feed == null) return@remember ""
-                        val languageString = vm.feed!!.langSet.joinToString(" ")
-                        "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
-                    }
+                    val info = remember(vm.feed) { if (vm.feed == null) "" else "${vm.feed!!.langSet.joinToString(" ")} ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}" }
                     Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                     Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))

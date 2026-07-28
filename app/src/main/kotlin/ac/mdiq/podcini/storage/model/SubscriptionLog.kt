@@ -9,9 +9,6 @@ class SubscriptionLog: RealmObject {
     @PrimaryKey
     var id: Long = 0L   // this is the nowInMillis()
 
-    // this can be that of a feed or a synthetic episode
-//    var itemId: Long = 0L
-
     var url: String? = null
 
     var link: String? = null
@@ -29,13 +26,12 @@ class SubscriptionLog: RealmObject {
     constructor() {}
 
     constructor(itemId: Long, title: String, url: String, link: String, type: String) {
-//        this.itemId = itemId
         this.title = title
         this.url = url
         this.link = link
         this.type = type
 
-        // itemId being either feed.id or episode.id is 100 times the creation time
+        // itemId being either feed.id or episode.id is 100 times the creation time, TODO: ? not true any more?
         id = itemId / 100
     }
 
@@ -47,16 +43,16 @@ class SubscriptionLog: RealmObject {
     companion object {
         private const val TAG: String = "SubscriptionLog"
 
+        // needs to be reset when log is added or removed
         var feedLogsMap: Map<String, SubscriptionLog>? = null
             get() {
                 if (field == null) {
                     val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
                     val map = mutableMapOf<String, SubscriptionLog>()
                     for (l in logs) {
-                        //                Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
-                        map[l.title] = l
-                        if (!l.url.isNullOrEmpty()) map[l.url!!] = l
-                        if (!l.link.isNullOrEmpty()) map[l.link!!] = l
+                        if (l.title.isNotBlank()) map[l.title] = l
+                        if (!l.url.isNullOrBlank()) map[l.url!!] = l
+                        if (!l.link.isNullOrBlank()) map[l.link!!] = l
                     }
                     field = map.toMap()
                 }

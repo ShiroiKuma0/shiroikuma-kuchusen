@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdater
+import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.clientByFeed
@@ -507,7 +508,7 @@ fun FeedsSettingsScreen() {
                                         }
                                     }
                                 }
-                                forcePlaybackReset = true
+                                if (theatres[0].mPlayer?.curEpisode?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                             }
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
@@ -536,7 +537,7 @@ fun FeedsSettingsScreen() {
                                     }
                                 }
                             }
-                            forcePlaybackReset = true
+                            if (theatres[0].mPlayer?.curEpisode?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                         }
                     }
                     Row(Modifier.fillMaxWidth()) {
@@ -566,7 +567,7 @@ fun FeedsSettingsScreen() {
                                     }
                                 }
                             }
-                            forcePlaybackReset = true
+                            if (theatres[0].mPlayer?.curEpisode?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                         }
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)

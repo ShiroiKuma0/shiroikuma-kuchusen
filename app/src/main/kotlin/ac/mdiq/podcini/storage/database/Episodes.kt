@@ -14,6 +14,7 @@ import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
@@ -172,6 +173,7 @@ suspend fun eraseIfLoose(episode: Episode) {
 }
 
 suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
+    val reasonText = getAppContext().getString(R.string.reason_to_remove)
     if (msg.isNotEmpty()) realm.write {
         for (e in episodes) {
             val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
@@ -179,11 +181,12 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
             sLog.let {
                 it.rating = e.rating
                 it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                it.comment += fullDateTimeString() + "\nReason to remove:\n" + msg
+                it.comment += fullDateTimeString() + "\n$reasonText:\n" + msg
                 it.cancelDate = nowInMillis()
             }
             copyToRealm(sLog)
         }
+        feedLogsMap = null
     }
     for (e in episodes) if (e.feed?.isLocal != true) deleteMedia(e)
     removeFromAllQueues(episodes)

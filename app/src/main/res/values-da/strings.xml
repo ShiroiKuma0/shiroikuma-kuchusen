@@ -156,7 +156,7 @@
     <string name="no_action_label">Ingen handling</string>
 
 
-    <string name="cancelled_on_label">Annulleret den</string>
+
     <string name="choose_tab">Vælg et faneblad i kanalen</string>
     <string name="set_play_state_label">Angiv afspilningsstatus</string>
     <string name="combo_action">Kombo handling</string>

@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
@@ -139,6 +140,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismiss: () -> Unit, callback: ()->Uni
             }
             Text(stringResource(R.string.reason_to_delete_msg))
             BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            val reasonText = stringResource(R.string.reason_to_remove)
             Button(onClick = {
                 callback()
                 CoroutineScope(Dispatchers.IO).launch {
@@ -149,13 +151,14 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismiss: () -> Unit, callback: ()->Uni
                                 upsert(sLog) {
                                     it.rating = f.rating
                                     it.comment = if (f.comment.isBlank()) "" else (f.comment + "\n")
-                                    it.comment += fullDateTimeString() + "\nReason to remove:\n" + textState.text
+                                    it.comment += fullDateTimeString() + "\n$reasonText:\n" + textState.text
                                     it.cancelDate = nowInMillis()
                                 }
                             }
                             val worthyEps = f.worthyEpisodes
                             deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
                         }
+                        feedLogsMap = null
                     } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
                 }
                 onDismiss()
@@ -346,9 +349,9 @@ fun VideoModeDialog(initMode: VideoMode?, isDemuxed: Boolean? = null, muxed: Boo
                     HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = useMuxed, onCheckedChange = { useMuxed = it })
-                        Text(stringResource(R.string.use_muxed_video), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
+                        Text(stringResource(R.string.pref_muxed_video), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 16.dp))
                     }
-                    Text(stringResource(R.string.use_muxed_video_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp))
+                    Text(stringResource(R.string.pref_muxed_video_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 16.dp))
                 }
             }
             Row {

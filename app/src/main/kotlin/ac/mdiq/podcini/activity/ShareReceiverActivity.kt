@@ -158,8 +158,8 @@ class ShareReceiverActivity : ComponentActivity() {
                             val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
                             if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Media.name }
                             extMediaCB(client, existing)
-                            return
                         }
+                        return
                     }
                     val clients = sourceClients.filter { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 0 } == true }
                     Logd(TAG, "receiveShared canHandleUrl==0 clients: ${clients.size}")

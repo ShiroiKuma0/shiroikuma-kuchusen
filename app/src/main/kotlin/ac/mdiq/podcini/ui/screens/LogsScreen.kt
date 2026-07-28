@@ -299,7 +299,6 @@ fun LogsScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.subscriptionLogs) { log ->
-                
                 Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable {
                     dialogParam.value = log
                     showDialog.value = true
@@ -319,11 +318,8 @@ fun LogsScreen() {
     @Composable
     fun SessionLogView() {
         val lazyListState = rememberLazyListState()
-        
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(sessionLogs.reversed()) { log ->
-                Text(log, color = if (log.contains("Error", ignoreCase = true)) Color.Red else textColor)
-            }
+            items(sessionLogs.reversed()) { log -> Text(log, color = if (log.contains("Error", ignoreCase = true)) Color.Red else textColor) }
         }
     }
 
@@ -349,7 +345,6 @@ fun LogsScreen() {
         val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
         CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(messageFull, color = textColor)
                 if (feed == null && media == null) Text(stringResource(R.string.content_not_exist))
@@ -378,7 +373,6 @@ fun LogsScreen() {
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.downloadLogs) { position, status ->
-                
                 Row (modifier = Modifier.clickable {
                     showDialog.value = true
                     dialogParam.value = status

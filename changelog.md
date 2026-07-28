@@ -1,9 +1,18 @@
+# 12.4.13
+
+* avoid reset playback of current media when feed changed is unrelated
+* "Use muxed video" is changed to "Prefer muxed video"
+* fixed OnlineFeed might get open twice when sharing feed from other apps
+* in OnlineFeed
+	* further improved handling existing feed from external app
+	* ensure to show prior cancellation logs (if any) of the feed from external apps 
+
 # 12.4.12
 
 * amended VideoMode dialog
 	* confirm is needed to set the option
 	* in VideoMode setting of a feed, added "Use muxed video" option if use video, to use the muxed video stream
-		* regardless it's set or not, if separate audio/video is not available, muxed video stream is the last resort
+		* even if it's not set, if separate audio/video is not available, muxed video stream is the last resort
 		* the option is currently only applicable to sources from UT.urn (others don't have separate streams)
 * force reset playback of current media when feed VideoMode, audio quality, or video quality changes
 * in PlayerUI, resolution is shown when playing video

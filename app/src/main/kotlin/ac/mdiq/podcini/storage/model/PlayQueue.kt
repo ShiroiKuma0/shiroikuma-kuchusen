@@ -120,8 +120,6 @@ class PlayQueue : RealmObject {
     }
 
     fun checkAndFill() {
-//        Logd(TAG, "checkAndFill")
-//        showStackTrace()
         if (size() == 0 && !isVirtual()) {
             CoroutineScope(Dispatchers.IO).launch {
                 val feeds = normalFeeds

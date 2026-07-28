@@ -157,7 +157,7 @@
     <string name="no_action_label">アクションなし</string>
 
 
-    <string name="cancelled_on_label">キャンセル日時</string>
+
     <string name="choose_tab">チャンネル内のタブを選択</string>
     <string name="set_play_state_label">プレイ中の状態を設定</string>
     <string name="combo_action">コンボアクション</string>

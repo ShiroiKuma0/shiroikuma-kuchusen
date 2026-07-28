@@ -187,8 +187,8 @@
     <string name="feed_auto_download_never">Never</string>
 
     <string name="video_mode_label">Video mode</string>
-    <string name="use_muxed_video">Use muxed video</string>
-    <string name="use_muxed_video_sum">This is only applicable when the source provides separate audio/video streams, as well as muxed video streams.</string>
+    <string name="pref_muxed_video">Prefer muxed video</string>
+    <string name="pref_muxed_video_sum">This is only applicable when the source provides separate audio/video streams, as well as muxed video streams.</string>
     <string name="video_mode_window">Window mode</string>
     <string name="video_mode_fullscreen">Full screen</string>
     <string name="video_mode_audio_only">Audio only</string>
@@ -292,7 +292,10 @@
 
     <string name="no_action_label">No action</string>
 
-    <string name="cancelled_on_label">Cancelled on</string>
+    <string name="feed_likely_removed">Feed likely removed in the past</string>
+    <string name="reason_to_remove">Reason to remove</string>
+    <string name="removed_on">Removed on</string>
+
     <string name="related">Related</string>
 
     <string name="choose_tab">Choose a tab in the channel</string>
@@ -665,7 +668,7 @@
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>
     <string name="pref_fallback_speed_sum">Customize the speed when the play button is long pressed</string>
     <string name="pref_fast_forward">Fast forward skip time</string>
-    <string name="pref_fast_forward_sum">Customize the number of seconds to jump forward when the fast forward button is clicked</string>
+    <string name="pref_fast_forward_sum">Customize the number of seconds to jump forward when the fast-forward button is clicked</string>
     <string name="pref_rewind">Rewind skip time</string>
     <string name="pref_rewind_sum">Customize the number of seconds to jump backwards when the rewind button is clicked</string>
     <string name="pref_stream_cache">Streaming cache size</string>
@@ -782,7 +785,7 @@
     <string name="opml_reader_error">An error has occurred while reading the file. Make sure that you have actually selected an OPML file and that the file is valid.</string>
     <string name="progress_export_label">Episodes progress export</string>
     <string name="progress_import_label">Episodes progress import</string>
-    <string name="progress_export_summary">Transfer Podcini episodes history to a different install of Podcini. Note this is not necessary if you can transfer the DB.</string>
+    <string name="progress_export_summary">Transfer Podcini episodes history to a different installation of Podcini. Note this is not necessary if you can transfer the DB.</string>
     <string name="progress_import_summary">Import Podcini episodes history from another install of Podcini. Note this is not necessary if you already imported the DB. </string>
     <string name="progress_import_warning">Importing episodes progress will replace all of your current playing history. You should export your current progress as a backup. Do you want to replace\? If yes, in the next screen, choose the desired .json file. The process can take a couple minutes depending on size. Once completed, a popup of either success or failure will be shown.</string>
     <string name="opml_export_label">OPML export</string>
@@ -1063,13 +1066,13 @@
     <string name="player_switch_to_audio_only">Audio only</string>
 
     <string name="use_ring_tone">Use a ring tone</string>
-    <string name="use_ring_tone_sum">When enabled, the chosen ring tone is played when starting a new episode in queue.</string>
+    <string name="use_ring_tone_sum">When enabled, the chosen ringtone is played when starting a new episode in queue.</string>
 
-    <string name="disable_ring_tone_on_music">Disable ring tone on music</string>
-    <string name="disable_ring_tone_on_music_sum">When set, ring tone is not played before a music episode (as set in the feed).</string>
+    <string name="disable_ring_tone_on_music">Disable ringtone on music</string>
+    <string name="disable_ring_tone_on_music_sum">When set, ringtone is not played before a music episode (as set in the feed).</string>
 
     <string name="select_ring_tone">Select a ring tone</string>
-    <string name="select_ring_tone_sum">The ring tone is played when starting a new episode in queue.</string>
+    <string name="select_ring_tone_sum">The ringtone is played when starting a new episode in queue.</string>
 
     <!-- proxy settings -->
     <string name="proxy_type_label">Type</string>
