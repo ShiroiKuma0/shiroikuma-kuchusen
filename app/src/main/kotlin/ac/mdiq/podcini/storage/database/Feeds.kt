@@ -64,25 +64,13 @@ fun compileLanguages() {
         else langsSet.add("")
     }
     Logd(TAG, "langsSet: ${langsSet.size} appAttribs.langSet: ${appAttribs.langSet.size}")
-    val newLanguages = langsSet - appAttribs.langSet
-    if (newLanguages.isNotEmpty()) {
-        upsertBlk(appAttribs) {
-            it.langSet.clear()
-            it.langSet.addAll(langsSet)
-        }
-    }
+    if (!appAttribs.langSet.containsAll(langsSet)) upsertBlk(appAttribs) { it.langSet.addAll(langsSet) }
 }
 
 fun compileTags() {
     val tagsSet = mutableSetOf<String>()
     for (feed in allFeeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
-    val newTags = tagsSet - appAttribs.feedTagSet
-    if (newTags.isNotEmpty()) {
-        upsertBlk(appAttribs) {
-            it.feedTagSet.clear()
-            it.feedTagSet.addAll(tagsSet)
-        }
-    }
+    if (!appAttribs.feedTagSet.containsAll(tagsSet)) upsertBlk(appAttribs) { it.feedTagSet.addAll(tagsSet) }
 }
 
 private var feedMonitorJob: Job? = null

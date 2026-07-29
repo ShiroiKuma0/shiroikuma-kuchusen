@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens.prefscreens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
@@ -124,8 +125,8 @@ fun PlaybackScreen() {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 var showIcon by remember { mutableStateOf(false) }
-                var newName by remember { mutableStateOf(appAttribs.langSet.joinToString(", ")) }
-                TextField(value = newName,
+                var newName by remember { mutableStateOf(appAttribs.langsPreferred.joinToString(", ")) }
+                TextField(value = newName, singleLine = true, label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) },
                     onValueChange = {
                         newName = it
                         showIcon =  true
@@ -137,10 +138,13 @@ fun PlaybackScreen() {
                                     att.langsPreferred.clear()
                                     att.langsPreferred.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
                                 } }
+                                forcePlaybackReset = true
                                 showIcon =  false
                             }))
                     })
-                Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
+                val langs = remember { appAttribs.langSet.joinToString(", ") }
+                Text("Candidates: $langs", color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.preferred_languages_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
         }
 

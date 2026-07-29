@@ -141,6 +141,8 @@ abstract class MediaPlayerBase {
         }
 
     var isStreaming = false
+    var playingMuxedVideo = false
+    val curLangset = mutableSetOf<String>()
 
     var widgetId: String = ""
 
@@ -243,6 +245,7 @@ abstract class MediaPlayerBase {
                 resolution = ""
                 curEpisode = episode_
                 curClient = clientByEpisode(curEpisode!!)
+                setAudioStream()
                 playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.mediaType == MediaType.VIDEO))
                 skipSilence = null
                 shouldRepeat = false
@@ -915,7 +918,7 @@ abstract class MediaPlayerBase {
     private var useCodex: String = "Any"
     private var useABPS: Int = 0
 
-    fun setAudioStream(locale: String, codec: String, aveBitrate: Int) {
+    fun setAudioStream(locale: String? = null, codec: String = "Any", aveBitrate: Int = 0) {
         Logd(TAG, "setAudioStream: locale: $locale codec: $codec averageBitrate: $aveBitrate")
         useLocale = locale
         useCodex = codec
@@ -925,13 +928,14 @@ abstract class MediaPlayerBase {
     internal fun setAudioSpec(audioSpecs: List<AudioSpec>, media: Episode): AudioSpec? {
         val asl = mutableListOf<AudioSpec>()
 //        Logd(TAG, "useLocale: $useLocale useCodex: $useCodex useABPS: $useABPS audioIndex: $audioIndex")
-        Logd(TAG, "setAudioStream media.feed?.preferredLnaguages: ${media.feed?.preferredLnaguages?.joinToString()}")
+        Logd(TAG, "setAudioSpec media.feed?.preferredLnaguages: [${media.feed?.preferredLnaguages?.joinToString()}]")
+        Logd(TAG, "setAudioSpec appAttribs.langsPreferred: [${appAttribs.langsPreferred.joinToString()}]")
         val useLocales = media.feed?.preferredLnaguages?.ifEmpty { appAttribs.langsPreferred }?.ifEmpty { listOf("en-US", "en-GB", "en") } ?: listOf("en-US", "en-GB", "en")
-        //        useLocales.forEach { Logd(TAG, "setAudioStream useLocales: [$it]") }
-        val langset = mutableSetOf<String>()
+        Logd(TAG, "setAudioSpec useLocales: ${useLocales.joinToString()}")
+        curLangset.clear()
         for (s in audioSpecs) {
-            //            Logd(TAG, "s.audioLocale ${s.audioLocale}")
-            if (media.feed?.langSet?.contains(s.audioLocale) != true) langset.add(s.audioLocale ?: "")
+            Logd(TAG, "setAudioSpec s.audioLocale [${s.audioLocale}] ${s.codec} ${s.averageBitrate}")
+            curLangset.add(s.audioLocale ?: "")
             if ((useCodex == "Any" || s.codec == useCodex) && (useABPS == 0 || s.averageBitrate == useABPS)) {
                 when {
                     s.audioLocale == null -> asl.add(s)
@@ -940,22 +944,21 @@ abstract class MediaPlayerBase {
                 }
             }
         }
-        if (langset.isNotEmpty() && media.feed != null) runOnIOScope { upsert(media.feed!!) { it.langSet.addAll(langset) } }
-        Logd(TAG, "setAudioStream asl: ${asl.size}")
-        //        if (asl.isEmpty()) {
-        //            for (s in aStreamsList) {
-        //                if ((useLocale == null || s.audioLocale == useLocale) && (useCodex == "Any" || s.codec == useCodex) && (useABPS == 0 || s.averageBitrate == useABPS)) {
-        //                    asl.add(s)
-        //                }
-        //            }
-        //        }
+        Logd(TAG, "setAudioSpec langset: [${curLangset.joinToString()}]")
+        if (curLangset.isNotEmpty()) {
+            runOnIOScope {
+                if (media.feed != null && !media.feed!!.langSet.containsAll(curLangset)) upsert(media.feed!!) { it.langSet.addAll(curLangset) }
+                if (!appAttribs.langSet.containsAll(curLangset)) upsertBlk(appAttribs) { it.langSet.addAll(curLangset) }
+            }
+        }
+        Logd(TAG, "setAudioSpec asl: ${asl.size}")
         if (asl.isEmpty()) {
-            Loge(TAG, "setAudioStream: eligible audio stream list is empty")
-//            throw IllegalStateException("setAudioStream: audio stream list is empty")
+            Loge(TAG, "setAudioSpec: eligible audio stream list is empty.\nAvailable languages: ${curLangset.joinToString()}.\nYou prefer: ${useLocales.joinToString()}")
             bitrate = 0
             resolution = ""
             return null
         }
+
         val prefLowQualityMedia: Boolean = appPrefs.lowQualityOnMobile
         val audioIndex =
             if (networkMonitor.isNetworkRestricted && prefLowQualityMedia && media.feed?.audioQualitySetting == AVQuality.GLOBAL) 0
@@ -975,16 +978,16 @@ abstract class MediaPlayerBase {
                 }
             }
 
-        for (a in asl) Logd(TAG, "setAudioStream asl: bitrate: ${a.bitrate} averageBitrate: ${a.averageBitrate} quality: ${a.quality}  codec: ${a.codec} audioLocale: ${a.audioLocale.toString()} id: ${a.audioTrackId} name: ${a.audioTrackName} format: ${a.format} ${a.url}")
+        for (a in asl) Logd(TAG, "setAudioSpec asl: bitrate: ${a.bitrate} averageBitrate: ${a.averageBitrate} quality: ${a.quality}  codec: ${a.codec} audioLocale: ${a.audioLocale.toString()} id: ${a.audioTrackId} name: ${a.audioTrackName} format: ${a.format} ${a.url}")
 
         val audioSpec = if (audioIndex >= 0 && audioIndex < asl.size) asl[audioIndex] else null
         bitrate = audioSpec?.bitrate ?: 0
-        Logd(TAG, "setAudioStream use audio quality: ${audioSpec?.bitrate} forceVideo: ${media.forceVideo}")
-        Logd(TAG, "audioStream: ${audioSpec?.url}")
+        Logd(TAG, "setAudioSpec use audio quality: ${audioSpec?.bitrate} forceVideo: ${media.forceVideo}")
+        Logd(TAG, "setAudioSpec: ${audioSpec?.url}")
         return audioSpec
     }
 
-    fun setVideoStream(videoSpecs: List<VideoSpec>, media: Episode): VideoSpec {
+    fun setVideoSpec(videoSpecs: List<VideoSpec>, media: Episode): VideoSpec {
         val videoIndex =
             if (networkMonitor.isNetworkRestricted && appPrefs.lowQualityOnMobile && media.feed?.videoQualitySetting == AVQuality.GLOBAL) 0
             else {
@@ -1003,11 +1006,11 @@ abstract class MediaPlayerBase {
                 }
             }
 
-        for (i in videoSpecs.indices) Logd(TAG, "setVideoStream $i ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
+        for (i in videoSpecs.indices) Logd(TAG, "setVideoSpec $i ${videoSpecs[i].bitrate} ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
 
         val videoStream = videoSpecs[videoIndex]
         resolution = videoStream.resolution ?: ""
-        Logd(TAG, "setVideoStream use video quality: ${videoStream.resolution}")
+        Logd(TAG, "setVideoSpec use video quality: ${videoStream.resolution}")
         return videoStream
     }
 

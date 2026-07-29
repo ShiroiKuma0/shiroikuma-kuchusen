@@ -627,13 +627,17 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val context = getAppContext()
         val metadata = buildMetadata(media)
 
+        playingMuxedVideo = false
+
         fun setMuxedVideo() {
             videoSpecs = curClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
             if (videoSpecs.isNotEmpty()) {
-                val videoSpec = setVideoStream(videoSpecs, media)
+                val videoSpec = setVideoSpec(videoSpecs, media)
                 if (!videoSpec.url.isNullOrBlank()) {
                     val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
                     mSource = MergingMediaSource(true, vSource)
+                    playingVideo = true
+                    playingMuxedVideo = true
                     Logt(TAG, "Using muxed video stream")
                 } else Loge(TAG, "videoStream or url is null or blank")
             } else Logt(TAG, "Client provided no muxed video stream")
@@ -648,12 +652,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             if (audioSpecs.isNotEmpty()) {
                 Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
                 val audioSpec = setAudioSpec(audioSpecs, media)
-                if (!audioSpec?.url.isNullOrBlank()) {
-                    val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-                    val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
-                    aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
-                    Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
-                } else Loge(TAG, "eligible audioStream or its url is null or blank")
+                if (audioSpec != null) {
+                    if (!audioSpec.url.isNullOrBlank()) {
+                        val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                        val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
+                        aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
+                        Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
+                    } else Loge(TAG, "eligible audioStream or its url is null or blank")
+                }
             } else Logt(TAG, "Client provided no audio stream, trying with muxed video stream")
 
             if ((aSource == null || needVideo) && curClient?.attributes?.hasVideo == true) {
@@ -662,7 +668,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                     videoSpecs = curClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
                     Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
                     if (videoSpecs.isNotEmpty()) {
-                        val videoSpec = setVideoStream(videoSpecs, media)
+                        val videoSpec = setVideoSpec(videoSpecs, media)
                         if (!videoSpec.url.isNullOrBlank()) {
                             val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
                             val mediaSources: MutableList<MediaSource> = mutableListOf()

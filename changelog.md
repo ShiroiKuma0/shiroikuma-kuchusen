@@ -1,3 +1,12 @@
+# 12.4.15
+
+* in MediaPlayer,
+	* ensure to reset preferred locale, codec and bitrate on new episode
+	* when eligible audio streams list is empty, toast about languages availability and preference
+* if a media set to "Audio only" resorts to muxed video, video is shown in PlayerDetailed
+* amended Preferred languages settings and added note in Settings->Playback and Feed settings
+* some dependencies update
+
 # 12.4.14
 
 * added description in SubscriptionLog

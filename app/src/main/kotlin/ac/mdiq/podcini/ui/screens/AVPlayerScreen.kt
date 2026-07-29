@@ -17,7 +17,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.sources.clientByFeed
 import ac.mdiq.podcini.sources.isExtFeed
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -824,6 +823,7 @@ fun AVPlayerScreen() {
         var expanded by remember { mutableStateOf(false) }
         val episode = theatres[vm.playerId].mPlayer?.curEpisode
         val mediaType = remember(episode?.id) { episode?.mediaType }
+        val player = theatres[vm.playerId].mPlayer
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed) }
@@ -832,7 +832,7 @@ fun AVPlayerScreen() {
                     val media = upsertBlk(episode!!) { it.forceVideo = true }
                     forcePlaybackReset = true
                     PlaybackStarter(media).shouldStreamThisTime(null).start()
-                    theatres[vm.playerId].mPlayer?.playingVideo = true
+                    player?.playingVideo = true
                 })
             if (episode != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
                 activePlayer = vm.playerId
@@ -918,7 +918,7 @@ fun AVPlayerScreen() {
                 if (showLocales) Popup(onDismissRequest = { showLocales = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
                     Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                            val langs = remember { episode.feed?.preferredLnaguages?.toList()?.ifEmpty { appAttribs.langsPreferred.toList().ifEmpty { listOf("en-US", "en-GB", "en") } } ?: listOf("en-US", "en-GB", "en") }
+                            val langs = remember { player.curLangset.toList() }
                             for (index in langs.indices) {
                                 FilterChip(label = { Text(langs[index]) }, selected = false, border = BorderStroke(1.dp, borderColor),
                                     onClick = {
@@ -927,7 +927,7 @@ fun AVPlayerScreen() {
                                         val bSet = mutableSetOf<String>()
                                         for (s in player.audioSpecs) if (s.audioLocale.toString() == locale) bSet.add(s.averageBitrate.toString())
                                         bitRates = bSet.toList()
-                                        bitrate = bitRates[0].toInt()
+                                        bitrate = if (bitRates.isNotEmpty()) bitRates[0].toInt() else 0
                                         player.setAudioStream(locale, codec, bitrate)
                                         reset = true
                                         showLocales = false
@@ -937,9 +937,9 @@ fun AVPlayerScreen() {
                     }
                 }
                 if (locales.size > 1) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp)) {
-                    Text("Locale:", color = textColor, modifier = Modifier.padding(end = 10.dp).clickable { showLocales = true })
+                    Text(" Locale ", color = textColor, modifier = Modifier.padding(horizontal = 3.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small).clickable { showLocales = true })
                 }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                     if (codecs.size > 1) {
                         Text("Codec:", color = textColor, modifier = Modifier.padding(end = 10.dp))
                         Spinner(items = codecs, modifier = Modifier.widthIn(max = 100.dp), selectedItem = codec) { index ->

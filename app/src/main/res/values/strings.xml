@@ -14,6 +14,7 @@
     <string name="pafeeds" translatable="false">PAFeeds</string>
 
     <string name="preferred_languages">Preferred languages</string>
+    <string name="preferred_languages_sum">When media contains multiple language tracks, the player uses this setting to select proper tracks. Every feed containing such media also enables this setting. The player checks on feed setting first, if not set, uses the global setting, if still not set, default to [en-US, en-GB, en].</string>
 
     <string name="statistics_label">Statistics</string>
     <string name="add_feed_label">Add feeds</string>

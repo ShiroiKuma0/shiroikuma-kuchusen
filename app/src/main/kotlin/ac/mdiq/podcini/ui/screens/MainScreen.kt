@@ -109,7 +109,10 @@ fun MainActivityUI() {
 
     val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
-    LaunchedEffect(sheetState.bottomSheetState) { snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { state -> psState = PSState.fromSheet(state) } }
+    LaunchedEffect(sheetState.bottomSheetState) { snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { state ->
+        Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState) { snapshotFlow { sheetState.bottomSheetState.currentValue } state: $state")
+        psState = PSState.fromSheet(state)
+    } }
 
     var firstRun by remember { mutableStateOf(true) }
     LaunchedEffect(key1 = psState, key2 = theatres[0].mPlayer?.curEpisode?.id, firstRun) {

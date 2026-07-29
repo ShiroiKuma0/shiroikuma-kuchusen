@@ -465,7 +465,7 @@ fun FeedsSettingsScreen() {
                     Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     var showIcon by remember { mutableStateOf(false) }
                     var newName by remember { mutableStateOf(feedToSet.preferredLnaguages.joinToString(", ")) }
-                    TextField(value = newName,
+                    TextField(value = newName, singleLine = true, label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) },
                         onValueChange = {
                             newName = it
                             showIcon =  true
@@ -479,11 +479,13 @@ fun FeedsSettingsScreen() {
                                             att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
                                         } } }
                                     }
+                                    if (theatres[0].mPlayer?.curEpisode?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                                     showIcon =  false
                                 }))
                         })
                     val langs = remember { feedToSet.langSet.joinToString(", ") }
                     Text("Candidates: $langs", color = textColor, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.preferred_languages_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
             //                    video mode

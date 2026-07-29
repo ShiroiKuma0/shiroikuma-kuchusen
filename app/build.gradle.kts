@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 86
-        versionName = "12.4.14"
+        versionCode = 87
+        versionName = "12.4.15"
 
         ndkVersion = "29.0.14206865"
 
@@ -184,7 +184,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
 
     implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.2")
 
     implementation("androidx.annotation:annotation:1.10.0")
     implementation("androidx.core:core-ktx:1.19.0")
@@ -217,8 +217,8 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
 
-    implementation("androidx.navigation3:navigation3-runtime:1.1.4")
-    implementation("androidx.navigation3:navigation3-ui:1.1.4")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.5")
+    implementation("androidx.navigation3:navigation3-ui:1.1.5")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
@@ -238,7 +238,7 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.4.0")
-    implementation("com.squareup.okio:okio:3.18.0")
+    implementation("com.squareup.okio:okio:3.18.1")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
