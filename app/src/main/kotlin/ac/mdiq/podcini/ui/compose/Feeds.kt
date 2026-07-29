@@ -149,6 +149,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismiss: () -> Unit, callback: ()->Uni
                             if (!f.isSynthetic()) {
                                 val sLog = SubscriptionLog(f.id, f.title ?: "", f.downloadUrl ?: "", f.link ?: "", SubscriptionLog.Type.Feed.name)
                                 upsert(sLog) {
+                                    it.description = f.description?.take(100).orEmpty()
                                     it.rating = f.rating
                                     it.comment = if (f.comment.isBlank()) "" else (f.comment + "\n")
                                     it.comment += fullDateTimeString() + "\n$reasonText:\n" + textState.text

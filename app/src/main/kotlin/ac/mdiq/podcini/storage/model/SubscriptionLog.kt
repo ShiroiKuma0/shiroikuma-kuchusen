@@ -17,6 +17,8 @@ class SubscriptionLog: RealmObject {
 
     var type: String? = null
 
+    var description: String? = null
+
     var cancelDate: Long = 0
 
     var rating: Int = Rating.UNRATED.code
@@ -50,6 +52,7 @@ class SubscriptionLog: RealmObject {
                     val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
                     val map = mutableMapOf<String, SubscriptionLog>()
                     for (l in logs) {
+                        if (!l.description.isNullOrBlank()) map[l.description!!] = l
                         if (l.title.isNotBlank()) map[l.title] = l
                         if (!l.url.isNullOrBlank()) map[l.url!!] = l
                         if (!l.link.isNullOrBlank()) map[l.link!!] = l

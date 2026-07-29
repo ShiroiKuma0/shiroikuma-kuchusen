@@ -244,7 +244,7 @@ class FeedReceiver(port: Int): Receiver(port) {
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<FeedPackage>(json)
                     val f = pkg.feed.toRealm()
-                    upsertBlk(f) { it.freezeFeed(false) }
+                    upsertBlk(f) { it.freeze(false) }
                     Logd(TAG, "Saved feed: ${f.title}")
 
                     runOnIOScope {
@@ -298,7 +298,7 @@ suspend fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit) {
         sendClips(channel, pkg.clips)
         channel.flush()
 
-        upsert(feed) { it.freezeFeed(true) }
+        upsert(feed) { it.freeze(true) }
         Logt(TAG, "Sent feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes (${bytes.size} bytes)")
     } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
     } finally {

@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Vă rugăm confirmați că doriți să ștergeți podcastul \"%1$s\". Fișierele din folderul local nu vor fi șterse.</string>
     <string name="not_erase_message">Numai episoadele din furajele sintetice pot fi șterse.</string>
     <string name="reason_to_delete_msg">Pentru referințe viitoare, puteți înregistra un motiv aici:</string>
-    <string name="load_complete_feed">Reîncarcă tot podcastul</string>
+
     <string name="progressing_label">Prelucrare</string>
     <string name="open_podcast">Deschide podcast</string>
     <string name="open">Deschideți</string>

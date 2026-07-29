@@ -115,7 +115,7 @@
   <string name="feed_delete_confirmation_msg_batch">נא לאשר את הסרת הפודקאסטים הנבחרים, כל הפרקים שלהם (לרבות אלו שנשמרו) והסטטיסטיקה שלהם.</string>
   <string name="feed_delete_confirmation_local_msg">נא לאשר את הסרת הפודקאסט „%1$s” ואת הסטטיסטיקה שלו. הקבצים בתיקייה המקור המקומית לא יימחקו.</string>
 
-  <string name="load_complete_feed">רענון מלא של הפודקאסט</string>
+
 
 
     <string name="open_podcast">פתיחת פודקאסט</string>

@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Bekræft, at du vil fjerne podcasten \"%1$s\" og dens statistikker. Filerne i den lokale kildemappe vil ikke blive slettet.</string>
     <string name="not_erase_message">Kun episoder fra syntetisk foder kan slettes.</string>
     <string name="reason_to_delete_msg">For fremtidig reference, kan du registrere en grund her:</string>
-    <string name="load_complete_feed">Opdater hele podcasten</string>
+
     <string name="progressing_label">Behandler</string>
     <string name="open_podcast">Åbn podcast</string>
     <string name="open">Åbn</string>

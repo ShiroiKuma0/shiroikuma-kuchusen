@@ -505,7 +505,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     runOnIOScope { FeedUpdater(listOf(feed!!), doItAnyway = true).start() }
                                     expanded = false
                                 })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                                DropdownMenuItem(text = { Text(stringResource(R.string.refresh_complete_feed)) }, onClick = {
                                     runOnIOScope { FeedUpdater(listOf(feed!!), fullUpdate = true, doItAnyway = true, removeUnlisted = true).start() }
                                     expanded = false
                                 })

@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Vahvista, että haluat poistaa podcastin \"%1$s\" ja sen tilastot. Paikallisia tiedostoja ei poisteta.</string>
     <string name="not_erase_message">Vain synteettisten rehujen jaksot voidaan poistaa.</string>
     <string name="reason_to_delete_msg">Tulevaisuuden viitteeksi voit tallentaa syyn täältä:</string>
-    <string name="load_complete_feed">Päivitä podcast</string>
+
     <string name="progressing_label">Käsitellään</string>
     <string name="open_podcast">Avaa podcast</string>
     <string name="open">Avaa</string>

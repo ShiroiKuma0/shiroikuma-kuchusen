@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Подтвердите, что хотите удалить подкаст «%1$s» и его статистику. Файлы в локальной исходной папке не будут удалены.</string>
     <string name="not_erase_message">Можно стереть только эпизоды из синтетических каналов.</string>
     <string name="reason_to_delete_msg">Для дальнейшей ссылки вы можете указать причину здесь:</string>
-    <string name="load_complete_feed">Обновить весь подкаст</string>
+
     <string name="progressing_label">Обработка</string>
     <string name="open_podcast">Открыть подкаст</string>
     <string name="open">Открыть</string>

@@ -236,7 +236,8 @@
 
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
     <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
-    <string name="load_complete_feed">Refresh complete podcast</string>
+
+    <string name="refresh_complete_feed">Refresh complete feed</string>
 
     <string name="progressing_label">Processing</string>
 

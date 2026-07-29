@@ -123,7 +123,7 @@ class DownloadRequest private constructor(
                 feed.downloadUrl != null -> prepareUrl(feed.downloadUrl!!)
                 else -> null
             }
-            this.title = feed.getTextIdentifier()
+            this.title = feed.textIdentifier
             this.feedfileId = feed.id
             this.feedfileType = RequestTye.FEED.ordinal
             arguments.putInt(REQUEST_ARG_PAGE_NR, feed.pageNr)

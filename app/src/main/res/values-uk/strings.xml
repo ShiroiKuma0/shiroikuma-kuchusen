@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Будь ласка, підтвердьте, що ви хочете видалити подкаст \"%1$s\" і його статистику. Файли в теці локального джерела не будуть видалені.</string>
     <string name="not_erase_message">Будуть стерті тільки епізоди з синтетичних стрічок.</string>
     <string name="reason_to_delete_msg">Для майбутнього довідника ви можете записати причину тут:</string>
-    <string name="load_complete_feed">Оновити весь подкаст</string>
+
     <string name="progressing_label">В процесі</string>
     <string name="open_podcast">Відкрити подкаст</string>
     <string name="open">Відкриті</string>

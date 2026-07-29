@@ -56,6 +56,16 @@ class Feed : RealmObject {
 
     var customTitle: String? = null     // custom title set by the user.
 
+    @Ignore
+    val textIdentifier: String?
+        get() {
+            return when {
+                !customTitle.isNullOrEmpty() -> customTitle
+                !eigenTitle.isNullOrEmpty() -> eigenTitle
+                else -> downloadUrl
+            }
+        }
+
     var link: String? = null
 
     var description: String? = null
@@ -435,16 +445,8 @@ class Feed : RealmObject {
         this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
     }
 
-    fun freezeFeed(value: Boolean) {
+    fun freeze(value: Boolean) {
         volumeId = if (value) FROZEN_VOLUME_ID else -1L
-    }
-
-    fun getTextIdentifier(): String? {
-        return when {
-            !customTitle.isNullOrEmpty() -> customTitle
-            !eigenTitle.isNullOrEmpty() -> eigenTitle
-            else -> downloadUrl
-        }
     }
 
     fun updateFromOther(other: Feed, includingPrefs: Boolean = false) {

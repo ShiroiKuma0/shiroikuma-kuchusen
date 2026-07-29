@@ -29,7 +29,6 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
@@ -37,6 +36,7 @@ import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.model.toFeed
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -108,7 +108,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -165,7 +164,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var username: String? = null
     internal var password: String? = null
 
-//    val subLogs = mutableStateListOf<SubscriptionLog>()
+    val subLogs = mutableStateListOf<SubscriptionLog>()
 
     internal var isPaused = false
     internal var subscribePress = false
@@ -331,11 +330,14 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         feed = feed_
         checkExisting(preparedUrl, feed)
 
-//        val result = realm.query(SubscriptionLog::class).query("title == $0 OR url == $1", feed_.title, feed_.downloadUrl).find()
-//        if (result.isNotEmpty()) {
-//            subLogs.clear()
-//            subLogs.addAll(result)
-//        }
+        val results = mutableListOf<SubscriptionLog>()
+        if (!feed_.title.isNullOrBlank()) feedLogsMap?.get(feed_.title)?.apply { results.add(this) }
+        if (!feed_.downloadUrl.isNullOrBlank()) feedLogsMap?.get(feed_.downloadUrl)?.apply { results.add(this) }
+        feed_.description?.take(100).takeIf { !it.isNullOrBlank() }.apply { feedLogsMap?.get(this)?.apply { results.add(this) } }
+        if (results.isNotEmpty()) {
+            subLogs.clear()
+            subLogs.addAll(results)
+        }
 
         numEpisodes = feed_.episodes.size
         if (isShared) {
@@ -616,18 +618,20 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-                    val sLog = remember(vm.feed?.downloadUrl, vm.feed?.title) { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
-                    if (sLog != null) {
-                        val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
-                        val ratingRes = remember { fromCode(sLog.rating).res }
+                    if (vm.subLogs.isNotEmpty()) {
                         Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                            Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
-                            Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                        for (sLog in vm.subLogs) {
+                            val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
+                            Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                            if (!sLog.description.isNullOrBlank()) Text(sLog.description?:"", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                            val ratingRes = remember { fromCode(sLog.rating).res }
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)) {
+                                Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
+                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                            }
+                            Text(sLog.url ?: "no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                            Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                         }
-                        Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                        Text(sLog.url?:"no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                        Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                     }
                     Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))

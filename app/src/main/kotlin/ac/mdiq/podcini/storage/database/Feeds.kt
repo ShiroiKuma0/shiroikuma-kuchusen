@@ -173,9 +173,9 @@ fun addNewFeed(feed: Feed) {
 suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
     Logd(TAG, "deleteFeed called")
     val feed = feedsMap[feedId]
-    val episodes = if (preserve && feed != null) feed.unworthyEpisodes else getEpisodes(null, null, feedId=feedId, copy = false)
-    removeFromAllQueuesQuiet(episodes.map { it.id }, false)
-    eraseEpisodes(episodes)
+    val episodesToErase = if (preserve && feed != null) feed.unworthyEpisodes else getEpisodes(null, null, feedId=feedId, copy = false)
+    removeFromAllQueuesQuiet(episodesToErase.map { it.id }, false)
+    eraseEpisodes(episodesToErase)
 
     if (feed != null) {
         realm.write {

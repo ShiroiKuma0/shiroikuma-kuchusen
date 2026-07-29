@@ -179,6 +179,7 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
             val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
             sLog.id = getEntityId()
             sLog.let {
+                it.description = e.description?.take(100).orEmpty()
                 it.rating = e.rating
                 it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
                 it.comment += fullDateTimeString() + "\n$reasonText:\n" + msg

@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Vänligen bekräfta att du vill ta bort podcast \"%1$s\" och dess statistik. Filerna i den lokala källkatalogen kommer inte att tas bort.</string>
     <string name="not_erase_message">Endast episoder från syntetiska flöden kan raderas.</string>
     <string name="reason_to_delete_msg">För framtida referens kan du registrera en anledning här:</string>
-    <string name="load_complete_feed">Uppdatera hela podcasten</string>
+
     <string name="progressing_label">Bearbetar</string>
     <string name="open_podcast">Öppna podcast</string>
     <string name="open">Öppna</string>

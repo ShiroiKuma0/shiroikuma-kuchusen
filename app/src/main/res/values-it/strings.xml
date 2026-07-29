@@ -130,7 +130,7 @@
     <string name="feed_delete_confirmation_local_msg">Conferma di voler eliminare il podcast \"%1$s\" e le sue statistiche. I file nella cartella locale non verranno eliminati.</string>
     <string name="not_erase_message">Solo gli episodi da feed sintetici possono essere cancellati.</string>
     <string name="reason_to_delete_msg">Per riferimento futuro, è possibile registrare un motivo qui:</string>
-    <string name="load_complete_feed">Aggiorna podcast completo</string>
+
     <string name="progressing_label">Elaborazione</string>
     <string name="open_podcast">Apri podcast</string>
     <string name="open">Apri</string>

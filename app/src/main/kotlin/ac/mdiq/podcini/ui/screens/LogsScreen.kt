@@ -278,6 +278,7 @@ fun LogsScreen() {
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(log.title, color = textColor)
                 Text(log.comment, color = textColor)
+                Text(log.description?:"", color = textColor)
                 Text("URL: " + log.url, color = textColor)
                 Text("Link: " + log.link, color = textColor)
                 Row(Modifier.padding(top = 10.dp)) {
@@ -292,16 +293,16 @@ fun LogsScreen() {
     @Composable
      fun SubscriptionLogView() {
         val lazyListState = rememberLazyListState()
-        val showDialog = remember { mutableStateOf(false) }
+        var showDialog by remember { mutableStateOf(false) }
         val dialogParam = remember { mutableStateOf(SubscriptionLog()) }
-        if (showDialog.value) SubscriptionDetailDialog(log = dialogParam.value, onDismiss = { showDialog.value = false })
+        if (showDialog) SubscriptionDetailDialog(log = dialogParam.value, onDismiss = { showDialog = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.subscriptionLogs) { log ->
                 Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable {
                     dialogParam.value = log
-                    showDialog.value = true
+                    showDialog = true
                 }) {
                     val iconRes = remember { fromCode(log.rating).res  }
                     Icon(imageVector = ImageVector.vectorResource(iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",

@@ -130,7 +130,7 @@
     <string name="feed_delete_confirmation_local_msg">Bitte bestätige, dass du den Podcast \"%1$s\" und seine Statistiken löschen möchtest. Die Dateien im lokalen Quellordner werden nicht gelöscht.</string>
     <string name="not_erase_message">Nur Episoden aus synthetischen Feeds können gelöscht werden.</string>
     <string name="reason_to_delete_msg">Für zukünftige Referenzen können Sie hier einen Grund feststellen:</string>
-    <string name="load_complete_feed">Kompletten Podcast aktualisieren</string>
+
     <string name="progressing_label">Verarbeitung</string>
     <string name="open_podcast">Podcast öffnen</string>
     <string name="open">Öffnen</string>

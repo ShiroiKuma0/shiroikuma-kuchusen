@@ -129,7 +129,7 @@
     <string name="feed_delete_confirmation_local_msg">ポッドキャスト「%1$s」とその統計を削除することを確認してください。 ローカルソースフォルダ内のファイルは削除されません。</string>
     <string name="not_erase_message">合成フィードからのエピソードのみ消去できます。</string>
     <string name="reason_to_delete_msg">今後の参照では、理由を記録することができます:</string>
-    <string name="load_complete_feed">ポッドキャストをすべて更新</string>
+
     <string name="progressing_label">処理中</string>
     <string name="open_podcast">ポッドキャストを開く</string>
     <string name="open">開く</string>

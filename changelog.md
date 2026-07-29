@@ -1,3 +1,14 @@
+# 12.4.14
+
+* added description in SubscriptionLog
+* in OnlineFeed
+	* ensure to show all prior cancellation logs (if any) possibly related to the feed 
+	* if feed was previously unsubscribed but preserved (frozen), shows the preserved
+* Note, to unfreeze a feed
+	* first set the feed to a normal parent volume (or none) in the settings, then enable update
+	* do "Refresh complete feed" from the menu in FeedDetails screen
+* some code refactoring
+
 # 12.4.13
 
 * avoid reset playback of current media when feed changed is unrelated

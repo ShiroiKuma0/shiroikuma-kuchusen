@@ -130,7 +130,7 @@
     <string name="feed_delete_confirmation_local_msg">Merci de confirmer que vous voulez supprimer le podcast \"%1$s\" et ses statistiques. Les fichiers du dossier local  / source ne seront pas effacés.</string>
     <string name="not_erase_message">Seuls les épisodes des flux synthétiques peuvent être effacés.</string>
     <string name="reason_to_delete_msg">Pour une référence future, vous pouvez enregistrer une raison ici:</string>
-    <string name="load_complete_feed">Mettre à jour tout le podcast</string>
+
     <string name="progressing_label">Traitement en cours</string>
     <string name="open_podcast">Ouvrir le podcast</string>
     <string name="open">Ouvert</string>

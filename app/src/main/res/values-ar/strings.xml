@@ -128,7 +128,7 @@
     <string name="feed_delete_confirmation_local_msg">نرجو تأكيد رغبتك في إزالة بودكاست \"%1$s\" وإحصاءاته. لن يتم مسح الملفات المنزلة.</string>
     <string name="not_erase_message">لا يمكن محو سوى الحلقات من التغذية الاصطناعية.</string>
     <string name="reason_to_delete_msg">للحصول على مرجع في المستقبل، يمكنك تسجيل سبب هنا:</string>
-    <string name="load_complete_feed">حدث كامل البودكاست</string>
+
     <string name="progressing_label">معالجة</string>
     <string name="open_podcast">افتح البودكاست</string>
     <string name="open">فتح</string>

@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Bevestig dat je de podcast \'%1$s\' en de statistieken ervan wilt verwijderen. De bestanden in de lokale bronmap worden niet verwijderd.</string>
     <string name="not_erase_message">Alleen afleveringen van synthetische feeds kunnen worden gewist.</string>
     <string name="reason_to_delete_msg">Voor toekomstige referenties kunt u hier een reden opnemen:</string>
-    <string name="load_complete_feed">Volledige podcast vernieuwen</string>
+
     <string name="progressing_label">Verwerken</string>
     <string name="open_podcast">Podcast openen</string>
     <string name="open">Open</string>

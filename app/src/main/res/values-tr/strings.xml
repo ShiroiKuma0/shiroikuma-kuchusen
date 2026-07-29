@@ -183,7 +183,7 @@
 
     <string name="not_erase_message">Yalnızca sentetik beslemelerden gelen bölümler silinebilir.</string>
     <string name="reason_to_delete_msg">Gelecekteki referans için buraya bir neden kaydedebilirsiniz:</string>
-    <string name="load_complete_feed">Tam podcast\'i yenile</string>
+
 
     <string name="progressing_label">İşleniyor</string>
 

@@ -129,7 +129,7 @@
     <string name="feed_delete_confirmation_local_msg">Confirme que quiere eliminar el pódcast «%1$s» y sus estadísticas. Los archivos en la carpeta origen local no se eliminarán.</string>
     <string name="not_erase_message">Sólo se pueden borrar los episodios de los piensos sintéticos.</string>
     <string name="reason_to_delete_msg">Para referencia futura, puede registrar una razón aquí:</string>
-    <string name="load_complete_feed">Actualizar el pódcast completo</string>
+
     <string name="progressing_label">Procesando</string>
     <string name="open_podcast">Abrir pódcast</string>
     <string name="open">Abrir</string>

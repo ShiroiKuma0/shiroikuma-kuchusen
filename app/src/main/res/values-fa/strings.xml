@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">لطفا تأیید کنید که می‌خواهید پادکست «%1$s» و آمارهایش را بردارید. پرونده‌ها در شاخهٔ منبع محلّی حذف نخواهند شد.</string>
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
     <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
-    <string name="load_complete_feed">تازه‌سازی تمام پادکست</string>
+
     <string name="progressing_label">Processing</string>
     <string name="open_podcast">گشودن پادکست</string>
     <string name="open">Open</string>

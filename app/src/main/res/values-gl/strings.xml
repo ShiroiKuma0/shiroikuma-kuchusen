@@ -115,7 +115,7 @@
   <string name="feed_delete_confirmation_msg_batch">Confirma que desexas eliminar os podcast seleccionados e TODOS os seus episodios (incluńdo os descargados) e estatísticas.</string>
   <string name="feed_delete_confirmation_local_msg">Confirma que queres eliminar o podcast \"%1$s\" e as súas estatísticas. Non se eliminarán os ficheiros no cartafol local.</string>
 
-  <string name="load_complete_feed">Actualizar o podcast completo</string>
+
 
 
     <string name="open_podcast">Abrir podcast</string>

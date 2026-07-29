@@ -127,7 +127,7 @@
     <string name="feed_delete_confirmation_local_msg">Potvrďte prosím, že chcete smazat podcast \"%1$s\" a jeho statistiky. Soubory v místním úložišti nebudou smazány.</string>
     <string name="not_erase_message">Vymazat lze pouze epizody ze syntetických kanálů.</string>
     <string name="reason_to_delete_msg">Pro budoucí reference, můžete zde zaznamenat důvod:</string>
-    <string name="load_complete_feed">Aktualizovat celý podcast</string>
+
     <string name="progressing_label">Zpracovávání</string>
     <string name="open_podcast">Otevřít podcast</string>
     <string name="open">Otevřít</string>
