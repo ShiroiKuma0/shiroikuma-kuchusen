@@ -283,13 +283,22 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             castPlayer?.play()
                         }
                         PlaybackException.ERROR_CODE_IO_UNSPECIFIED -> {
+                            val cause = error.cause
 //                            LogtFor(TAG, curEpisode?.id, "Caught Source Error 2000 (NPE). Attempting a clean recovery...")
-                            when (val cause = error.cause) {
-                                is HttpDataSource.InvalidResponseCodeException -> LogtFor(TAG, curEpisode?.id, "Server rejected request. HTTP ${cause.responseCode}: ${cause.message}")
-                                is HttpDataSource.HttpDataSourceException -> LogtFor(TAG, curEpisode?.id, "HTTP Error playing media. Response Code: ${cause.message}")
-                                is java.io.FileNotFoundException -> LogtFor(TAG, curEpisode?.id, "Local file or cache source missing.")
-                                else -> LogtFor(TAG, curEpisode?.id, "Generic IO Error stack trace: ${cause?.message}")
-                            }
+                            LogtFor(TAG, curEpisode?.id,
+                                """
+                                    IO error:
+                                      class=${cause?.javaClass?.name}
+                                      message=${cause?.message}
+                                      root=${cause?.cause?.javaClass?.name}
+                                      rootMessage=${cause?.cause?.message}
+                                    """.trimIndent())
+//                            when (val cause = error.cause) {
+//                                is HttpDataSource.InvalidResponseCodeException -> LogtFor(TAG, curEpisode?.id, "Server rejected request. HTTP ${cause.responseCode}: ${cause.message}")
+//                                is HttpDataSource.HttpDataSourceException -> LogtFor(TAG, curEpisode?.id, "HTTP Error playing media. Response Code: ${cause.message}")
+//                                is java.io.FileNotFoundException -> LogtFor(TAG, curEpisode?.id, "Local file or cache source missing.")
+//                                else -> LogtFor(TAG, curEpisode?.id, "Generic IO Error stack trace: ${cause?.message}")
+//                            }
 //                            val currentPosition = exoPlayer?.currentPosition ?: 0L
 //                            val currentMediaItem = exoPlayer?.currentMediaItem
 //                            if (currentMediaItem != null) {
@@ -620,7 +629,8 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bufferingUpdateListener = null
     }
 
-    fun mediaSourceFromClient(media: Episode, needVideo: Boolean): MediaSource? {
+    fun mediaSourceFromClient(needVideo: Boolean, sameMedia: Boolean = false): MediaSource? {
+        val media = curEpisode ?: return null
         if (curClient == null)  return null
 
         var mSource: MediaSource? = null
@@ -630,9 +640,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         playingMuxedVideo = false
 
         fun setMuxedVideo() {
-            videoSpecs = curClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
-            if (videoSpecs.isNotEmpty()) {
-                val videoSpec = setVideoSpec(videoSpecs, media)
+            if (!sameMedia || muxedSpecs.isEmpty()) muxedSpecs = curClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
+            if (muxedSpecs.isNotEmpty()) {
+                val videoSpec = setVideoSpec(muxedSpecs, media)
                 if (!videoSpec.url.isNullOrBlank()) {
                     val vSource = DefaultMediaSourceFactory(context).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(videoSpec.url!!.toSafeUri()).build())
                     mSource = MergingMediaSource(true, vSource)
@@ -644,10 +654,13 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
 
         Logd(TAG, "mediaSourceFromClient setting for source needVideo: $needVideo media: ${media.title}")
-        audioSpecs = listOf()
-        videoSpecs = listOf()
+        if (!sameMedia) {
+            audioSpecs = listOf()
+            videoSpecs = listOf()
+            muxedSpecs = listOf()
+        }
         if ((curClient?.attributes?.hasSeparateAVs == true && media.feed?.useMuxedVideo != true) || curClient?.attributes?.hasVideo != true) {
-            audioSpecs = curClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
+            if (!sameMedia || audioSpecs.isEmpty()) audioSpecs = curClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
             var aSource: ProgressiveMediaSource? = null
             if (audioSpecs.isNotEmpty()) {
                 Logd(TAG, "mediaSourceFromClient audioSpecs ${audioSpecs.size}")
@@ -665,7 +678,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             if ((aSource == null || needVideo) && curClient?.attributes?.hasVideo == true) {
                 if (aSource == null) setMuxedVideo()
                 else {
-                    videoSpecs = curClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+                    if (!sameMedia || videoSpecs.isEmpty()) videoSpecs = curClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
                     Logd(TAG, "mediaSourceFromClient videoSpecs ${videoSpecs.size}")
                     if (videoSpecs.isNotEmpty()) {
                         val videoSpec = setVideoSpec(videoSpecs, media)
@@ -685,14 +698,15 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    override fun prepareDataSource(media: Episode) {
+    override fun prepareDataSource(sameMedia: Boolean) {
+        val media = curEpisode ?: return
         Logd(TAG, "prepareDataSource called ${media.title}")
         Logd(TAG, "prepareDataSource url [${media.downloadUrl}]")
         mediaItem = null
         mediaSource = null
         val url = media.downloadUrl
         if (url.isNullOrBlank()) {
-            LogeFor(TAG, curEpisode?.id, "prepareDataSource: media downloadUrl is null or blank ${media.title}")
+            LogeFor(TAG, media.id, "prepareDataSource: media downloadUrl is null or blank ${media.title}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw IllegalArgumentException("blank url")
         }
@@ -702,7 +716,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         bitrate = 0
         resolution = ""
         try {
-            mediaSource = mediaSourceFromClient(media, media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)
+            mediaSource = mediaSourceFromClient(media.forceVideo || media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY, sameMedia = sameMedia)
             if (mediaSource != null) {
                 Logd(TAG, "prepareDataSource setting with mediaSource")
                 mediaItem = mediaSource?.mediaItem
@@ -710,19 +724,20 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             } else {
                 curClient = null
                 Logd(TAG, "prepareDataSource setting date source")
-                prepareDataSource(media, url, user, password)
+                prepareDataSource(url, user, password)
             }
         } catch (e: Throwable) {
-            LogsFor(TAG, curEpisode?.id, "prepareDataSource: ${e.message}")
+            LogsFor(TAG, media.id, "prepareDataSource: ${e.message}")
             upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
             throw e
         }
     }
 
-    override fun prepareDataSource(media: Episode, mediaUrl: String, user: String?, password: String?) {
+    override fun prepareDataSource(mediaUrl: String, user: String?, password: String?) {
+        val media = curEpisode ?: return
         mediaItem = null
         mediaSource = null
-        val metadata = buildMetadata(curEpisode!!)
+        val metadata = buildMetadata(media)
         Logd(TAG, "prepareDataSource: $mediaUrl")
         val uri = mediaUrl.toSafeUri()
         Logd(TAG, "prepareDataSource position: ${media.position} uri: $uri")

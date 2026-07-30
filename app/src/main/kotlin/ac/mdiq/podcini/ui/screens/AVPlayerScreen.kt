@@ -40,10 +40,10 @@ import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.SleepTimerDialog
-import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.distinctColorOf
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -89,7 +89,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -101,6 +100,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -257,6 +257,8 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
 
     internal var bufferValue by mutableFloatStateOf(0f)
 
+    var forceVideo by mutableStateOf(false)
+
     var volumeAdaption by mutableStateOf(VolumeAdaptionSetting.OFF)
 
     var showPlayButton by mutableStateOf(true)
@@ -296,6 +298,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
             episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
             volumeAdaption = VolumeAdaptionSetting.OFF
             curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed?:1f
+            forceVideo = false
         } }
         curStateJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.statusSimple }.distinctUntilChanged().collect {
             showPlayButton = theatres[playerId].mPlayer?.statusSimple != PlayerStatusSimple.PLAYING
@@ -571,7 +574,7 @@ fun ProgressBar(vm: AVPlayerVM) {
         val pastText = remember(episode?.position) { if (episode == null) "" else durationStringAdapt(episode.position) + " *" + durationStringAdapt(episode.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        val info = remember(player?.mimeType, player?.channelCount, player?.sampleRate, player?.bitrate) {
+        val info = remember(player?.mimeType, player?.channelCount, player?.sampleRate, player?.bitrate, player?.resolution) {
             when {
                 player == null -> ""
                 else -> {
@@ -744,25 +747,27 @@ fun AVPlayerScreen() {
     var showShareDialog by remember { mutableStateOf(false) }
     if (showShareDialog && theatres[vms[activePlayer].playerId].mPlayer?.curEpisode != null) ShareDialog(theatres[vms[activePlayer].playerId].mPlayer?.curEpisode!!) {showShareDialog = false }
 
+    var showAVChooser by remember { mutableStateOf(false) }
+
     @Composable
     fun VideoToolBar(vm: AVPlayerVM, modifier: Modifier = Modifier) {
         var expanded by remember { mutableStateOf(false) }
         val player = theatres[vm.playerId].mPlayer
-        val episode = player?.curEpisode
+        val episode = player?.curEpisode ?: return
+        val client = remember(episode.id) { clientByEpisode(episode) }
         if (vm.showActionBar) Row(modifier = modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             if (vm0.landscape) Column {
-                Text(text = episode?.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = episode?.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = episode.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = episode.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
                 val client = remember(vm.episodeFeed?.id) { if (vm.episodeFeed != null) clientByFeed(vm.episodeFeed!!) else null }
                 if (client?.attributes?.hasSeparateAVs == true) IconButton(onClick = {
-                    if (episode != null) {
-                        val media = upsertBlk(episode) { it.forceVideo = false }
-                        forcePlaybackReset = true
-                        PlaybackStarter(media).shouldStreamThisTime(null).start()
-                        player.playingVideo = false
-                    }
+                    val media = upsertBlk(episode) { it.forceVideo = false }
+                    vm.forceVideo = false
+                    forcePlaybackReset = true
+                    PlaybackStarter(media).shouldStreamThisTime(null).start()
+                    player.playingVideo = false
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_audiotrack_24), contentDescription = "audio only") }
                 var sleepIconRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.drawable.ic_sleep else R.drawable.ic_sleep_off) }
                 IconButton(onClick = { showSleepTimeDialog = true }) { Icon(imageVector = ImageVector.vectorResource(sleepIconRes), contentDescription = "sleeper") }
@@ -772,22 +777,24 @@ fun AVPlayerScreen() {
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
+                    if (client?.attributes?.hasMultiQualities == true) DropdownMenuItem(text = { Text(stringResource(R.string.change_stream)) }, onClick = {
+                        showAVChooser = true
+                        expanded = false
+                    })
                     if (vm0.landscape) {
                         var sleeperRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.string.set_sleeptimer_label else R.string.sleep_timer_label) }
                         DropdownMenuItem(text = { Text(stringResource(sleeperRes)) }, onClick = {
                             showSleepTimeDialog = true
                             expanded = false
                         })
-                        if (episode != null) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.queue)) }, onClick = {
-                                navTo(Queues(id=actQueue.id))
-                                expanded = false
-                            })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.open_podcast)) }, onClick = {
-                                if (vm.episodeFeed != null) navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
-                                expanded = false
-                            })
-                        }
+                        DropdownMenuItem(text = { Text(stringResource(R.string.queue)) }, onClick = {
+                            navTo(Queues(id=actQueue.id))
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.open_podcast)) }, onClick = {
+                            if (vm.episodeFeed != null) navTo(FeedDetails(feedId=vm.episodeFeed!!.id))
+                            expanded = false
+                        })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                             activePlayer = vm.playerId
                             showShareDialog = true
@@ -799,14 +806,13 @@ fun AVPlayerScreen() {
                             expanded = false
                         })
                     }
-                    if (player!!.audioTracks.size >= 2) DropdownMenuItem(text = { Text(stringResource(R.string.audio_controls)) }, onClick = {
+                    if (player.audioTracks.size >= 2) DropdownMenuItem(text = { Text(stringResource(R.string.audio_controls)) }, onClick = {
                         activePlayer = vm.playerId
                         showAudioControlDialog = true
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
                         val url = when {
-                            episode == null -> null
                             !episode.link.isNullOrBlank() -> episode.link
                             else -> episode.linkOrFeedlink
                         }
@@ -821,20 +827,22 @@ fun AVPlayerScreen() {
     @Composable
     fun Toolbar(vm: AVPlayerVM) {
         var expanded by remember { mutableStateOf(false) }
-        val episode = theatres[vm.playerId].mPlayer?.curEpisode
-        val mediaType = remember(episode?.id) { episode?.mediaType }
+        val episode = theatres[vm.playerId].mPlayer?.curEpisode ?: return
+        val mediaType = remember(episode.id) { episode.mediaType }
         val player = theatres[vm.playerId].mPlayer
+        val client = remember(episode.id) { clientByEpisode(episode) }
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
             val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed) }
             if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
-                    val media = upsertBlk(episode!!) { it.forceVideo = true }
+                    val media = upsertBlk(episode) { it.forceVideo = true }
+                    vm.forceVideo = true
                     forcePlaybackReset = true
                     PlaybackStarter(media).shouldStreamThisTime(null).start()
-                    player?.playingVideo = true
+                    theatres[vm.playerId].mPlayer?.playingVideo = true
                 })
-            if (episode != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
                 activePlayer = vm.playerId
                 showVolumeDialog = true
             })
@@ -844,26 +852,28 @@ fun AVPlayerScreen() {
             Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
-                    if (episode != null) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                            activePlayer = vm.playerId
-                            showShareDialog = true
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                            val notes = if (showHomeText) readerhtml else episode.description
-                            if (!notes.isNullOrEmpty()) {
-                                val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                                val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
-                                context.startActivity(intent)
-                            }
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
-                            runOnIOScope { getCache().removeResource(episode.id.toString()) }
-                            expanded = false
-                        })
-                    }
+                    if (client?.attributes?.hasMultiQualities == true) DropdownMenuItem(text = { Text(stringResource(R.string.change_stream)) }, onClick = {
+                        showAVChooser = true
+                        expanded = false
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                        activePlayer = vm.playerId
+                        showShareDialog = true
+                        expanded = false
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
+                        val notes = if (showHomeText) readerhtml else episode.description
+                        if (!notes.isNullOrEmpty()) {
+                            val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
+                            context.startActivity(intent)
+                        }
+                        expanded = false
+                    })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
+                        runOnIOScope { getCache().removeResource(episode.id.toString()) }
+                        expanded = false
+                    })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_all_cache)) }, onClick = {
                         runOnIOScope { nuclearCacheWipe() }
                         expanded = false
@@ -882,103 +892,165 @@ fun AVPlayerScreen() {
         val comboAction = remember { Combo() }
         comboAction.ActionOptions()
         val player = theatres[vm.playerId].mPlayer
-        val episode = player?.curEpisode
+        val episode = player?.curEpisode ?: return
+        val client = remember(episode.id) { clientByEpisode(episode) }
 
         @Composable
-        fun ClientMediaPanel() {
-            if (episode == null) return
-            val client = remember(episode.id) { clientByEpisode(episode) }
-            if (client?.attributes?.hasMultiQualities == true) {
-                var reset by remember { mutableStateOf(false) }
-                var locales by remember { mutableStateOf<List<String>>(listOf()) }
-                var locale by remember { mutableStateOf("") }
-                var codecs by remember { mutableStateOf<List<String>>(listOf()) }
-                var codec by remember { mutableStateOf("") }
-                var bitRates by remember { mutableStateOf<List<String>>(listOf()) }
-                var bitrate by remember { mutableIntStateOf(0) }
-                LaunchedEffect(episode.id) {
-                    val lSet = mutableSetOf<String>()
-                    val bSet = mutableSetOf<String>()
-                    val cSet = mutableSetOf("Any")
-                    for (s in player.audioSpecs) {
-                        Logd(TAG, "s.codec ${s.codec} s.averageBitrate ${s.averageBitrate}")
-                        lSet.add(s.audioLocale.toString())
-                        bSet.add(s.averageBitrate.toString())
-                        if (s.codec != null) cSet.add(s.codec!!) else cSet.add("null")
-                    }
-                    locales = lSet.toList()
-                    bitRates = bSet.toList()
-                    codecs = cSet.toList()
-                    if (locales.isNotEmpty()) locale = locales[0]
-                    if (bitRates.isNotEmpty()) bitrate = bitRates[0].toInt()
-                    if (codecs.isNotEmpty()) codec = codecs[0]
+        fun StreamChanger(onDismiss: () -> Unit) {
+            var reset by remember { mutableStateOf(false) }
+            var locales by remember { mutableStateOf<List<String>>(listOf()) }
+            var locale by remember { mutableStateOf(player.useLocale) }
+            var codecs by remember { mutableStateOf<List<String>>(listOf()) }
+            var codec by remember { mutableStateOf(player.useCodex) }
+            var bitRates by remember { mutableStateOf<List<Int>>(listOf()) }
+            var bitrate by remember { mutableIntStateOf(player.useABPS) }
+            var vcodecs by remember { mutableStateOf<List<String>>(listOf()) }
+            var vcodec by remember { mutableStateOf(player.useVCodex) }
+            var resolutions by remember { mutableStateOf<List<String>>(listOf()) }
+            var resolution by remember { mutableStateOf(player.useResolution) }
+            LaunchedEffect(episode.id) {
+                val lSet = mutableSetOf<String>()
+                val bSet = mutableSetOf<Int>()
+                val cSet = mutableSetOf("Any")
+                for (s in player.audioSpecs) {
+                    lSet.add(s.audioLocale?:"")
+                    bSet.add(s.averageBitrate)
+                    if (s.codec != null) cSet.add(s.codec!!) else cSet.add("null")
                 }
+                locales = lSet.toList()
+                bitRates = bSet.toList()
+                codecs = cSet.toList()
+                if (locale == null && locales.isNotEmpty()) locale = locales.firstOrNull { it in player.useLocales }
+                if (codecs.isNotEmpty()) codec = codecs[0]
+                if (bitRates.isNotEmpty()) bitrate = bitRates[0]
+                val rSet = mutableSetOf<String>()
+                val vcSet = mutableSetOf<String>()
+                for (s in player.videoSpecs) {
+                    if (vcodec == null) { if (s.resolution != null) rSet.add(s.resolution!!) }
+                    else { if (s.resolution != null && s.codec == vcodec) rSet.add(s.resolution!!) }
+                    if (s.codec != null) vcSet.add(s.codec!!)
+                }
+                resolutions = rSet.toList()
+                vcodecs = vcSet.toList()
+            }
 
-                var showLocales by remember { mutableStateOf(false) }
-                if (showLocales) Popup(onDismissRequest = { showLocales = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                    Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                            val langs = remember { player.curLangset.toList() }
-                            for (index in langs.indices) {
-                                FilterChip(label = { Text(langs[index]) }, selected = false, border = BorderStroke(1.dp, borderColor),
-                                    onClick = {
-                                        Logd(TAG, "Locale selected: ${langs[index]}")
+            Popup(onDismissRequest = { onDismiss() }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+                        if (client?.attributes?.hasSeparateAVs == true) {
+                            var showLocales by remember { mutableStateOf(false) }
+                            Text("Audio:", color = textColor, style = MaterialTheme.typography.titleMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showLocales = !showLocales }) {
+                                Text(" Locale: ${locale ?: "null"}", color = textColor, modifier = Modifier.padding(horizontal = 3.dp))
+                            }
+                            if (showLocales && locales.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                val langs = remember { player.curLocales.toList() }
+                                for (index in langs.indices) {
+                                    FilterChip(label = { Text(langs[index]) }, selected = locale==langs[index], border = filterChipBorder(locale==langs[index]), onClick = {
                                         locale = langs[index]
-                                        val bSet = mutableSetOf<String>()
-                                        for (s in player.audioSpecs) if (s.audioLocale.toString() == locale) bSet.add(s.averageBitrate.toString())
+                                        val bSet = mutableSetOf<Int>()
+                                        for (s in player.audioSpecs) if (s.audioLocale.toString() == locale) bSet.add(s.averageBitrate)
                                         bitRates = bSet.toList()
-                                        bitrate = if (bitRates.isNotEmpty()) bitRates[0].toInt() else 0
-                                        player.setAudioStream(locale, codec, bitrate)
+                                        bitrate = if (bitRates.isNotEmpty()) bitRates[0] else 0
                                         reset = true
                                         showLocales = false
                                     })
+                                }
+                            }
+                            var showCodecs by remember { mutableStateOf(false) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showCodecs = !showCodecs }) {
+                                Text("Codec: $codec", color = textColor, modifier = Modifier.padding(end = 10.dp))
+                            }
+                            if (showCodecs && codecs.size > 1) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (index in codecs.indices) {
+                                        FilterChip(label = { Text(codecs[index]) }, selected = codec==codecs[index], border = filterChipBorder(codec==codecs[index]), onClick = {
+                                            codec = codecs[index]
+                                            val bSet = mutableSetOf<Int>()
+                                            for (s in player.audioSpecs) {
+                                                if (s.audioLocale.toString() == locale && (codec == "Any" || s.codec == codec)) bSet.add(s.averageBitrate)
+                                            }
+                                            bitRates = bSet.toList()
+                                            bitrate = if (bitRates.isNotEmpty()) bitRates[0] else 0
+                                            reset = true
+                                            showCodecs = false
+                                        })
+                                    }
+                                }
+                            }
+                            var showbitrates by remember { mutableStateOf(false) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showbitrates = !showbitrates }) {
+                                Text("Bitrate: $bitrate", color = textColor, modifier = Modifier.padding(end = 10.dp))
+                            }
+                            if (showbitrates && bitRates.size > 1) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (index in bitRates.indices) {
+                                        FilterChip(label = { Text(bitRates[index].toString()) }, selected = bitrate==bitRates[index], border = filterChipBorder(bitrate==bitRates[index]), onClick = {
+                                            bitrate = bitRates[index]
+                                            reset = true
+                                            showbitrates = false
+                                        })
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-                if (locales.size > 1) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp)) {
-                    Text(" Locale ", color = textColor, modifier = Modifier.padding(horizontal = 3.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small).clickable { showLocales = true })
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                    if (codecs.size > 1) {
-                        Text("Codec:", color = textColor, modifier = Modifier.padding(end = 10.dp))
-                        Spinner(items = codecs, modifier = Modifier.widthIn(max = 100.dp), selectedItem = codec) { index ->
-                            Logd(TAG, "Codec selected: ${codecs[index]}")
-                            codec = codecs[index]
-                            val bSet = mutableSetOf<String>()
-                            for (s in player.audioSpecs) {
-                                Logd(TAG, "${s.codec} $codec ${s.averageBitrate}")
-                                if (s.audioLocale.toString() == locale && (codec == "Any" || s.codec == codec)) bSet.add(s.averageBitrate.toString())
+                        if (player.playingVideo) {
+                            Text("Video:", color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 3.dp))
+                            var showCodecs by remember { mutableStateOf(false) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showCodecs = !showCodecs }) {
+                                Text("Video Codec: $vcodec", color = textColor, modifier = Modifier.padding(end = 10.dp))
                             }
-                            bitRates = bSet.toList()
-                            bitrate = bitRates[0].toInt()
-                            player.setAudioStream(locale, codec, bitrate)
-                            reset = true
+                            if (showCodecs && vcodecs.size > 1) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (index in vcodecs.indices) {
+                                        FilterChip(label = { Text(vcodecs[index]) }, selected = vcodec==vcodecs[index], border = filterChipBorder(vcodec==vcodecs[index]), onClick = {
+                                            vcodec = vcodecs[index]
+                                            val rSet = mutableSetOf<String>()
+                                            for (s in player.videoSpecs) if (s.resolution != null && s.codec == vcodec) rSet.add(s.resolution!!)
+                                            resolutions = rSet.toList()
+                                            resolution = if (resolutions.isNotEmpty()) resolutions[0] else null
+                                            reset = true
+                                            showCodecs = false
+                                        })
+                                    }
+                                }
+                            }
+
+                            var showResolutions by remember { mutableStateOf(false) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showResolutions = !showResolutions }) {
+                                Text("Resolution: $resolution", color = textColor, modifier = Modifier.padding(end = 10.dp))
+                            }
+                            if (showResolutions && resolutions.size > 1) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (index in resolutions.indices) {
+                                        FilterChip(label = { Text(resolutions[index]) }, selected = resolution==resolutions[index], border = filterChipBorder(resolution==resolutions[index]), onClick = {
+                                            resolution = resolutions[index]
+                                            reset = true
+                                            showResolutions = false
+                                        })
+                                    }
+                                }
+                            }
                         }
+                        if (reset) Button(onClick = {
+                            Logd(TAG, "before restart episode ${episode.forceVideo}")
+                            player.pause(false)
+                            getCache().removeResource(episode.id.toString())
+                            player.setAudioStream(locale, codec, bitrate)
+                            if (resolution != null) player.useResolution = resolution
+                            if (vcodec != null) player.useVCodex = vcodec
+                            val media = if (vm.forceVideo) upsertBlk(episode) { it.forceVideo = true } else null
+                            player.startPlaying(media)
+                            reset = false
+                        }) { Text(stringResource(R.string.confirm_label)) }
                     }
-                    Spacer(Modifier.weight(1f))
-                    Text("BPS:", color = textColor, modifier = Modifier.padding(end = 10.dp))
-                    if (bitRates.size > 1) {
-                        Spinner(items = bitRates, modifier = Modifier.widthIn(max = 50.dp), selectedItem = bitrate.toString()) { index ->
-                            Logd(TAG, "BitRate selected: ${bitRates[index]}")
-                            bitrate = bitRates[index].toInt()
-                            player.setAudioStream(locale, codec, bitrate)
-                            reset = true
-                        }
-                    } else Text(bitrate.toString(), color = textColor)
-                    Spacer(Modifier.weight(1f))
-                    if (reset) IconButton(onClick = {
-                        player.pause(false)
-                        getCache().removeResource(episode.id.toString())
-                        player.reinit()
-                        reset = false
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_build_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Build") }
                 }
             }
         }
 
+        if (showAVChooser) StreamChanger { showAVChooser = false}
         var showChooseRatingDialog by remember { mutableStateOf(false) }
-        if (showChooseRatingDialog) ChooseRatingDialog(listOf(episode!!)) { showChooseRatingDialog = false }
+        if (showChooseRatingDialog) ChooseRatingDialog(listOf(episode)) { showChooseRatingDialog = false }
         val swipeVelocityThreshold = 1500f
         val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
         val velocityTracker = remember { VelocityTracker() }
@@ -1015,33 +1087,30 @@ fun AVPlayerScreen() {
                 },
             )
         }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
-            ClientMediaPanel()
-            SelectionContainer { Text(episode?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            SelectionContainer { Text(episode.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.weight(0.2f))
-                val ratingIconRes by remember(episode?.rating) { mutableIntStateOf( Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res) }
+                val ratingIconRes by remember(episode.rating) { mutableIntStateOf( Rating.fromCode(episode.rating).res) }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable { showChooseRatingDialog = true })
                 Spacer(modifier = Modifier.weight(0.4f))
-                val episodeDate = remember(episode?.pubDate) { if (episode == null) "" else formatDateTimeFlex(episode.pubDate).trim() }
+                val episodeDate = remember(episode.pubDate) { formatDateTimeFlex(episode.pubDate).trim() }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.4f))
-                if (episode != null) Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable {  comboAction.performAction(episode) })
+                Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable {  comboAction.performAction(episode) })
                 Spacer(modifier = Modifier.weight(0.2f))
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
-            if (episode != null) {
-                EpisodeDetails(episode, psState == PSState.Expanded, true)
-                val imgLarge = remember(episode.id, displayedChapterIndex) {
-                    if (displayedChapterIndex == -1 || episode.chapters.isEmpty() || episode.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) episode.imageUrl ?: episode.feed?.imageUrl
-                    else EmbeddedChapterImage.getModelFor(episode, displayedChapterIndex)?.toString()
-                }
-                if (imgLarge != null) AsyncImage( ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
-                Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
-                    onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
-                    onLongClick = { if (!episode.link.isNullOrBlank()) shareLink(context, episode.link!!) }
-                ) )
+            EpisodeDetails(episode, psState == PSState.Expanded, true)
+            val imgLarge = remember(episode.id, displayedChapterIndex) {
+                if (displayedChapterIndex == -1 || episode.chapters.isEmpty() || episode.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) episode.imageUrl ?: episode.feed?.imageUrl
+                else EmbeddedChapterImage.getModelFor(episode, displayedChapterIndex)?.toString()
             }
+            if (imgLarge != null) AsyncImage( ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
+            Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
+                onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
+                onLongClick = { if (!episode.link.isNullOrBlank()) shareLink(context, episode.link!!) }
+            ) )
         }
     }
 

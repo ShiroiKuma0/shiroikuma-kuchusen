@@ -63,6 +63,8 @@ import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.showStackTrace
+import android.media.MediaCodecList
+import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -142,12 +144,13 @@ abstract class MediaPlayerBase {
 
     var isStreaming = false
     var playingMuxedVideo = false
-    val curLangset = mutableSetOf<String>()
+    val curLocales = mutableSetOf<String>()
 
     var widgetId: String = ""
 
     var audioSpecs: List<AudioSpec> = listOf()
     var videoSpecs: List<VideoSpec> = listOf()
+    var muxedSpecs: List<VideoSpec> = listOf()
 
     private var prevPosition: Int = -1
 
@@ -246,6 +249,8 @@ abstract class MediaPlayerBase {
                 curEpisode = episode_
                 curClient = clientByEpisode(curEpisode!!)
                 setAudioStream()
+                useVCodex = null
+                useResolution = null
                 playingVideo = (episode_.forceVideo || (episode_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefs.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && episode_.mediaType == MediaType.VIDEO))
                 skipSilence = null
                 shouldRepeat = false
@@ -344,13 +349,13 @@ abstract class MediaPlayerBase {
         return nextItem
     }
 
-    fun startPlaying() {
+    fun startPlaying(media_: Episode? = null) {
         Logd(TAG, "startPlaying called")
-        if (curEpisode == null) {
+        if (curEpisode == null && media_ == null) {
             Logt(TAG, "startPlaying: No media to play")
             return
         }
-        val media = curEpisode!!
+        val media = media_ ?: curEpisode!!
         val needStreaming = media.feed?.isLocal != true && media.fileUrl.isNullOrBlank()
         if (needStreaming && !isStreamingCapable(media)) return
         prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
@@ -382,7 +387,7 @@ abstract class MediaPlayerBase {
         if (event.action == FlowEvent.EpisodeMediaEvent.Action.REMOVED) {
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
-                    setAsCurEpisode(e)
+                    setAsCurEpisode(e)  // TODO: seems having no effect
                     endPlayback(hasEnded = false, wasSkipped = true)
                     break
                 }
@@ -456,9 +461,9 @@ abstract class MediaPlayerBase {
     open fun createNativePlayer() {}
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    protected abstract fun prepareDataSource(media: Episode)
+    protected abstract fun prepareDataSource(sameMedia: Boolean = false)
 
-    protected abstract fun prepareDataSource(media: Episode, mediaUrl: String, user: String?, password: String?)
+    protected abstract fun prepareDataSource(mediaUrl: String, user: String?, password: String?)
 
     protected abstract fun setCastPlayImmediately()
 
@@ -490,8 +495,12 @@ abstract class MediaPlayerBase {
         if (isCasting) setCastPlayImmediately()
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
+        val sameMedia = playable.id == curEpisode?.id
         setAsCurEpisode(playable)
-        if (forceReset) curClient = clientByEpisode(curEpisode!!)
+        if (forceReset) {
+            curEpisode = playable
+            if (sameMedia) curClient = clientByEpisode(curEpisode!!)
+        }
 
         this.isStreaming = streaming
         if (curEpisode != null) currentMediaType = curEpisode!!.mediaType
@@ -507,12 +516,12 @@ abstract class MediaPlayerBase {
                 when {
                     streaming -> {
                         Logd(TAG, "prepareMedia streamurl: ${curEpisode?.downloadUrl}")
-                        if (!curEpisode?.downloadUrl.isNullOrBlank()) prepareDataSource(curEpisode!!)
+                        if (!curEpisode?.downloadUrl.isNullOrBlank()) prepareDataSource(sameMedia)
                         else throw IOException("episode downloadUrl is null or empty ${curEpisode?.title}")
                     }
                     else -> {
                         Logd(TAG, "prepareMedia localMediaurl: ${curEpisode?.fileUrl}")
-                        if (!curEpisode?.fileUrl.isNullOrBlank()) prepareDataSource(curEpisode!!, curEpisode!!.fileUrl!!, null, null)
+                        if (!curEpisode?.fileUrl.isNullOrBlank()) prepareDataSource(curEpisode!!.fileUrl!!, null, null)
                         else throw IOException("Unable to read local file ${curEpisode?.fileUrl}")
                     }
                 }
@@ -914,9 +923,13 @@ abstract class MediaPlayerBase {
         notifySystem()
     }
 
-    private var useLocale: String? = null
-    private var useCodex: String = "Any"
-    private var useABPS: Int = 0
+    var useLocales: Set<String> = setOf()
+    var useLocale: String? = null
+    var useCodex: String = "Any"
+    var useABPS: Int = 0
+
+    var useVCodex: String? = null
+    var useResolution: String? = null
 
     fun setAudioStream(locale: String? = null, codec: String = "Any", aveBitrate: Int = 0) {
         Logd(TAG, "setAudioStream: locale: $locale codec: $codec averageBitrate: $aveBitrate")
@@ -930,12 +943,12 @@ abstract class MediaPlayerBase {
 //        Logd(TAG, "useLocale: $useLocale useCodex: $useCodex useABPS: $useABPS audioIndex: $audioIndex")
         Logd(TAG, "setAudioSpec media.feed?.preferredLnaguages: [${media.feed?.preferredLnaguages?.joinToString()}]")
         Logd(TAG, "setAudioSpec appAttribs.langsPreferred: [${appAttribs.langsPreferred.joinToString()}]")
-        val useLocales = media.feed?.preferredLnaguages?.ifEmpty { appAttribs.langsPreferred }?.ifEmpty { listOf("en-US", "en-GB", "en") } ?: listOf("en-US", "en-GB", "en")
+        useLocales = media.feed?.preferredLnaguages?.ifEmpty { appAttribs.langsPreferred }?.ifEmpty { setOf("en-US", "en-GB", "en") } ?: setOf("en-US", "en-GB", "en")
         Logd(TAG, "setAudioSpec useLocales: ${useLocales.joinToString()}")
-        curLangset.clear()
+        curLocales.clear()
         for (s in audioSpecs) {
             Logd(TAG, "setAudioSpec s.audioLocale [${s.audioLocale}] ${s.codec} ${s.averageBitrate}")
-            curLangset.add(s.audioLocale ?: "")
+            curLocales.add(s.audioLocale ?: "")
             if ((useCodex == "Any" || s.codec == useCodex) && (useABPS == 0 || s.averageBitrate == useABPS)) {
                 when {
                     s.audioLocale == null -> asl.add(s)
@@ -944,19 +957,27 @@ abstract class MediaPlayerBase {
                 }
             }
         }
-        Logd(TAG, "setAudioSpec langset: [${curLangset.joinToString()}]")
-        if (curLangset.isNotEmpty()) {
+        Logd(TAG, "setAudioSpec langset: [${curLocales.joinToString()}]")
+        if (curLocales.isNotEmpty()) {
             runOnIOScope {
-                if (media.feed != null && !media.feed!!.langSet.containsAll(curLangset)) upsert(media.feed!!) { it.langSet.addAll(curLangset) }
-                if (!appAttribs.langSet.containsAll(curLangset)) upsertBlk(appAttribs) { it.langSet.addAll(curLangset) }
+                if (media.feed != null && !media.feed!!.langSet.containsAll(curLocales)) upsert(media.feed!!) { it.langSet.addAll(curLocales) }
+                if (!appAttribs.langSet.containsAll(curLocales)) upsertBlk(appAttribs) { it.langSet.addAll(curLocales) }
             }
         }
         Logd(TAG, "setAudioSpec asl: ${asl.size}")
         if (asl.isEmpty()) {
-            Loge(TAG, "setAudioSpec: eligible audio stream list is empty.\nAvailable languages: ${curLangset.joinToString()}.\nYou prefer: ${useLocales.joinToString()}")
+            Loge(TAG, "setAudioSpec: eligible audio stream list is empty.\nAvailable languages: ${curLocales.joinToString()}.\nYou prefer: ${useLocales.joinToString()}")
             bitrate = 0
             resolution = ""
             return null
+        }
+
+        if (useABPS > 0) {
+            val audioSpec = asl.filter { it.averageBitrate == useABPS }.filter { if (useCodex != "Any") it.codec == useCodex else true }.firstOrNull { if (useLocale != null) it.audioLocale == useLocale else true }
+            if (audioSpec != null) {
+                bitrate = audioSpec.bitrate
+                return audioSpec
+            } else Logt(TAG, "setAudioSpec Requested audio doesn't exist ($useLocale, $useCodex, $useABPS), getting one based on settings.")
         }
 
         val prefLowQualityMedia: Boolean = appPrefs.lowQualityOnMobile
@@ -988,6 +1009,18 @@ abstract class MediaPlayerBase {
     }
 
     fun setVideoSpec(videoSpecs: List<VideoSpec>, media: Episode): VideoSpec {
+        if (useResolution != null || useVCodex != null) {
+            val videoSpec = when {
+                useVCodex == null ->  videoSpecs.firstOrNull { it.resolution == useResolution }
+                useResolution == null -> videoSpecs.firstOrNull { it.codec == useVCodex }
+                else -> videoSpecs.firstOrNull { it.codec == useVCodex && it.resolution == useResolution }
+            }
+            if (videoSpec != null) {
+                resolution = videoSpec.resolution ?: ""
+                Logd(TAG, "setVideoSpec use video quality: ${videoSpec.resolution}")
+                return videoSpec
+            } else Logt(TAG, "setVideoSpec Requested video with ($useVCodex and $useResolution) doesn't exist, getting one based on settings")
+        }
         val videoIndex =
             if (networkMonitor.isNetworkRestricted && appPrefs.lowQualityOnMobile && media.feed?.videoQualitySetting == AVQuality.GLOBAL) 0
             else {
@@ -1006,12 +1039,12 @@ abstract class MediaPlayerBase {
                 }
             }
 
-        for (i in videoSpecs.indices) Logd(TAG, "setVideoSpec $i ${videoSpecs[i].bitrate} ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
+        for (i in videoSpecs.indices) Logd(TAG, "setVideoSpec $i ${videoSpecs[i].bitrate} ${videoSpecs[i].codec} ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
 
-        val videoStream = videoSpecs[videoIndex]
-        resolution = videoStream.resolution ?: ""
-        Logd(TAG, "setVideoSpec use video quality: ${videoStream.resolution}")
-        return videoStream
+        val videoSpec = videoSpecs[videoIndex]
+        resolution = videoSpec.resolution ?: ""
+        Logd(TAG, "setVideoSpec use video quality: ${videoSpec.resolution}")
+        return videoSpec
     }
 
     abstract fun notifySystem()
@@ -1037,6 +1070,11 @@ abstract class MediaPlayerBase {
 
         private const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
 
+        val hardwareVp9 by lazy { supportsHardwareVp9() }
+        val hardwareAv1 by lazy { supportsHardwareAv1() }
+        val hardwareHevc by lazy { supportsHardwareHevc() }
+        val hardwareAvc by lazy { supportsHardwareAvc() }
+
         fun isStreamingCapable(media: Episode): Boolean {
 //            showStackTrace()
             if (!isNetworkUrl(media.downloadUrl)) {
@@ -1049,5 +1087,23 @@ abstract class MediaPlayerBase {
             }
             return true
         }
+
+        private fun supportsHardwareDecoder(mimeType: String): Boolean {
+            val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+            return codecList.codecInfos.any { codec ->
+                if (codec.isEncoder) return@any false
+                if (!codec.supportedTypes.any { it.equals(mimeType, ignoreCase = true) }) return@any false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)  codec.isHardwareAccelerated
+                else !codec.name.startsWith("OMX.google.", ignoreCase = true) && !codec.name.startsWith("c2.android.", ignoreCase = true)
+            }
+        }
+
+        fun supportsHardwareVp9(): Boolean = supportsHardwareDecoder("video/x-vnd.on2.vp9")
+
+        fun supportsHardwareAv1(): Boolean = supportsHardwareDecoder("video/av01")
+
+        fun supportsHardwareHevc(): Boolean = supportsHardwareDecoder("video/hevc")
+
+        fun supportsHardwareAvc(): Boolean = supportsHardwareDecoder("video/avc")
     }
 }

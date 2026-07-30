@@ -1,3 +1,13 @@
+# 12.5.0
+
+* fixed force video
+* improved handling of switch between force video and audio only 
+	* force video persists with the media, audio only (in a prefer-video feed) applies when current media is not changed
+* in PlayerDetailed
+	* replaced external media panel with "Change stream" in the menu, shown only on applicable media
+	* added StreamChanger popup, where if applicable, one can change locale, codec and biterate for audio, and video codec and resolution for video
+* some code refactoring
+
 # 12.4.15
 
 * in MediaPlayer,
