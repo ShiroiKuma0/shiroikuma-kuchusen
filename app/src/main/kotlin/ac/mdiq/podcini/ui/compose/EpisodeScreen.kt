@@ -228,11 +228,10 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { episodeForInfo = null })
                     Spacer(Modifier.weight(1f))
-                    if (allowOpenFeed) IconButton(onClick = {
-                        if (episodeFeed != null) {
-                            navTo(FeedDetails(feedId = episodeFeed.id))
-                            psState = PSState.PartiallyExpanded
-                        }
+                    if (allowOpenFeed && episodeFeed != null) IconButton(onClick = {
+                        navTo(FeedDetails(feedId = episodeFeed.id))
+                        episodeForInfo = null
+                        psState = PSState.PartiallyExpanded
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     IconButton(onClick = { comboAction.performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     if (!isExtFeed(episode.feed) && !episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }

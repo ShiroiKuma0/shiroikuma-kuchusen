@@ -784,7 +784,7 @@ fun QueuesScreen(id: Long = -1L) {
                 }
             }
         }
-        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow, allowOpenFeed = true)
     }
 }
 

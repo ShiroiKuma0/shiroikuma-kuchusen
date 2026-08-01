@@ -501,7 +501,7 @@ abstract class MediaPlayerBase {
             curEpisode = playable
             if (sameMedia) curClient = clientByEpisode(curEpisode!!)
         }
-
+        Logd(TAG, "prepareMedia media.forceVideo: ${curEpisode?.forceVideo}")
         this.isStreaming = streaming
         if (curEpisode != null) currentMediaType = curEpisode!!.mediaType
 //        videoSize = null
@@ -583,7 +583,7 @@ abstract class MediaPlayerBase {
             cancelPositionSaver()
             isSpeedForward = false
             isFallbackSpeed = false
-            if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
+//            if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
         } else Logd(TAG, "Ignoring call to pause: Player is in $status state")
     }
 

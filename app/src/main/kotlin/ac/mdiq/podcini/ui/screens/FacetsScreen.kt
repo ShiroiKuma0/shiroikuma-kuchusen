@@ -531,7 +531,7 @@ fun FacetsScreen(modeName: String = "") {
                         if (episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
                             vm.progressing = true
                             runOnIOScope {
-                                realm.write { for (e in episodes) if (e.playState == EpisodeState.NEW.code) findLatest(e)?.let { it.setPlayState(EpisodeState.UNPLAYED) } }
+                                realm.write { for (e in episodes) if (e.playState == EpisodeState.NEW.code) findLatest(e)?.setPlayState(EpisodeState.UNPLAYED) }
                                 Logt(TAG, "New items cleared")
                                 withContext(Dispatchers.Main) { vm.progressing = false }
                                 resetSwipes()
@@ -622,7 +622,7 @@ fun FacetsScreen(modeName: String = "") {
                 EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButtonType = actionButtonType, lazyListState = lazyListState, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) } })
             }
         }
-        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow, allowOpenFeed = true)
     }
 }
 

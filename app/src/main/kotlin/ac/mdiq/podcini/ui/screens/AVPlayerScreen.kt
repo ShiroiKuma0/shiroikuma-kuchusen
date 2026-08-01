@@ -15,8 +15,6 @@ import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.sources.clientByEpisode
-import ac.mdiq.podcini.sources.clientByFeed
-import ac.mdiq.podcini.sources.isExtFeed
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -415,7 +413,7 @@ fun ControlUI(vm: AVPlayerVM) {
     val velocityTracker = remember { VelocityTracker() }
     val offsetX = remember(episode?.id) { Animatable(0f) }
     val swipeVelocityThreshold = 1500f
-    val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
+    val swipeDistanceThreshold = with(LocalDensity.current) { 150.dp.toPx() }
     Row(Modifier.pointerInput(Unit) {
         detectHorizontalDragGestures(
             onDragStart = { velocityTracker.resetTracking() },
@@ -437,7 +435,7 @@ fun ControlUI(vm: AVPlayerVM) {
                         if (distance < 0) psState = PSState.Hidden
                         else showSleepTimeDialog = true
                     }
-                    //                        offsetX.animateTo(targetValue = 0f, animationSpec = tween(300))
+//                    offsetX.animateTo(targetValue = 0f, animationSpec = tween(300))
                 }
             },
         )
@@ -574,14 +572,14 @@ fun ProgressBar(vm: AVPlayerVM) {
         val pastText = remember(episode?.position) { if (episode == null) "" else durationStringAdapt(episode.position) + " *" + durationStringAdapt(episode.timeSpent.toInt()) }
         Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
         Spacer(Modifier.weight(1f))
-        val info = remember(player?.mimeType, player?.channelCount, player?.sampleRate, player?.bitrate, player?.resolution) {
+        val info = remember(player?.mimeType, player?.channelCount, player?.bitrate, player?.resolution) {
             when {
                 player == null -> ""
                 else -> {
                     val mime = if (player.mimeType.isBlank()) "" else player.mimeType + " "
-                    val sample = formatLargeIntegerBrief(player.sampleRate) + "Hz"
+//                    val sample = formatLargeIntegerBrief(player.sampleRate) + "Hz"
                     val bitrate = if (player.bitrate > 0) " ${formatLargeIntegerBrief(player.bitrate)}bps" else ""
-                    "$mime${player.channelCount}: $sample$bitrate ${player.resolution}"
+                    "$mime${player.channelCount} $bitrate ${player.resolution}"
                 }
             }
         }
@@ -761,7 +759,6 @@ fun AVPlayerScreen() {
                 Text(text = episode.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = episode.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
-                val client = remember(vm.episodeFeed?.id) { if (vm.episodeFeed != null) clientByFeed(vm.episodeFeed!!) else null }
                 if (client?.attributes?.hasSeparateAVs == true) IconButton(onClick = {
                     val media = upsertBlk(episode) { it.forceVideo = false }
                     vm.forceVideo = false
@@ -833,8 +830,7 @@ fun AVPlayerScreen() {
         val client = remember(episode.id) { clientByEpisode(episode) }
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
-            val isExtFeed = remember(vm.episodeFeed?.id) { isExtFeed(vm.episodeFeed) }
-            if (mediaType == MediaType.VIDEO && !vm.episodeFeed?.downloadUrl.isNullOrBlank() && isExtFeed) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
+            if (mediaType == MediaType.VIDEO && client?.attributes?.hasSeparateAVs == true) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     val media = upsertBlk(episode) { it.forceVideo = true }
                     vm.forceVideo = true

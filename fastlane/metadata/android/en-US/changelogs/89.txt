@@ -1,0 +1,7 @@
+* in PlayerDetailed, ensure force-video and audio-only icons show for proper media in synthetic feed
+* in MediaPlayer, not unset force-video in pause
+* in PlayerUI
+	* increased distance threshold for the horizontal swipe
+	* removed sample rate info
+* EpisodeInfo opened from Queues, Search, and Facets screens shows feed icon in topbar
+* in Logs screen, changed "Subscriptions" to "Deletions", and the icon

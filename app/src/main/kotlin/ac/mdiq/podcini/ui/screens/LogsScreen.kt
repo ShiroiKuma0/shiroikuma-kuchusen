@@ -91,13 +91,13 @@ import kotlinx.coroutines.withContext
 
 class LogsVM: ViewModel() {
     internal var shareLogs by mutableStateOf<List<ShareLog>>(listOf())
-    internal var subscriptionLogs by mutableStateOf<List<SubscriptionLog>>(listOf())
+    internal var deletionLogs by mutableStateOf<List<SubscriptionLog>>(listOf())
     internal var downloadLogs by mutableStateOf<List<DownloadResult>>(listOf())
     internal var title by mutableStateOf("Session")
     internal var showDeleteConfirmDialog = mutableStateOf(false)
 
     internal fun clearAllLogs() {
-        subscriptionLogs = listOf()
+        deletionLogs = listOf()
         shareLogs = listOf()
         downloadLogs = listOf()
     }
@@ -112,14 +112,14 @@ class LogsVM: ViewModel() {
         }
     }
 
-    internal fun loadSubscriptionLog() {
+    internal fun loadDeletionLog() {
         viewModelScope.launch {
-            Logd(TAG, "loadSubscriptionLog() called")
+            Logd(TAG, "loadDeletionLog() called")
             val result = realm.query(SubscriptionLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                subscriptionLogs = result
-                title = "Subscriptions"
-            } else Logt(TAG, "Subscription log is empty")
+                deletionLogs = result
+                title = "Deletions"
+            } else Logt(TAG, "Deletion log is empty")
         }
     }
 
@@ -272,7 +272,7 @@ fun LogsScreen() {
     }
 
     @Composable
-    fun SubscriptionDetailDialog(log: SubscriptionLog, onDismiss: () -> Unit) {
+    fun DeletionDetailDialog(log: SubscriptionLog, onDismiss: () -> Unit) {
         CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
@@ -291,15 +291,15 @@ fun LogsScreen() {
     }
 
     @Composable
-     fun SubscriptionLogView() {
+     fun DeletionLogView() {
         val lazyListState = rememberLazyListState()
         var showDialog by remember { mutableStateOf(false) }
         val dialogParam = remember { mutableStateOf(SubscriptionLog()) }
-        if (showDialog) SubscriptionDetailDialog(log = dialogParam.value, onDismiss = { showDialog = false })
+        if (showDialog) DeletionDetailDialog(log = dialogParam.value, onDismiss = { showDialog = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(vm.subscriptionLogs) { log ->
+            items(vm.deletionLogs) { log ->
                 Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable {
                     dialogParam.value = log
                     showDialog = true
@@ -451,10 +451,10 @@ fun LogsScreen() {
                     vm.clearAllLogs()
                     vm.loadShareLog()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
-                if (vm.title != "Subscriptions") IconButton(onClick = {
+                if (vm.title != "Deletions") IconButton(onClick = {
                     vm.clearAllLogs()
-                    vm.loadSubscriptionLog()
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "subscriptions") }
+                    vm.loadDeletionLog()
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_delete_history_24), contentDescription = "Deletions") }
                 IconButton(onClick = {
                     vm.showDeleteConfirmDialog.value = true
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "clear history") }
@@ -476,13 +476,13 @@ fun LogsScreen() {
                             vm.shareLogs = listOf()
                             vm.loadShareLog()
                         }
-                        vm.subscriptionLogs.isNotEmpty() -> {
+                        vm.deletionLogs.isNotEmpty() -> {
                             realm.write {
                                 val items = query(SubscriptionLog::class).find()
                                 delete(items)
                             }
-                            vm.subscriptionLogs = listOf()
-                            vm.loadSubscriptionLog()
+                            vm.deletionLogs = listOf()
+                            vm.loadDeletionLog()
                         }
                         vm.downloadLogs.isNotEmpty() -> {
                             realm.write {
@@ -498,7 +498,7 @@ fun LogsScreen() {
             when {
                 vm.downloadLogs.isNotEmpty() -> DownloadLogView()
                 vm.shareLogs.isNotEmpty() -> SharedLogView()
-                vm.subscriptionLogs.isNotEmpty() -> SubscriptionLogView()
+                vm.deletionLogs.isNotEmpty() -> DeletionLogView()
                 else -> SessionLogView()
             }
         }

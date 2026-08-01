@@ -464,7 +464,7 @@ fun SearchScreen() {
                 }
             }
         }
-        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
+        if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow, allowOpenFeed = true)
     }
 }
 

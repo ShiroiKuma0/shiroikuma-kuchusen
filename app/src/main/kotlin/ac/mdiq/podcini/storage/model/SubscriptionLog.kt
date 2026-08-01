@@ -5,6 +5,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
+// TODO: better to rename to DeletionLog
 class SubscriptionLog: RealmObject {
     @PrimaryKey
     var id: Long = 0L   // this is the nowInMillis()
