@@ -78,6 +78,9 @@
     <string name="notification_check_permission">Check permission</string>
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
 
+    <string name="repeats_past_due">Repeat media past due</string>
+    <string name="repeats_past_due_sum">You have %d scheduled media past due. Open the list?</string>
+
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Total size of episodes on the device</string>
 

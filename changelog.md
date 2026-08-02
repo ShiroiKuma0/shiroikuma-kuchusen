@@ -1,3 +1,9 @@
+# 12.5.2
+
+* in Facets screen, added mode Due for all Again and Forever media past due
+* in Auto-download/enqueue algorithms, due Again and Forever media are no longer added to queue (Later media remain unchanged)
+* in MainActivity, a reminder of past due media is shown every day
+
 # 12.5.1
 
 * in PlayerDetailed, ensure force-video and audio-only icons show for proper media in synthetic feed

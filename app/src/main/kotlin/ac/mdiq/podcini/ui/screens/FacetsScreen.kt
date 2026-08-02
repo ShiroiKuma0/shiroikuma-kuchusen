@@ -133,7 +133,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None
+    New, Planned, Repeats, Due, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None
 }
 
 var facetsMode by mutableStateOf(QuickAccess.None)
@@ -211,6 +211,12 @@ class FacetsVM(modeName_: String): ViewModel() {
             QuickAccess.Repeats -> {
                 listIdentity += ".${sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.AGAIN.name, EpisodeFilter.States.FOREVER.name).add(filter), sortOrder)
+            }
+            QuickAccess.Due -> {
+                listIdentity += ".${sortOrder.name}"
+                val time = nowInMillis()
+                val sortPair = sortPairOf(sortOrder)
+                realm.query(Episode::class).query("playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code}").query("repeatTime <= $time").sort(sortPair).asFlow()
             }
             QuickAccess.Liked -> {
                 listIdentity += ".${sortOrder.name}"

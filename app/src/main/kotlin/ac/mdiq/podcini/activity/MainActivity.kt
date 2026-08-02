@@ -4,18 +4,20 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.starter.MainActivityStarter
-import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.download.Downloader.Companion.downloadStates
-import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.autoBackup
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.PodciniTheme
@@ -25,7 +27,7 @@ import ac.mdiq.podcini.ui.screens.Facets
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FindFeeds
 import ac.mdiq.podcini.ui.screens.Library
-import ac.mdiq.podcini.ui.screens.MainActivityUI
+import ac.mdiq.podcini.ui.screens.MainScreen
 import ac.mdiq.podcini.ui.screens.OnlineFeed
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.Queues
@@ -39,7 +41,6 @@ import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
@@ -80,23 +81,19 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat.enableEdgeToEdge
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import androidx.work.await
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : BaseActivity() {
     private var lastTheme = appTheme
-//    private var navigationBarInsets = Insets.NONE
     private var intentState by mutableStateOf<Intent?>(null)
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -115,7 +112,7 @@ class MainActivity : BaseActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
-    fun postFornotificationPermission() {
+    fun postForNotificationPermission() {
         commonConfirm = CommonConfirmAttrib(
             title = getString(R.string.notification_check_permission),
             message = getString(R.string.notification_permission_text),
@@ -162,12 +159,12 @@ class MainActivity : BaseActivity() {
 
         setContent { PodciniTheme { intentState?.let {
             if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
-            MainActivityUI()
+            MainScreen()
         } } }
 
         timeIt("$TAG after setContent")
 
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postForNotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
         timeIt("$TAG after checking permission")
 
@@ -196,7 +193,6 @@ class MainActivity : BaseActivity() {
                 }
                 EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
             }
-//        observeDownloads()
         timeIt("$TAG end of onCreate")
     }
 
@@ -232,62 +228,6 @@ class MainActivity : BaseActivity() {
         if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
 
-    private fun observeDownloads() {
-        lifecycleScope.launch {
-            val wm = WorkManager.getInstance(this@MainActivity)
-            wm.pruneWork().await()
-            repeatOnLifecycle(Lifecycle.State.STARTED) {
-                wm.getWorkInfosByTagFlow(EpisodeAdrDLManager.WORK_TAG)
-                    .collect { workInfos: List<WorkInfo> ->
-                        if (!hasDownloadObserverStarted) {
-                            hasDownloadObserverStarted = true
-                            return@collect
-                        }
-                        Logd(TAG, "workInfos: ${workInfos.size}")
-                        downloadStates.clear()
-                        var hasFinished = false
-                        for (workInfo in workInfos) {
-                            var downloadUrl: String? = null
-                            for (tag in workInfo.tags) {
-                                if (tag.startsWith(EpisodeAdrDLManager.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(EpisodeAdrDLManager.WORK_TAG_EPISODE_URL.length)
-                            }
-                            if (downloadUrl == null) continue
-                            Logd(TAG, "workInfo.state: ${workInfo.state} isFinished: ${workInfo.state.isFinished}")
-                            var status: Int = when (workInfo.state) {
-                                WorkInfo.State.RUNNING -> DownloadStatus.State.RUNNING.ordinal
-                                WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
-                                WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
-                                WorkInfo.State.FAILED -> {
-                                    Loge(TAG, "download failed $downloadUrl")
-                                    DownloadStatus.State.INCOMPLETE.ordinal
-                                }
-                                WorkInfo.State.CANCELLED -> {
-                                    Logt(TAG, "download cancelled $downloadUrl")
-                                    DownloadStatus.State.INCOMPLETE.ordinal
-                                }
-                            }
-                            var progress = workInfo.progress.getInt(EpisodeAdrDLManager.WORK_DATA_PROGRESS, -1)
-                            if (progress == -1 && status < DownloadStatus.State.COMPLETED.ordinal) {
-                                status = DownloadStatus.State.QUEUED.ordinal
-                                progress = 0
-                            }
-                            downloadStates[downloadUrl] = DownloadStatus(status, progress)
-                            if (status == DownloadStatus.State.COMPLETED.ordinal) downloadStates.remove(downloadUrl)
-
-                            Logd(TAG, "downloadStates: ${downloadStates.size}")
-                            Logd(TAG, "downloadStates[$downloadUrl]: ${downloadStates[downloadUrl]?.state}")
-                            if (workInfo.state.isFinished) hasFinished = true
-                        }
-                        EpisodeAdrDLManager.manager?.setCurrentDownloads(downloadStates)
-                        if (hasFinished) lifecycleScope.launch(Dispatchers.IO) {
-                            delay(2000)
-                            WorkManager.getInstance(this@MainActivity).pruneWork().await()
-                        }
-                    }
-            }
-        }
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(Extras.generated_view_id.name, View.generateViewId())
@@ -319,8 +259,17 @@ class MainActivity : BaseActivity() {
         if (lastTheme != appTheme) {
             finish()
             forceRestart()
-//            startActivity(Intent(this, MainActivity::class.java))
         }
+        val curTime = nowInMillis()
+        if ((curTime - appPrefs.postRepeatsTime) / 3600000 > appPrefs.postRepeatsInternal) runOnIOScope {
+            val count = realm.query(Episode::class).query("playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code}").query("repeatTime <= $curTime").count().find()
+            upsert(appPrefs) { it.postRepeatsTime = curTime }
+            if (count > 0) withContext(Dispatchers.Main) {
+                commonConfirm = CommonConfirmAttrib(title = getString(R.string.repeats_past_due), message = getString(R.string.repeats_past_due_sum, count), confirmRes = R.string.OK, cancelRes = R.string.no,
+                    onConfirm = { navTo(Facets(modeName = QuickAccess.Due.name)) })
+            }
+        }
+
         timeIt("$TAG end of onResume")
     }
 

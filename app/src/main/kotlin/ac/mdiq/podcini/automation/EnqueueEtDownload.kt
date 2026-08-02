@@ -124,7 +124,7 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
             val episodes = mutableListOf<Episode>()
             run {
                 val cTime = nowInMillis()
-                val queryStringAgain = "feedId == ${f.id} AND (playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code} OR playState == ${EpisodeState.LATER.code}) AND repeatTime <= $cTime SORT(repeatTime ASC)"
+                val queryStringAgain = "feedId == ${f.id} AND playState == ${EpisodeState.LATER.code} AND repeatTime <= $cTime SORT(repeatTime ASC)"
                 val es = realm.query(Episode::class).query(queryStringAgain).find().filter { it.id !in eIdsAllQueues }
                 Logd(TAG, "assembleFeedsCandidates queryStringAgain: [${es.size}] $queryStringAgain")
                 if (es.isNotEmpty()) {
