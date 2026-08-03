@@ -34,7 +34,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -48,7 +48,8 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.buttonColor
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.utils.EventFlow
@@ -378,7 +379,7 @@ fun QueuesScreen(id: Long = -1L) {
 
     @Composable
     fun OpenDialogs() {
-        ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) {
+        ConfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) {
             runOnIOScope {
                 val qes = vm.curQueue.entries
                 val episodeIds = qes.map { it.episodeId }
@@ -655,7 +656,7 @@ fun QueuesScreen(id: Long = -1L) {
             if (showRename) {
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 80.dp))
                 TitleSummaryActionColumn(R.string.remove_queue, R.string.remove_queue_sum) {
-                    commonConfirm = CommonConfirmAttrib(
+                    commonConfirms.add(CommonConfirmAttrib(
                         title = context.getString(R.string.remove_queue) + "?",
                         message = "",
                         confirmRes = R.string.confirm_label,
@@ -677,8 +678,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     vm.queuesMode = QueuesScreenMode.Queue
                                 }
                             }
-                        },
-                    )
+                        }))
                 }
             }
         }
@@ -769,13 +769,13 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                             Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart ${vm.curQueuePosition}")
                             EpisodeLazyColumn(episodes, curQueue = vm.curQueue, swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart, refreshCB = {
-                                commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.refresh_associates) + "?", message = "", cancelRes = R.string.cancel_label, confirmRes = R.string.enqueue, onConfirm = {
+                                commonConfirms.add(CommonConfirmAttrib(title = context.getString(R.string.refresh_associates) + "?", message = "", cancelRes = R.string.cancel_label, confirmRes = R.string.enqueue, onConfirm = {
                                     CoroutineScope(Dispatchers.IO).launch {
                                         val feeds = vm.curQueue.normalFeeds
                                         AutoEnqueueAlgorithm().run(feeds, true)
                                         if (vm.curQueue.launchAutoEQDlWhenEmpty && appPrefs.enableAutoDl) AutoDownloadAlgorithm().run(feeds, false, noRefreshing = true)
                                     }
-                                }, neutralRes = R.string.refresh_label, onNeutral = { runOnceOrAsk(feeds = vm.curQueue.normalFeeds) })
+                                }, neutralRes = R.string.refresh_label, onNeutral = { runOnceOrAsk(feeds = vm.curQueue.normalFeeds) }))
                             }, actionButtonCB = { _, type ->
                                 if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM) && actQueue.id != vm.curQueue.id) queuesLive.find { it.id == vm.curQueue.id }?.let { actQueue = it }
                             })

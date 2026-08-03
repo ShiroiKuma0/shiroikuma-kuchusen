@@ -10,12 +10,12 @@ import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
-import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.toastMassege
+import ac.mdiq.podcini.utils.toastMessages
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -172,8 +172,8 @@ fun MainScreen() {
         }
     }
 
-    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+    if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+    if (commonConfirms.isNotEmpty()) CommonConfirmDialog(commonConfirms[0])
     if (commonMessage != null) LargePoster(commonMessage!!)
 
     var lastLogTime by remember { mutableLongStateOf(0L) }

@@ -463,8 +463,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     }
                                 }
                                 when (episode.playState) {
-                                    EpisodeState.AGAIN.code, EpisodeState.LATER.code -> {
-                                        val dueText = remember { if (episode.repeatTime > 0) "D:" + formatDateTimeFlex(episode.repeatTime) else "" }
+                                    EpisodeState.AGAIN.code, EpisodeState.FOREVER.code, EpisodeState.LATER.code -> {
+                                        val dueText = remember(episode.repeatTime) { if (episode.repeatTime > 0) "D:" + formatDateTimeFlex(episode.repeatTime) else "" }
                                         if (dueText.isNotBlank()) {
                                             val bgColor = if (localTime > episode.repeatTime) Color.Cyan else MaterialTheme.colorScheme.surface
                                             Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.background(bgColor))
@@ -644,14 +644,14 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             onSelected()
                             if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
                             else {
-                                commonConfirm = CommonConfirmAttrib(
+                                commonConfirms.add(CommonConfirmAttrib(
                                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
                                     message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                                     cancelRes = R.string.cancel_label,
                                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
                                     onConfirm = { EpisodeAdrDLManager.manager?.download(selected) },
-                                    onNeutral = { EpisodeAdrDLManager.manager?.downloadNow(selected, true) })
+                                    onNeutral = { EpisodeAdrDLManager.manager?.downloadNow(selected, true) }))
                             }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")

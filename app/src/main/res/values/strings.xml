@@ -308,6 +308,7 @@
     <string name="choose_tab">Choose a tab in the channel</string>
 
     <string name="set_play_state_label">Set played state</string>
+    <string name="set_due_date">Set due date</string>
 
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>

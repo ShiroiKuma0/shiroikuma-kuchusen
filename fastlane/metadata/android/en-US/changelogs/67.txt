@@ -1,3 +1,0 @@
-* in EpisodeInfo view, when Related is clicked, ensure EpisodeInfo is closed
-* when an external media is shared, if it already exists, show the existing media or a list of existing duplicates
-* some dependencies update

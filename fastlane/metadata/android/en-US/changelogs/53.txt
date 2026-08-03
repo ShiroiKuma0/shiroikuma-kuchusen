@@ -1,1 +1,0 @@
-* on Infobar of media lists, added dice icon to randomly play an item

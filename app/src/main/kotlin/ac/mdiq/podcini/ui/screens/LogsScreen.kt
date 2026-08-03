@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
 import ac.mdiq.podcini.ui.compose.textColor
@@ -465,7 +465,7 @@ fun LogsScreen() {
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            ComfirmDialog(R.string.confirm_delete_logs_label, stringResource(R.string.confirm_delete_logs_message), vm.showDeleteConfirmDialog) {
+            ConfirmDialog(R.string.confirm_delete_logs_label, stringResource(R.string.confirm_delete_logs_message), vm.showDeleteConfirmDialog) {
                 runOnIOScope {
                     when {
                         vm.shareLogs.isNotEmpty() -> {

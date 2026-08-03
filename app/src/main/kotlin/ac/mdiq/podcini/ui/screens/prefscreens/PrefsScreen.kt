@@ -6,7 +6,7 @@ import ac.mdiq.podcini.activity.BugReportActivity
 import ac.mdiq.podcini.config.settings.developerEmail
 import ac.mdiq.podcini.config.settings.getCopyrightNoticeText
 import ac.mdiq.podcini.config.settings.githubAddress
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
@@ -269,7 +269,7 @@ fun LicensesScreen() {
     
     val showLicense = remember { mutableStateOf(false) }
     var licenseText by remember { mutableStateOf("") }
-    ComfirmDialog(titleRes = 0, message = licenseText, showLicense) {}
+    ConfirmDialog(titleRes = 0, message = licenseText, showLicense) {}
     var showDialog by remember { mutableStateOf(false) }
     var curLicenseIndex by remember { mutableIntStateOf(-1) }
     if (showDialog) CommonPopupCard(onDismiss = { showDialog = false }) {

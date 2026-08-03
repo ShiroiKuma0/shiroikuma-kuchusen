@@ -5,12 +5,13 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.ui.screens.EpisodeInfo
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.toastMassege
+import ac.mdiq.podcini.utils.toastMessages
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -51,8 +52,8 @@ class EpisodeInfoActivity : ComponentActivity() {
 //                val navigator = remember { MyNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 val episodeId by currentEpisodeId.collectAsStateWithLifecycle()
                 Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+                    if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+                    if (commonConfirms.isNotEmpty()) CommonConfirmDialog(commonConfirms[0])
                     if (commonMessage != null) LargePoster(commonMessage!!)
                     episodeId?.let { navTo(EpisodeInfo(episodeId = episodeId!!)) }
                 }

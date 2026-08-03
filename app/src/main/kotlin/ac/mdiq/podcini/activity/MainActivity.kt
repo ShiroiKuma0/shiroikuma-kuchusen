@@ -22,7 +22,7 @@ import ac.mdiq.podcini.storage.utils.autoBackup
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
-import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.screens.Facets
 import ac.mdiq.podcini.ui.screens.FeedDetails
 import ac.mdiq.podcini.ui.screens.FindFeeds
@@ -102,24 +102,24 @@ class MainActivity : BaseActivity() {
             checkAndRequestUnrestrictedBackgroundActivity()
             return@registerForActivityResult
         }
-        commonConfirm = CommonConfirmAttrib(
+        commonConfirms.add(CommonConfirmAttrib(
             title = getString(R.string.notification_check_permission),
             message = getString(R.string.notification_permission_text),
             confirmRes = android.R.string.ok,
             cancelRes = R.string.cancel_label,
             onConfirm = { checkAndRequestUnrestrictedBackgroundActivity() },
-            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() })
+            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() }))
     }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     fun postForNotificationPermission() {
-        commonConfirm = CommonConfirmAttrib(
+        commonConfirms.add(CommonConfirmAttrib(
             title = getString(R.string.notification_check_permission),
             message = getString(R.string.notification_permission_text),
             confirmRes = android.R.string.ok,
             cancelRes = R.string.cancel_label,
             onConfirm = { requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() })
+            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() }))
     }
 
     private var showUnrestrictedBackgroundPermissionDialog by mutableStateOf(false)
@@ -265,8 +265,8 @@ class MainActivity : BaseActivity() {
             val count = realm.query(Episode::class).query("playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code}").query("repeatTime <= $curTime").count().find()
             upsert(appPrefs) { it.postRepeatsTime = curTime }
             if (count > 0) withContext(Dispatchers.Main) {
-                commonConfirm = CommonConfirmAttrib(title = getString(R.string.repeats_past_due), message = getString(R.string.repeats_past_due_sum, count), confirmRes = R.string.OK, cancelRes = R.string.no,
-                    onConfirm = { navTo(Facets(modeName = QuickAccess.Due.name)) })
+                commonConfirms.add(CommonConfirmAttrib(title = getString(R.string.repeats_past_due), message = getString(R.string.repeats_past_due_sum, count), confirmRes = R.string.OK, cancelRes = R.string.no,
+                    onConfirm = { navTo(Facets(modeName = QuickAccess.Due.name)) }))
             }
         }
 
@@ -294,12 +294,12 @@ class MainActivity : BaseActivity() {
                 when (event) {
                     is FlowEvent.MessageEvent -> {
                         if (event.action != null)
-                            commonConfirm = CommonConfirmAttrib(
+                            commonConfirms.add(CommonConfirmAttrib(
                                 title = event.message,
                                 message = event.actionText ?: "",
                                 confirmRes = R.string.confirm_label,
                                 cancelRes = R.string.no,
-                                onConfirm = { event.action(this@MainActivity) })
+                                onConfirm = { event.action(this@MainActivity) }))
                         else Logt(TAG, event.message)
                     }
                     else -> {}

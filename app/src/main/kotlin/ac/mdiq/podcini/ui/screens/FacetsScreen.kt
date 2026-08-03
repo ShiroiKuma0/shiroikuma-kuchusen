@@ -31,7 +31,7 @@ import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
@@ -568,7 +568,7 @@ fun FacetsScreen(modeName: String = "") {
             }
         }
         swipeActions.ActionOptionsDialog()
-        ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { vm.clearHistory() }
+        ConfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { vm.clearHistory() }
         if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismiss = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
             vm.historyStartDate = timeFilterFrom
             vm.historyEndDate = timeFilterTo

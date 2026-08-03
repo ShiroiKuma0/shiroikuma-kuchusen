@@ -38,7 +38,8 @@ import ac.mdiq.podcini.storage.model.toFeed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.LogFor
@@ -99,7 +100,7 @@ class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val do
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> scope.launch { refresh() }
             else -> {
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
                     message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
@@ -109,7 +110,7 @@ class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val do
                     onNeutral = {
                         mobileAllowFeedRefresh = true
                         scope.launch { refresh() }
-                    })
+                    }))
             }
         }
     }

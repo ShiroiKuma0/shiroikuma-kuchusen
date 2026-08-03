@@ -1,3 +1,0 @@
-* improved efficiency of opening EpisodeInfo from a list
-* ensure to re/de-register searcher from external app when the app is connected/disconnected
-* fixed in external app issue of updating YT channel live tab

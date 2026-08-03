@@ -7,7 +7,7 @@ import ac.mdiq.podcini.config.settings.githubAddress
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.internalDir
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.borderColor
@@ -17,7 +17,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.openInSystemDefault
-import ac.mdiq.podcini.utils.toastMassege
+import ac.mdiq.podcini.utils.toastMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -106,11 +106,10 @@ class BugReportActivity : ComponentActivity() {
 
     @Composable
     fun MainView() {
-        
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 5.dp).verticalScroll(rememberScrollState())) {
-                if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                ComfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
+                if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+                ConfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
                     runOnIOScope { exportLog() }
                     showConfirmExport.value = false
                 }

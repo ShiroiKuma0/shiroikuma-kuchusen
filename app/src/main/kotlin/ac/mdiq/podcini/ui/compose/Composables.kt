@@ -1,9 +1,11 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.ToastMessage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,6 +63,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -154,7 +157,7 @@ fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modi
 }
 
 @Composable
-fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> Unit) {
+fun CustomToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
     var isForeground by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -168,18 +171,20 @@ fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> 
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(message, isForeground) {
-        if (message.isNotBlank() && isForeground) {
-            delay(durationMillis.milliseconds)
-            onDismiss()
-        }
-    }
-
     if (isForeground) {
         Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
-            val color = if (message.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
-            Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp)) {
-                Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp)) {
+                for (toast in toasts.take(3)) {
+                    LaunchedEffect(toast, isForeground) {
+                        if (toast.m.isNotBlank() && isForeground) {
+                            val durationMillis = if (toast.m.contains("Error:")) 5000 else 3000
+                            delay(durationMillis.milliseconds)
+                            toasts.remove(toast)
+                        }
+                    }
+                    val color = if (toast.m.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
+                    Text(text = "${toast.t}: ${toast.m}", color = color, style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }
@@ -295,39 +300,40 @@ fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: 
 }
 
 
-var commonConfirm by mutableStateOf<CommonConfirmAttrib?>(null)
+var commonConfirms = mutableStateListOf<CommonConfirmAttrib>()
 data class CommonConfirmAttrib(
+    val id: Long = nowInMillis(),
     val title: String,
     val message: String,
     val confirmRes: Int,
     val onConfirm: ()->Unit,
     val cancelRes: Int,
-    val onCancel: ()->Unit = { commonConfirm = null },
+    val onCancel: ()->Unit = {  },
     val neutralRes: Int = 0,
     val onNeutral: (()->Unit)? = null
 )
 
 @Composable
 fun CommonConfirmDialog(c: CommonConfirmAttrib) {
-    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { commonConfirm = null },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { commonConfirms.remove(c) },
         title = { Text(c.title) },
         text = {
             Column {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) }
                 if (c.neutralRes > 0) TextButton(onClick = {
-                    commonConfirm = null
+                    commonConfirms.remove(c)
                     c.onNeutral?.invoke()
                 }) { Text(stringResource(c.neutralRes)) }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                commonConfirm = null
+                commonConfirms.remove(c)
                 c.onConfirm()
             }) { Text(stringResource(c.confirmRes)) }
         },
         dismissButton = { TextButton(onClick = {
-            commonConfirm = null
+            commonConfirms.remove(c)
             c.onCancel()
         }) { Text(stringResource(c.cancelRes)) } }
     )
@@ -352,7 +358,7 @@ fun LargePoster(c: CommonMessageAttrib) {
 }
 
 @Composable
-fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boolean>, cancellable: Boolean = true, onConfirm: () -> Unit) {
+fun ConfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boolean>, cancellable: Boolean = true, onConfirm: () -> Unit) {
     if (showDialog.value) {
         AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showDialog.value = false },
             title = { if (titleRes != 0) Text(stringResource(titleRes)) },

@@ -33,7 +33,7 @@ import ac.mdiq.podcini.storage.utils.tempRoottree
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -41,7 +41,8 @@ import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -136,19 +137,19 @@ fun ImportExportScreen() {
         return fileName.contains(backupDirName, ignoreCase = true) || fileName.contains(autoBackupDirName, ignoreCase = true)
     }
     fun showExportSuccess(uri: Uri?, mimeType: String?) {
-        commonConfirm = CommonConfirmAttrib(
+        commonConfirms.add(CommonConfirmAttrib(
             title = context.getString(R.string.export_success_title),
             message = "",
             confirmRes = R.string.share_label,
             cancelRes = R.string.no,
-            onConfirm = { IntentBuilder(context).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() })
+            onConfirm = { IntentBuilder(context).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() }))
     }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
-    ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
+    ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
     val showImporErrortDialog = remember { mutableStateOf(false) }
     var importErrorMessage by remember { mutableStateOf("") }
-    ComfirmDialog(titleRes = R.string.import_export_error_label, message = importErrorMessage, showDialog = showImporErrortDialog) {}
+    ConfirmDialog(titleRes = R.string.import_export_error_label, message = importErrorMessage, showDialog = showImporErrortDialog) {}
 
     fun exportWithWriter(exportWriter: ExportWriter, uri: Uri?, exportType: ExportTypes) {
         processingText = "Exporting ..."
@@ -513,7 +514,7 @@ fun ImportExportScreen() {
             } catch (e: Exception) { Loge(TAG, e, "Export failed")}
         }
         val showComboImportDialog = remember { mutableStateOf(false) }
-        ComfirmDialog(titleRes = R.string.combo_import_label, message = stringResource(R.string.combo_import_warning), showDialog = showComboImportDialog) {
+        ConfirmDialog(titleRes = R.string.combo_import_label, message = stringResource(R.string.combo_import_warning), showDialog = showComboImportDialog) {
             try {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -524,7 +525,7 @@ fun ImportExportScreen() {
         TitleSummaryActionColumn(R.string.combo_import_label, R.string.combo_import_summary) { showComboImportDialog.value = true }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         val showAPImportDialog = remember { mutableStateOf(false) }
-        ComfirmDialog(titleRes = R.string.import_AP_label, message = stringResource(R.string.import_SQLite_message), showDialog = showAPImportDialog) {
+        ConfirmDialog(titleRes = R.string.import_AP_label, message = stringResource(R.string.import_SQLite_message), showDialog = showAPImportDialog) {
             try { chooseAPImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
         }
         TitleSummaryActionColumn(R.string.import_AP_label, 0) { showAPImportDialog.value = true }
@@ -566,7 +567,7 @@ fun ImportExportScreen() {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         TitleSummaryActionColumn(R.string.progress_export_label, R.string.progress_export_summary) { openExportPathPicker(ExportTypes.PROGRESS, chooseProgressExportPathLauncher, EpisodesProgressWriter()) }
         val showProgressImportDialog = remember { mutableStateOf(false) }
-        ComfirmDialog(titleRes = R.string.progress_import_label, message = stringResource(R.string.progress_import_warning), showDialog = showProgressImportDialog) {
+        ConfirmDialog(titleRes = R.string.progress_import_label, message = stringResource(R.string.progress_import_warning), showDialog = showProgressImportDialog) {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.type = "*/*"

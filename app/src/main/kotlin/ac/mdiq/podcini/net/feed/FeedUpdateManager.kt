@@ -15,7 +15,8 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -127,7 +128,7 @@ object FeedUpdateManager {
                 EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             }
             !isFeedRefreshAllowed -> {
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
                     message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
@@ -137,7 +138,7 @@ object FeedUpdateManager {
                     onNeutral = {
                         mobileAllowFeedRefresh = true
                         scheduleUpdateTaskOnce(replace, force)
-                    })
+                    }))
             }
             else -> scheduleUpdateTaskOnce(replace, force)
         }
@@ -172,7 +173,7 @@ object FeedUpdateManager {
             !networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway)
             else -> {
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
                     message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
@@ -182,7 +183,7 @@ object FeedUpdateManager {
                     onNeutral = {
                         mobileAllowFeedRefresh = true
                         runOnce(feeds, fullUpdate = fullUpdate, doItWanyway = doItWanyway, removeUnlisted = removeUnlisted)
-                    })
+                    }))
             }
         }
     }

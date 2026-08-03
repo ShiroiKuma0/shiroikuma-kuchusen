@@ -1,8 +1,16 @@
+# 12.5.3
+
+* toast messages are queued (no longer overriding) and shown with max of 3 at a time
+* increased error toasts duration to 5 seconds
+* confirm actions are also queued (no longer overriding) and shown one at a time
+* in media swipe actions, added "Set due date" action for Again, Forever and Later media
+* in media lists, Forever media is also shown with a due date
+
 # 12.5.2
 
 * in Facets screen, added mode Due for all Again and Forever media past due
 * in Auto-download/enqueue algorithms, due Again and Forever media are no longer added to queue (Later media remain unchanged)
-* in MainActivity, a reminder of past due media is shown every day
+* in MainActivity, a reminder of past due media is shown every day, which opens the Due mode in Facets screen
 
 # 12.5.1
 

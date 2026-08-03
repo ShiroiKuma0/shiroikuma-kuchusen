@@ -26,7 +26,8 @@ import ac.mdiq.podcini.ui.compose.SetAVQuality
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
 import android.app.Activity
@@ -360,7 +361,7 @@ fun PlaybackScreen() {
         var blockAutoDeleteLocal by remember { mutableStateOf(true) }
         TitleSummarySwitchRow(R.string.pref_auto_local_delete_title, R.string.pref_auto_local_delete_sum, appPrefs.autoDeleteLocal) {
             if (blockAutoDeleteLocal && it) {
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = "",
                     message = context.getString(R.string.pref_auto_local_delete_dialog_body),
                     confirmRes = R.string.yes,
@@ -369,7 +370,7 @@ fun PlaybackScreen() {
                         blockAutoDeleteLocal = false
                         upsertBlk(appPrefs) { p-> p.autoDeleteLocal = it }
                         blockAutoDeleteLocal = true
-                    })
+                    }))
             }
         }
         TitleSummarySwitchRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, appPrefs.favoriteKeepsEpisode) {

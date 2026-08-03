@@ -29,7 +29,8 @@ import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.screens.Search
 import ac.mdiq.podcini.ui.screens.navTo
 
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.collections.listOf
 
 
 abstract class EpisodeAction {
@@ -88,6 +90,7 @@ val episodeActions: List<EpisodeAction> = listOf(
     NoAction(),
     Combo(),
     SetPlaybackState(),
+    SetDueDate(),
 
     AddToAssociatedQueue(),
     AddToActiveQueue(),
@@ -183,6 +186,30 @@ class SetPlaybackState : EpisodeAction() {
         var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismiss = { futureState = EpisodeState.UNSPECIFIED })
         if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismiss = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
+    }
+}
+
+class SetDueDate : EpisodeAction() {
+    override val id: String
+        get() = "SET_DUE_DATE"
+    private var showFutureStateDialog by mutableStateOf(false)
+    override val title: String
+        get() = getAppContext().getString(R.string.set_due_date)
+
+    override val iconRes:  Int = R.drawable.outline_timer_24
+    override val color: Color = Color(0xFF66AABB)
+
+    override fun enabled(): Boolean {
+        return (onEpisode?.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code, EpisodeState.LATER.code))
+    }
+
+    override fun performAction(e: Episode) {
+        super.performAction(e)
+        showFutureStateDialog = true
+    }
+    @Composable
+    override fun ActionOptions() {
+        if (showFutureStateDialog && onEpisode != null) FutureStateDialog(listOf(onEpisode!!), EpisodeState.fromCode(onEpisode!!.playState), onDismiss = { showFutureStateDialog = false })
     }
 }
 
@@ -502,12 +529,12 @@ class RemoveFromHistory() : EpisodeAction() {
         }
 
         setHistoryDates()
-        commonConfirm = CommonConfirmAttrib(
+        commonConfirms.add(CommonConfirmAttrib(
             title = getAppContext().getString(R.string.removed_history_label),
             message = "",
             confirmRes = R.string.undo,
             cancelRes = R.string.no,
-            onConfirm = {  if (e.playbackCompletionTime > 0L) setHistoryDates(e.lastPlayedTime, e.playbackCompletionTime) })
+            onConfirm = {  if (e.playbackCompletionTime > 0L) setHistoryDates(e.lastPlayedTime, e.playbackCompletionTime) }))
     }
 }
 

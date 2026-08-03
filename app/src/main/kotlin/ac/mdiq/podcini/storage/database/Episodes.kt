@@ -22,7 +22,8 @@ import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -137,7 +138,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val userDone = CompletableDeferred<Unit>()
     if (localItems.isNotEmpty()) {
         withContext(Dispatchers.Main) {
-            commonConfirm = CommonConfirmAttrib(
+            commonConfirms.add(CommonConfirmAttrib(
                 title = context.getString(R.string.delete_episode_label),
                 message = context.getString(R.string.delete_local_feed_warning_body),
                 confirmRes = R.string.delete_label,
@@ -149,20 +150,20 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
                    }
                 },
                 onNeutral = { userDone.complete(Unit)},
-                onCancel = { userDone.complete(Unit)})
+                onCancel = { userDone.complete(Unit)}))
         }
         userDone.await()
     }
     if (repeatItems.isNotEmpty()) {
         withContext(Dispatchers.Main) {
-            commonConfirm = CommonConfirmAttrib(
+            commonConfirms.add(CommonConfirmAttrib(
                 title = context.getString(R.string.delete_episode_label),
                 message = context.getString(R.string.delete_repeat_warning_msg),
                 confirmRes = R.string.delete_label,
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
                     runOnIOScope { deleteItems(repeatItems) }
-                })
+                }))
         }
     }
 }

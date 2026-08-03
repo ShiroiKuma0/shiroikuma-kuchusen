@@ -1,2 +1,0 @@
-* in FeedDetails screen, removed the redundant feed image in the header
-* update screenshots in Readme

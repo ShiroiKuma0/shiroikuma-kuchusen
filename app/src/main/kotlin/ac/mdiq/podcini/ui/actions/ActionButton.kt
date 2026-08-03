@@ -37,7 +37,8 @@ import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.commonConfirm
+
+import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.screens.PSState
 import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.ui.screens.psState
@@ -113,7 +114,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
         }
         fun askToStream(stream: ()->Unit) {
             if (!NetworkUtils.isStreamingAllowed) {
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.stream_label),
                     message = context.getString(R.string.confirm_mobile_streaming_notification_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_always,
@@ -123,18 +124,18 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                         NetworkUtils.mobileAllowStreaming = true
                         stream()
                     },
-                    onNeutral = { stream() })
+                    onNeutral = { stream() }))
                 return
             } else stream()
         }
         fun askForPlayer(play: (Int)->Unit) {
-            commonConfirm = CommonConfirmAttrib(
+            commonConfirms.add(CommonConfirmAttrib(
                 title = context.getString(R.string.select_player),
                 message = "",
                 confirmRes = R.string.the_default,
                 cancelRes = R.string.secondary,
                 onConfirm = { play(0) },
-                onCancel = { play(1) })
+                onCancel = { play(1) }))
             return
         }
         Logd(TAG, "onClick type: $type")
@@ -255,27 +256,27 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     type = ButtonTypes.CANCEL
                     return
                 }
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
                     message = context.getString(if (networkMonitor.isNetworkRestricted && networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
                     onConfirm = { EpisodeAdrDLManager.manager?.download( listOf(item)) },
-                    onNeutral = { downloadNow() })
+                    onNeutral = { downloadNow() }))
             }
             ButtonTypes.TTS_NOW -> {
                 Logd("JUSTTTSButton", "onClick called")
                 type = ButtonTypes.PAUSE
                 ensureTTS()
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.choose_tts_source),
                     message = "",
                     confirmRes = R.string.description_label,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.transcript,
                     onConfirm = { doTTSNow(item, 1, speaking) },
-                    onNeutral = { doTTSNow(item, 2, speaking) })
+                    onNeutral = { doTTSNow(item, 2, speaking) }))
             }
             ButtonTypes.TTS -> {
                 Logd("TTSActionButton", "onClick called")
@@ -284,7 +285,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
 //                    type = ButtonTypes.NULL
 //                    return
 //                }
-                commonConfirm = CommonConfirmAttrib(
+                commonConfirms.add(CommonConfirmAttrib(
                     title = context.getString(R.string.choose_tts_source),
                     message = "",
                     confirmRes = R.string.description_label,
@@ -299,7 +300,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                         typeToCancel = ButtonTypes.TTS
                         type = ButtonTypes.CANCEL
                         doTTS(item, 2, processing) { update(it) }
-                    })
+                    }))
             }
             ButtonTypes.PLAY_LOCAL -> {
                 if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
