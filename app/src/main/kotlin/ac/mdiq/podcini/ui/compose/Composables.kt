@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -91,6 +92,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun CommonDialogSurface(onDismiss: () -> Unit, content: @Composable (() -> Unit)) {
@@ -151,40 +153,6 @@ fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modi
                         expanded = false
                     }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun CustomToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
-    var isForeground by remember { mutableStateOf(false) }
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            isForeground = when (event) {
-                Lifecycle.Event.ON_RESUME -> true
-                Lifecycle.Event.ON_PAUSE -> false
-                else -> isForeground
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-    if (isForeground) {
-        Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
-            Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp)) {
-                for (toast in toasts.take(3)) {
-                    LaunchedEffect(toast, isForeground) {
-                        if (toast.m.isNotBlank() && isForeground) {
-                            val durationMillis = if (toast.m.contains("Error:")) 5000 else 3000
-                            delay(durationMillis.milliseconds)
-                            toasts.remove(toast)
-                        }
-                    }
-                    val color = if (toast.m.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
-                    Text(text = "${toast.t}: ${toast.m}", color = color, style = MaterialTheme.typography.bodyMedium)
-                }
             }
         }
     }
@@ -299,6 +267,44 @@ fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: 
     }
 }
 
+@Composable
+fun CommonToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
+    var isForeground by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isForeground = when (event) {
+                Lifecycle.Event.ON_RESUME -> true
+                Lifecycle.Event.ON_PAUSE -> false
+                else -> isForeground
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    if (isForeground && commonConfirms.isEmpty()) {
+        Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
+            Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                var onHold by remember { mutableStateOf(false) }
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.End) {
+                    val color = if (onHold) Color.Red else Color.Green
+                    Icon(Icons.Filled.Lock, tint = color, contentDescription = "lock", modifier = Modifier.padding(end = 8.dp).clickable { onHold = !onHold })
+                }
+                for (toast in toasts.take(3)) {
+                    LaunchedEffect(toast, isForeground, onHold) {
+                        if (toast.m.isNotBlank() && isForeground) {
+                            val durationMillis = if (onHold) 60 else 3
+                            delay(durationMillis.seconds)
+                            toasts.remove(toast)
+                        }
+                    }
+                    val color = if (toast.m.contains("Error:")) Color.Red else MaterialTheme.colorScheme.onSecondary
+                    Text(text = toast.m, color = color, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+    }
+}
 
 var commonConfirms = mutableStateListOf<CommonConfirmAttrib>()
 data class CommonConfirmAttrib(

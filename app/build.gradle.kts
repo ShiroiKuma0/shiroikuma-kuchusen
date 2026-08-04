@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 91
-        versionName = "12.5.3"
+        versionCode = 92
+        versionName = "12.5.4"
 
         ndkVersion = "29.0.14206865"
 
@@ -201,6 +201,7 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.10.1")
     implementation("androidx.media3:media3-common:1.10.1")
     implementation("androidx.media3:media3-session:1.10.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.10.1")
 
     implementation("com.google.android.material:material:1.14.0")
 

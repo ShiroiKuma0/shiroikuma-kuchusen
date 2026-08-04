@@ -999,7 +999,7 @@ abstract class MediaPlayerBase {
                 }
             }
 
-        for (a in asl) Logd(TAG, "setAudioSpec asl: bitrate: ${a.bitrate} averageBitrate: ${a.averageBitrate} quality: ${a.quality}  codec: ${a.codec} audioLocale: ${a.audioLocale.toString()} id: ${a.audioTrackId} name: ${a.audioTrackName} format: ${a.format} ${a.url}")
+        for (a in asl) Logd(TAG, "setAudioSpec asl: bitrate: ${a.bitrate} averageBitrate: ${a.averageBitrate} delivery: ${a.deliveryMethod}  codec: ${a.codec} audioLocale: ${a.audioLocale.toString()} id: ${a.audioTrackId} name: ${a.audioTrackName} format: ${a.format} ${a.url}")
 
         val audioSpec = if (audioIndex >= 0 && audioIndex < asl.size) asl[audioIndex] else null
         bitrate = audioSpec?.bitrate ?: 0
@@ -1039,7 +1039,7 @@ abstract class MediaPlayerBase {
                 }
             }
 
-        for (i in videoSpecs.indices) Logd(TAG, "setVideoSpec $i ${videoSpecs[i].bitrate} ${videoSpecs[i].codec} ${videoSpecs[i].quality} ${videoSpecs[i].resolution}")
+        for (i in videoSpecs.indices) Logd(TAG, "setVideoSpec $i ${videoSpecs[i].bitrate} ${videoSpecs[i].fps} ${videoSpecs[i].codec} ${videoSpecs[i].deliveryMethod} ${videoSpecs[i].resolution} ${videoSpecs[i].url}")
 
         val videoSpec = videoSpecs[videoIndex]
         resolution = videoSpec.resolution ?: ""

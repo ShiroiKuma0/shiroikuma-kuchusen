@@ -8,7 +8,7 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.internalDir
 import ac.mdiq.podcini.ui.compose.ConfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.CommonToast
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.textColor
@@ -108,7 +108,7 @@ class BugReportActivity : ComponentActivity() {
     fun MainView() {
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 5.dp).verticalScroll(rememberScrollState())) {
-                if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+                if (toastMessages.isNotEmpty()) CommonToast(toasts = toastMessages, onDismiss = { })
                 ConfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
                     runOnIOScope { exportLog() }
                     showConfirmExport.value = false

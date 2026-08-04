@@ -921,7 +921,8 @@ fun AVPlayerScreen() {
                 if (bitRates.isNotEmpty()) bitrate = bitRates[0]
                 val rSet = mutableSetOf<String>()
                 val vcSet = mutableSetOf<String>()
-                for (s in player.videoSpecs) {
+                val vSpecs = if (client?.attributes?.hasSeparateAVs == true) player.videoSpecs else player.muxedSpecs
+                for (s in vSpecs) {
                     if (vcodec == null) { if (s.resolution != null) rSet.add(s.resolution!!) }
                     else { if (s.resolution != null && s.codec == vcodec) rSet.add(s.resolution!!) }
                     if (s.codec != null) vcSet.add(s.codec!!)

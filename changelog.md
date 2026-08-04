@@ -1,3 +1,11 @@
+# 12.5.4
+
+* toasts defer to confirm actions, and are stripped off tags
+* error toasts duration back to 3 seconds
+* added locked/unlocked on toast popup, when locked, toasts stay for up to 1 minutes
+* fixed StreamChanger for PeerTube media
+* fixed invalid video sources in PeerTube together with external app PeerPop (update needed)
+
 # 12.5.3
 
 * toast messages are queued (no longer overriding) and shown with max of 3 at a time

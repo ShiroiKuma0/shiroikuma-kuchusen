@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.CommonToast
 import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.appTheme
@@ -52,7 +52,7 @@ class EpisodeInfoActivity : ComponentActivity() {
 //                val navigator = remember { MyNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 val episodeId by currentEpisodeId.collectAsStateWithLifecycle()
                 Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
-                    if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+                    if (toastMessages.isNotEmpty()) CommonToast(toasts = toastMessages, onDismiss = { })
                     if (commonConfirms.isNotEmpty()) CommonConfirmDialog(commonConfirms[0])
                     if (commonMessage != null) LargePoster(commonMessage!!)
                     episodeId?.let { navTo(EpisodeInfo(episodeId = episodeId!!)) }

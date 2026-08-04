@@ -8,7 +8,7 @@ import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.CommonToast
 import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.commonMessage
@@ -172,7 +172,7 @@ fun MainScreen() {
         }
     }
 
-    if (toastMessages.isNotEmpty()) CustomToast(toasts = toastMessages, onDismiss = { })
+    if (toastMessages.isNotEmpty()) CommonToast(toasts = toastMessages, onDismiss = { })
     if (commonConfirms.isNotEmpty()) CommonConfirmDialog(commonConfirms[0])
     if (commonMessage != null) LargePoster(commonMessage!!)
 
