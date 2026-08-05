@@ -1042,8 +1042,10 @@
     <string name="shelve_important">Shelve important episodes</string>
     <string name="youtube">Youtube</string>
     <string name="peertube">Peertube</string>
+    <string name="soundcloud">SoundCloud</string>
     <string name="rss">RSS</string>
     <string name="atom">ATOM</string>
+    <string name="none">None</string>
     <string name="has_video">Has video</string>
     <string name="tagged">Tagged</string>
     <string name="timers">Timers</string>

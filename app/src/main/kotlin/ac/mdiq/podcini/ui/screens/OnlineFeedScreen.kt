@@ -500,7 +500,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                 while (episodes.isNotEmpty()) {
                                     eList.addAll(episodes)
                                     vm.numEpisodes = eList.size
-                                    if (vm.limitEpisodesCount in 1..<vm.numEpisodes || vm.numEpisodes > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
+                                    if (vm.limitEpisodesCount in 1..vm.numEpisodes || vm.numEpisodes > EPISODES_LIMIT || episodes.size < EPISODE_BATCH_SIZE) break
                                     Logd(TAG, "Subscribing eList: ${eList.size}")
                                     episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
                                 }

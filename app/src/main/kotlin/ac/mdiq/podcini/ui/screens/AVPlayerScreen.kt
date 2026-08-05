@@ -14,6 +14,8 @@ import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
+import ac.mdiq.podcini.shared.AudioSpec
+import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.fallbackSpeed
@@ -902,15 +904,33 @@ fun AVPlayerScreen() {
             var bitrate by remember { mutableIntStateOf(player.useABPS) }
             var vcodecs by remember { mutableStateOf<List<String>>(listOf()) }
             var vcodec by remember { mutableStateOf(player.useVCodex) }
+            var protocols by remember { mutableStateOf<List<String>>(listOf()) }
+            var protocol by remember { mutableStateOf(player.useVCodex) }
             var resolutions by remember { mutableStateOf<List<String>>(listOf()) }
             var resolution by remember { mutableStateOf(player.useResolution) }
+            fun buildResoSet(s: VideoSpec, rSet: MutableSet<String>) {
+                if (s.resolution != null) when {
+                    vcodec == null && protocol == null -> rSet.add(s.resolution!!)
+                    protocol == null -> if (s.codec == vcodec) rSet.add(s.resolution!!)
+                    vcodec == null -> if (s.deliveryMethod == protocol) rSet.add(s.resolution!!)
+                    else -> if (s.deliveryMethod == protocol && s.codec == vcodec) rSet.add(s.resolution!!)
+                }
+            }
+            fun buildBRSet(s: AudioSpec, bSet: MutableSet<Int>) {
+                when {
+                    locale == null && codec == "Any" -> bSet.add(s.averageBitrate)
+                    locale == null -> if (s.codec == codec) bSet.add(s.averageBitrate)
+                    codec == "Any" -> if (s.audioLocale == locale) bSet.add(s.averageBitrate)
+                    else -> if (s.codec == codec && s.audioLocale == locale) bSet.add(s.averageBitrate)
+                }
+            }
             LaunchedEffect(episode.id) {
                 val lSet = mutableSetOf<String>()
                 val bSet = mutableSetOf<Int>()
                 val cSet = mutableSetOf("Any")
                 for (s in player.audioSpecs) {
                     lSet.add(s.audioLocale?:"")
-                    bSet.add(s.averageBitrate)
+                    buildBRSet(s, bSet)
                     if (s.codec != null) cSet.add(s.codec!!) else cSet.add("null")
                 }
                 locales = lSet.toList()
@@ -921,12 +941,14 @@ fun AVPlayerScreen() {
                 if (bitRates.isNotEmpty()) bitrate = bitRates[0]
                 val rSet = mutableSetOf<String>()
                 val vcSet = mutableSetOf<String>()
+                val vpSet = mutableSetOf<String>()
                 val vSpecs = if (client?.attributes?.hasSeparateAVs == true) player.videoSpecs else player.muxedSpecs
                 for (s in vSpecs) {
-                    if (vcodec == null) { if (s.resolution != null) rSet.add(s.resolution!!) }
-                    else { if (s.resolution != null && s.codec == vcodec) rSet.add(s.resolution!!) }
+                    buildResoSet(s, rSet)
                     if (s.codec != null) vcSet.add(s.codec!!)
+                    if (s.deliveryMethod != null) vpSet.add(s.deliveryMethod!!)
                 }
+                protocols = vpSet.toList()
                 resolutions = rSet.toList()
                 vcodecs = vcSet.toList()
             }
@@ -946,10 +968,10 @@ fun AVPlayerScreen() {
                                     FilterChip(label = { Text(langs[index]) }, selected = locale==langs[index], border = filterChipBorder(locale==langs[index]), onClick = {
                                         locale = langs[index]
                                         val bSet = mutableSetOf<Int>()
-                                        for (s in player.audioSpecs) if (s.audioLocale.toString() == locale) bSet.add(s.averageBitrate)
+                                        for (s in player.audioSpecs) buildBRSet(s, bSet)
                                         bitRates = bSet.toList()
                                         bitrate = if (bitRates.isNotEmpty()) bitRates[0] else 0
-                                        reset = true
+//                                        reset = true
                                         showLocales = false
                                     })
                                 }
@@ -964,12 +986,10 @@ fun AVPlayerScreen() {
                                         FilterChip(label = { Text(codecs[index]) }, selected = codec==codecs[index], border = filterChipBorder(codec==codecs[index]), onClick = {
                                             codec = codecs[index]
                                             val bSet = mutableSetOf<Int>()
-                                            for (s in player.audioSpecs) {
-                                                if (s.audioLocale.toString() == locale && (codec == "Any" || s.codec == codec)) bSet.add(s.averageBitrate)
-                                            }
+                                            for (s in player.audioSpecs) buildBRSet(s, bSet)
                                             bitRates = bSet.toList()
                                             bitrate = if (bitRates.isNotEmpty()) bitRates[0] else 0
-                                            reset = true
+//                                            reset = true
                                             showCodecs = false
                                         })
                                     }
@@ -993,6 +1013,26 @@ fun AVPlayerScreen() {
                         }
                         if (player.playingVideo) {
                             Text("Video:", color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 3.dp))
+                            var showProts by remember { mutableStateOf(false) }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showProts = !showProts }) {
+                                Text("Protocols: $protocol", color = textColor, modifier = Modifier.padding(end = 10.dp))
+                            }
+                            if (showProts && protocols.size > 1) {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (index in protocols.indices) {
+                                        FilterChip(label = { Text(protocols[index]) }, selected = protocol==protocols[index], border = filterChipBorder(protocol==protocols[index]), onClick = {
+                                            protocol = protocols[index]
+                                            val rSet = mutableSetOf<String>()
+                                            for (s in player.videoSpecs) buildResoSet(s, rSet)
+                                            resolutions = rSet.toList()
+                                            resolution = if (resolutions.isNotEmpty()) resolutions[0] else null
+//                                            reset = true
+                                            showProts = false
+                                        })
+                                    }
+                                }
+                            }
+
                             var showCodecs by remember { mutableStateOf(false) }
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(top = 5.dp).clickable { showCodecs = !showCodecs }) {
                                 Text("Video Codec: $vcodec", color = textColor, modifier = Modifier.padding(end = 10.dp))
@@ -1003,10 +1043,10 @@ fun AVPlayerScreen() {
                                         FilterChip(label = { Text(vcodecs[index]) }, selected = vcodec==vcodecs[index], border = filterChipBorder(vcodec==vcodecs[index]), onClick = {
                                             vcodec = vcodecs[index]
                                             val rSet = mutableSetOf<String>()
-                                            for (s in player.videoSpecs) if (s.resolution != null && s.codec == vcodec) rSet.add(s.resolution!!)
+                                            for (s in player.videoSpecs) buildResoSet(s, rSet)
                                             resolutions = rSet.toList()
                                             resolution = if (resolutions.isNotEmpty()) resolutions[0] else null
-                                            reset = true
+//                                            reset = true
                                             showCodecs = false
                                         })
                                     }

@@ -261,14 +261,16 @@ class MainActivity : BaseActivity() {
             forceRestart()
         }
         val curTime = nowInMillis()
-        if ((curTime - appPrefs.postRepeatsTime) / 3600000 > appPrefs.postRepeatsInternal) runOnIOScope {
-            val count = realm.query(Episode::class).query("playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code}").query("repeatTime <= $curTime").count().find()
-            upsert(appPrefs) { it.postRepeatsTime = curTime }
-            if (count > 0) withContext(Dispatchers.Main) {
-                commonConfirms.add(CommonConfirmAttrib(title = getString(R.string.repeats_past_due), message = getString(R.string.repeats_past_due_sum, count), confirmRes = R.string.OK, cancelRes = R.string.no,
-                    onConfirm = { navTo(Facets(modeName = QuickAccess.Due.name)) }))
+        Logd(TAG, "onResume curTime: $curTime postRepeatsTime: ${appPrefs.postRepeatsTime}")
+        if ((curTime - appPrefs.postRepeatsTime) > 3600000L * 24)
+            runOnIOScope {
+                val count = realm.query(Episode::class).query("playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code}").query("repeatTime <= $curTime").count().find()
+                upsert(appPrefs) { it.postRepeatsTime = curTime }
+                if (count > 0) withContext(Dispatchers.Main) {
+                    commonConfirms.add(CommonConfirmAttrib(title = getString(R.string.repeats_past_due), message = getString(R.string.repeats_past_due_sum, count), confirmRes = R.string.OK, cancelRes = R.string.no,
+                        onConfirm = { navTo(Facets(modeName = QuickAccess.Due.name)) }))
+                }
             }
-        }
 
         timeIt("$TAG end of onResume")
     }

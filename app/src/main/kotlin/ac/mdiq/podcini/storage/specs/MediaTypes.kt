@@ -23,6 +23,7 @@ enum class MediaType {
 }
 
 enum class FeedType {
+    Unknown,
     RSS,
     ATOM,
     YouTube,

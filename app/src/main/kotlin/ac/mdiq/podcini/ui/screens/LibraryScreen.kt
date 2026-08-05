@@ -541,6 +541,12 @@ class LibraryVM : ViewModel() {
             }
         }
 
+        viewModelScope.launch {
+            snapshotFlow { feedCount }.distinctUntilChanged().collect {
+                upsert(subPrefs) { it.langsSel = appAttribs.langSet }
+            }
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             queuesFlow.collect { changes ->
                 Logd(TAG, "queuesFlow.collect")
@@ -792,7 +798,7 @@ fun LibraryScreen() {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer", modifier = Modifier.padding(end = 10.dp).clickable { drawerController?.open() })
             if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
             else {
-                var feedCountState by remember(feedList.size, feedCount) { mutableStateOf("${feedList.size}/$feedCount") }
+                val feedCountState = remember(feedList.size, feedCount) { "${feedList.size}/$feedCount" }
                 Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
             }
             Spacer(Modifier.weight(1f))
@@ -1429,7 +1435,7 @@ fun LibraryScreen() {
                                                 }
                                                 onFilterChanged(filterValues)
                                             },
-                                        ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
+                                        ) { Text(text = if (item.values[0].displayName > 0) stringResource(item.values[0].displayName) else item.values[0].filterId, color = textColor) }
                                         Spacer(Modifier.width(20.dp))
                                         OutlinedButton(
                                             modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) borderColor else buttonAltColor),
@@ -1445,7 +1451,7 @@ fun LibraryScreen() {
                                                 }
                                                 onFilterChanged(filterValues)
                                             },
-                                        ) { Text(text = stringResource(item.values[1].displayName), color = textColor) } //                                    Spacer(Modifier.weight(0.5f))
+                                        ) { Text(text = if (item.values[1].displayName > 0) stringResource(item.values[1].displayName) else item.values[1].filterId, color = textColor) } //                                    Spacer(Modifier.weight(0.5f))
                                     }
                                 } else {
                                     Column(modifier = Modifier.fillMaxWidth()) {
@@ -1490,7 +1496,7 @@ fun LibraryScreen() {
                                                     allOrNone = c == 0 || c == item.values.size
                                                     onFilterChanged(filterValues)
                                                 },
-                                            ) { Text(text = stringResource(item.values[index].displayName), maxLines = 1, color = textColor) }
+                                            ) { Text(text = if (item.values[index].displayName > 0) stringResource(item.values[index].displayName) else item.values[index].filterId, maxLines = 1, color = textColor) }
                                         }
                                     }
                                 }
@@ -1583,7 +1589,7 @@ fun LibraryScreen() {
                         broadcastJob = scope.launch { broadcastPresence(udpPort, tcpPort) }
                         if (tcpPort != appAttribs.transceivePort) upsertBlk(appAttribs) { it.transceivePort = tcpPort }
                         receiver = when (contentType) {
-                            ContentType.Feed -> FeedReceiver(tcpPort)
+                            ContentType.Feed -> FeedReceiver(tcpPort, vm.curVolume?.id ?: -1L)
                             ContentType.Catalog -> CatalogReceiver(tcpPort) { onDismiss() }
                             ContentType.Episodes -> EpisodesReceiver(tcpPort) { onDismiss() }
                         }

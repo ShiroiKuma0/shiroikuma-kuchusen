@@ -102,26 +102,31 @@ object FeedUpdateManager {
             val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateOnceWorkId).get()
             for (wi in workInfos) Logd(TAG, "workInfos: ${wi.id} ${wi.initialDelayMillis} ${wi.runAttemptCount} ${wi.state}")
         }
-        if (!force && intervalInMillis == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
-        else {
-            var policy = ExistingWorkPolicy.KEEP
-            if (replace) {
-                upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
-                policy = ExistingWorkPolicy.REPLACE
-            }
-            if (!mobileAllowFeedRefresh && !force) {
-                Logt(TAG, context.getString(R.string.mobile_feed_refresh_message))
-                doItNow = false
-            }
-            val initialDelay = getInitialDelay(doItNow)
-            Logd(TAG, "initialDelay: $initialDelay")
-            val oneTimeRequest = oneRequest(initialDelay)
-            WorkManager.getInstance(context).enqueueUniqueWork(feedUpdateOnceWorkId, policy, oneTimeRequest)
+        if (!force && intervalInMillis == 0L) {
+            WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
+            return
         }
+        var policy = ExistingWorkPolicy.KEEP
+        if (replace) {
+            upsertBlk(appAttribs) { it.prefLastFullUpdateTime = nowInMillis() }
+            policy = ExistingWorkPolicy.REPLACE
+        }
+        if (!mobileAllowFeedRefresh && !force) {
+            Logt(TAG, context.getString(R.string.mobile_feed_refresh_message))
+            doItNow = false
+        }
+        val initialDelay = getInitialDelay(doItNow)
+        Logd(TAG, "initialDelay: $initialDelay")
+        val oneTimeRequest = oneRequest(initialDelay)
+        WorkManager.getInstance(context).enqueueUniqueWork(feedUpdateOnceWorkId, policy, oneTimeRequest)
     }
 
     fun checkAndScheduleUpdateTaskOnce(replace: Boolean, force: Boolean = false) {
         val context = getAppContext()
+        if (!force && intervalInMillis == 0L) {
+            WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
+            return
+        }
         when {
             !networkMonitor.isConnected -> {
                 Logt(TAG, "checkAndscheduleUpdateTaskOnce network not available")

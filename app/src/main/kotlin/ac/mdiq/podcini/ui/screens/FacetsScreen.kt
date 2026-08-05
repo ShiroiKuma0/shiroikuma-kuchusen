@@ -150,7 +150,7 @@ class FacetsVM(modeName_: String): ViewModel() {
     var tag = TAG+QuickAccess.entries[0]
 
     var facetsPrefsJob: Job? by mutableStateOf(null)
-    var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).query("id == 0").first().find() ?: FacetsPrefs()
+    var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).query("id == 0").first().find() ?: upsertBlk(FacetsPrefs()) {}
 
     var listIdentity by mutableStateOf("")
 
@@ -407,14 +407,17 @@ class FacetsVM(modeName_: String): ViewModel() {
 
     init {
         timeIt("$TAG start of init")
-        if (facetsPrefsJob == null) facetsPrefsJob = viewModelScope.launch(Dispatchers.IO) {
-            val flow = realm.query(FacetsPrefs::class).first().asFlow()
-            flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
-                when (changes) {
-                    is InitialObject -> facetsPrefs = changes.obj
-                    is UpdatedObject -> facetsPrefs = changes.obj
-                    is DeletedObject -> {}
-                    is PendingObject -> {}
+        if (facetsPrefsJob == null) {
+//            facetsPrefs = realm.query(FacetsPrefs::class).first().find() ?: upsertBlk(FacetsPrefs()) {}
+            facetsPrefsJob = viewModelScope.launch(Dispatchers.IO) {
+                val flow = realm.query(FacetsPrefs::class).first().asFlow()
+                flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
+                    when (changes) {
+                        is InitialObject -> facetsPrefs = changes.obj
+                        is UpdatedObject -> facetsPrefs = changes.obj
+                        is DeletedObject -> {}
+                        is PendingObject -> {}
+                    }
                 }
             }
         }

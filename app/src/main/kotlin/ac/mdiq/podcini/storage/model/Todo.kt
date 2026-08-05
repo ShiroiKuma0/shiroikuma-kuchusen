@@ -60,10 +60,10 @@ fun Todo.toDTO() = TodoDTO(
     dueTime = this.dueTime
 )
 
-fun TodoDTO.toRealm() = Todo().apply {
-    id = this@toRealm.id
-    title = this@toRealm.title
-    note = this@toRealm.note
-    completed = this@toRealm.completed
-    dueTime = this@toRealm.dueTime
+fun TodoDTO.toTodo() = Todo().apply {
+    id = this@toTodo.id
+    title = this@toTodo.title
+    note = this@toTodo.note
+    completed = this@toTodo.completed
+    dueTime = this@toTodo.dueTime
 }

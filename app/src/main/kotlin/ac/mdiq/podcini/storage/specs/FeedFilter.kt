@@ -3,7 +3,6 @@ package ac.mdiq.podcini.storage.specs
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 
 class FeedFilter(vararg properties_: String) {
@@ -48,10 +47,12 @@ class FeedFilter(vararg properties_: String) {
         }
 
         val typeQuerys = mutableListOf<String>()
-        if (properties.contains(FeedType.RSS.name)) typeQuerys.add(" type == ${FeedType.RSS.name} ")
-        if (properties.contains(FeedType.ATOM.name)) typeQuerys.add(" type == ${FeedType.ATOM.name} ")
-        if (properties.contains(FeedType.YouTube.name)) typeQuerys.add(" type == ${FeedType.YouTube.name} ")
-        if (properties.contains(FeedType.PeerTube.name)) typeQuerys.add(" type == ${FeedType.PeerTube.name} ")
+        if (properties.contains(FeedType.Unknown.name)) typeQuerys.add(" (type !=[c] '${FeedType.RSS.name}' AND type !=[c] '${FeedType.ATOM.name}' AND type !=[c] '${FeedType.YouTube.name}' AND type !=[c] '${FeedType.PeerTube.name}' AND type !=[c] '${FeedType.SoundCloud.name}') ")
+        if (properties.contains(FeedType.RSS.name)) typeQuerys.add(" type ==[c] '${FeedType.RSS.name}' ")
+        if (properties.contains(FeedType.ATOM.name)) typeQuerys.add(" type ==[c] '${FeedType.ATOM.name}' ")
+        if (properties.contains(FeedType.YouTube.name)) typeQuerys.add(" type ==[c] '${FeedType.YouTube.name}' ")
+        if (properties.contains(FeedType.PeerTube.name)) typeQuerys.add(" type ==[c] '${FeedType.PeerTube.name}' ")
+        if (properties.contains(FeedType.SoundCloud.name)) typeQuerys.add(" type ==[c] '${FeedType.SoundCloud.name}' ")
         if (typeQuerys.isNotEmpty()) {
             val query = StringBuilder(" (" + typeQuerys[0])
             if (typeQuerys.size > 1) for (r in typeQuerys.subList(1, typeQuerys.size)) {
@@ -162,7 +163,7 @@ class FeedFilter(vararg properties_: String) {
         KEEP_UPDATED(R.string.keep_updated, ItemProperties(R.string.yes, States.keepUpdated.name), ItemProperties(R.string.no, States.not_keepUpdated.name)),
         HAS_VIDEO(R.string.has_video, ItemProperties(R.string.yes, States.has_video.name), ItemProperties(R.string.no, States.no_video.name)),
         PLAY_SPEED(R.string.play_speed, ItemProperties(R.string.global, States.global_playSpeed.name), ItemProperties(R.string.custom_speed, States.custom_playSpeed.name)),
-        ORIGIN(R.string.feed_origin, ItemProperties(R.string.rss, FeedType.RSS.name), ItemProperties(R.string.atom, FeedType.ATOM.name), ItemProperties(R.string.youtube, FeedType.YouTube.name), ItemProperties(R.string.youtube, FeedType.PeerTube.name)),
+        ORIGIN(R.string.feed_origin, ItemProperties(R.string.unknown, FeedType.Unknown.name), ItemProperties(R.string.rss, FeedType.RSS.name), ItemProperties(R.string.atom, FeedType.ATOM.name), ItemProperties(R.string.youtube, FeedType.YouTube.name), ItemProperties(R.string.peertube, FeedType.PeerTube.name), ItemProperties(R.string.soundcloud, FeedType.SoundCloud.name)),
         TYPE(R.string.feed_type, ItemProperties(R.string.synthetic, States.synthetic.name), ItemProperties(R.string.normal, States.normal.name)),
         IS_LOCAL(R.string.is_local, ItemProperties(R.string.yes, States.is_local.name), ItemProperties(R.string.no, States.remote.name)),
         SKIPS(R.string.has_skips, ItemProperties(R.string.yes, States.has_skips.name), ItemProperties(R.string.no, States.no_skips.name)),
@@ -176,6 +177,6 @@ class FeedFilter(vararg properties_: String) {
 
         val values: Array<ItemProperties> = arrayOf(*values_)
 
-        class ItemProperties(val displayName: Int, val filterId: String)
+        data class ItemProperties(val displayName: Int, val filterId: String)
     }
 }

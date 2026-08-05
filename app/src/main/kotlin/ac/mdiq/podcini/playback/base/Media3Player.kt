@@ -792,17 +792,17 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             if (isPlaying) switchOffload()
         }
 
-        val baseMinBuffer = 15_000
-        val baseMaxBuffer = 50_000
-        val basePlaybackMs = 2500
-        val baseRebufferMs = 5000
+        val basePlaybackMs = 800
+        val baseRebufferMs = 2500
+        val baseMinBufferMs = 15_000
+        val baseMaxBufferMs = 50_000
 
-        val targetPlaybackMs = (basePlaybackMs * speed).toInt().coerceAtMost(6000)
-        val targetRebufferMs = (baseRebufferMs * speed).toInt().coerceAtMost(12000)
-        val requiredMinBuffer = (baseMinBuffer * speed).toInt()
-        val targetMaxBuffer = maxOf(baseMaxBuffer, requiredMinBuffer + 10_000)
-        Logd(TAG, "set player buffer: $baseMinBuffer $targetMaxBuffer $targetPlaybackMs $targetRebufferMs")
-        loadControl?.updateBufferParameters(minBufferMs = baseMinBuffer, maxBufferMs = targetMaxBuffer, playbackMs = targetPlaybackMs, rebufferMs = targetRebufferMs, true)
+        val targetPlaybackMs = (basePlaybackMs * speed).toInt().coerceIn(800, 3000)
+        val targetRebufferMs = (baseRebufferMs * speed).toInt().coerceIn(2000, 8000)
+        val targetMaxBufferMs = maxOf(baseMaxBufferMs, (baseMinBufferMs * speed).toInt() + 10_000)
+
+        Logd(TAG, "set player buffer: $baseMinBufferMs $targetMaxBufferMs $targetPlaybackMs $targetRebufferMs")
+        loadControl?.updateBufferParameters(minBufferMs = baseMinBufferMs, maxBufferMs = targetMaxBufferMs, playbackMs = targetPlaybackMs, rebufferMs = targetRebufferMs, true)
 
         playbackParameters = PlaybackParameters(if (speed <= 0) playbackParameters.speed else speed, if (pitch <= 0f) playbackParameters.pitch else pitch)
         setPlaybackParams()

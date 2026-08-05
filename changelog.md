@@ -1,3 +1,19 @@
+# 12.5.5
+
+* in StreamChanger popup, added Protocols for video streams, and only selecting bitrate or resolution activates Confirm
+* tuned player buffer sizing for faster starts and little hiccups
+* in Library:
+	* amended feed origin filters and fixed crash
+	* reset language filter when feeds are added/removed
+	* when receiving feeds from other device, feeds are put to the current volume
+* made toast show up in front of others
+* in Search screen, ensure to add all query strings to history 
+* fixed reminder of past due media showing too often (interval should be at least 24 hours)
+* disabled Download option in action button's alternative menu for media from external apps (not supported yet)
+* in Settings->Network and Storage, setting refresh interval to 0 no longer pops up confirm action
+* tuned some initialization procedure
+* some code refactoring
+
 # 12.5.4
 
 * toasts defer to confirm actions, and are stripped off tags

@@ -23,6 +23,7 @@ import ac.mdiq.podcini.playback.base.TTSEngine.tts
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsJob
 import ac.mdiq.podcini.playback.base.TTSEngine.ttsTmpFiles
 import ac.mdiq.podcini.playback.service.PlaybackService
+import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.isMediaDownloadable
@@ -410,14 +411,17 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
-                        btn.onClick()
-                        type = btn.type
-                        onDismiss()
-                    }) {
-                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DOWNLOAD.drawable), modifier = Modifier.size(24.dp), contentDescription = "Download")
-                        Text(stringResource(ButtonTypes.DOWNLOAD.labelRes))
+                    val client = clientByEpisode(item)
+                    if (client?.attributes?.supportDownload != false) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
+                            val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
+                            btn.onClick()
+                            type = btn.type
+                            onDismiss()
+                        }) {
+                            Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DOWNLOAD.drawable), modifier = Modifier.size(24.dp), contentDescription = "Download")
+                            Text(stringResource(ButtonTypes.DOWNLOAD.labelRes))
+                        }
                     }
                 }
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {

@@ -1400,7 +1400,7 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
 
 @Composable
 fun ConfirmAddToFeed(onDismiss: () -> Unit, cb: suspend (Feed)-> Unit) {
-    var synthetics by remember { mutableStateOf(allFeeds.filter { it.id in 1..1000 }) }
+    val synthetics = remember { allFeeds.filter { it.id in 1..1000 } }
     Dialog(onDismissRequest = { onDismiss() }) {
         Card(modifier = Modifier.height(350.dp).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             var toFeed by remember { mutableStateOf<Feed?>(null) }

@@ -806,30 +806,30 @@ fun Feed.toDTO() = FeedDTO(
     commentTime = this.commentTime
 )
 
-fun FeedDTO.toRealm(): Feed = Feed().apply {
-    id = this@toRealm.id
+fun FeedDTO.toFeed(): Feed = Feed().apply {
+    id = this@toFeed.id
     val feed = getFeed(id) ?: this
     return upsertBlk(feed) {
-        if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
-        if (it.eigenTitle == null) it.eigenTitle = this@toRealm.eigenTitle
-        it.customTitle = this@toRealm.customTitle
+        if (it.downloadUrl == null) it.downloadUrl = this@toFeed.downloadUrl
+        if (it.eigenTitle == null) it.eigenTitle = this@toFeed.eigenTitle
+        it.customTitle = this@toFeed.customTitle
 
-        if (it.link == null) it.link = this@toRealm.link
-        if (it.description == null) it.description = this@toRealm.description
-        if (it.author == null) it.author = this@toRealm.author
-        if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
-        if (it.type == null) it.type = this@toRealm.type
-        it.hasVideoMedia = this@toRealm.hasVideoMedia
+        if (it.link == null) it.link = this@toFeed.link
+        if (it.description == null) it.description = this@toFeed.description
+        if (it.author == null) it.author = this@toFeed.author
+        if (it.imageUrl == null) it.imageUrl = this@toFeed.imageUrl
+        if (it.type == null) it.type = this@toFeed.type
+        it.hasVideoMedia = this@toFeed.hasVideoMedia
 
-        it.episodesCount = this@toRealm.episodesCount
-        it.limitEpisodesCount = this@toRealm.limitEpisodesCount
-        it.lastPlayed = this@toRealm.lastPlayed
-        it.lastUpdateTime = this@toRealm.lastUpdateTime
-        it.lastFullUpdateTime = this@toRealm.lastFullUpdateTime
-        it.tags = this@toRealm.tags.toRealmSet()
-        it.rating = this@toRealm.rating
-        it.comment = this@toRealm.comment
-        it.commentTime = this@toRealm.commentTime
+        it.episodesCount = this@toFeed.episodesCount
+        it.limitEpisodesCount = this@toFeed.limitEpisodesCount
+        it.lastPlayed = this@toFeed.lastPlayed
+        it.lastUpdateTime = this@toFeed.lastUpdateTime
+        it.lastFullUpdateTime = this@toFeed.lastFullUpdateTime
+        it.tags = this@toFeed.tags.toRealmSet()
+        it.rating = this@toFeed.rating
+        it.comment = this@toFeed.comment
+        it.commentTime = this@toFeed.commentTime
     }
 }
 

@@ -38,12 +38,12 @@ object ClientConfig {
     @Synchronized
     fun initialize() {
         if (initialized) return
+
         getRealmInstance()
+        initAppPrefs()
         discoverSources(appPrefs.loadExternalApp)
 
         if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch { networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) } }
-
-        initAppPrefs()
 
         CoroutineScope(Dispatchers.IO).launch { createCacheDir() }
 

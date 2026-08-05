@@ -25,9 +25,9 @@ import kotlin.uuid.Uuid
 
 private const val TAG = "AppPrefs"
 
-var appPrefs: AppPrefs by mutableStateOf(realm.query(AppPrefs::class).query("id == 0").first().find() ?: AppPrefs() )
+var appPrefs: AppPrefs by mutableStateOf(AppPrefs() )
 
-var appAttribs: AppAttribs by mutableStateOf(realm.query(AppAttribs::class).query("id == 0").first().find() ?: AppAttribs() )
+var appAttribs: AppAttribs by mutableStateOf(AppAttribs() )
     private set
 
 var syncPrefs: SyncPrefs by mutableStateOf(SyncPrefs() )
@@ -44,64 +44,76 @@ var syncPrefsJob: Job? = null
 
 @OptIn(ExperimentalUuidApi::class)
 fun initAppPrefs() {
-    if (appPrefsJob == null) appPrefsJob = CoroutineScope(Dispatchers.IO).launch {
-        val flow = realm.query(AppPrefs::class).query("id == 0").first().asFlow()
-        flow.collect { changes: SingleQueryChange<AppPrefs> ->
-            when (changes) {
-                is InitialObject -> {
-                    Logd(TAG, "appPrefsJob InitialObject ")
-                    appPrefs = changes.obj
+    if (appPrefsJob == null) {
+        appPrefs = realm.query(AppPrefs::class).query("id == 0").first().find() ?: upsertBlk(AppPrefs()) {}
+        appPrefsJob = CoroutineScope(Dispatchers.IO).launch {
+            val flow = realm.query(AppPrefs::class).query("id == 0").first().asFlow()
+            flow.collect { changes: SingleQueryChange<AppPrefs> ->
+                when (changes) {
+                    is InitialObject -> {
+                        Logd(TAG, "appPrefsJob InitialObject ")
+                        appPrefs = changes.obj
+                    }
+                    is UpdatedObject -> {
+                        Logd(TAG, "appPrefsJob UpdatedObject ${changes.obj.ringToneName}")
+                        appPrefs = changes.obj
+                    }
+                    is DeletedObject -> {}
+                    is PendingObject -> {}
                 }
-                is UpdatedObject -> {
-                    Logd(TAG, "appPrefsJob UpdatedObject ${changes.obj.ringToneName}")
-                    appPrefs = changes.obj
-                }
-                is DeletedObject -> {}
-                is PendingObject -> {}
             }
         }
     }
 
-    if (appAttribsJob == null) appAttribsJob = CoroutineScope(Dispatchers.IO).launch {
-        if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = Uuid.random().toString() }
+    if (appAttribsJob == null) {
+        appAttribs = realm.query(AppAttribs::class).query("id == 0").first().find() ?: upsertBlk(AppAttribs()) {}
+        appAttribsJob = CoroutineScope(Dispatchers.IO).launch {
+            if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = Uuid.random().toString() }
 
-        val flow = realm.query(AppAttribs::class).query("id == 0").first().asFlow()
-        flow.collect { changes: SingleQueryChange<AppAttribs> ->
-            when (changes) {
-                is InitialObject -> {
-                    Logd(TAG, "appAttribsJob InitialObject ")
-                    withContext(Dispatchers.Main) {  appAttribs = changes.obj }
+            val flow = realm.query(AppAttribs::class).query("id == 0").first().asFlow()
+            flow.collect { changes: SingleQueryChange<AppAttribs> ->
+                when (changes) {
+                    is InitialObject -> {
+                        Logd(TAG, "appAttribsJob InitialObject ")
+                        withContext(Dispatchers.Main) {  appAttribs = changes.obj }
+                    }
+                    is UpdatedObject -> {
+                        Logd(TAG, "appAttribsJob UpdatedObject ")
+                        withContext(Dispatchers.Main) {  appAttribs = changes.obj }
+                    }
+                    is DeletedObject -> {}
+                    is PendingObject -> {}
                 }
-                is UpdatedObject -> {
-                    Logd(TAG, "appAttribsJob UpdatedObject ")
-                    withContext(Dispatchers.Main) {  appAttribs = changes.obj }
-                }
-                is DeletedObject -> {}
-                is PendingObject -> {}
             }
         }
     }
-    if (sleepPrefsJob == null) sleepPrefsJob = CoroutineScope(Dispatchers.IO).launch {
-        val flow = realm.query(SleepPrefs::class).query("id == 0").first().asFlow()
-        flow.collect { changes: SingleQueryChange<SleepPrefs> ->
-            Logd(TAG, "sleepPrefsJob flow.collect")
-            when (changes) {
-                is UpdatedObject -> sleepPrefs = changes.obj
-                is InitialObject -> sleepPrefs = changes.obj
-                is DeletedObject -> {}
-                is PendingObject -> {}
+    if (sleepPrefsJob == null) {
+        sleepPrefs = realm.query(SleepPrefs::class).query("id == 0").first().find() ?: upsertBlk(SleepPrefs()) {}
+        sleepPrefsJob = CoroutineScope(Dispatchers.IO).launch {
+            val flow = realm.query(SleepPrefs::class).query("id == 0").first().asFlow()
+            flow.collect { changes: SingleQueryChange<SleepPrefs> ->
+                Logd(TAG, "sleepPrefsJob flow.collect")
+                when (changes) {
+                    is UpdatedObject -> sleepPrefs = changes.obj
+                    is InitialObject -> sleepPrefs = changes.obj
+                    is DeletedObject -> {}
+                    is PendingObject -> {}
+                }
             }
         }
     }
-    if (syncPrefsJob == null) syncPrefsJob = CoroutineScope(Dispatchers.IO).launch {
-        val flow = realm.query(SyncPrefs::class).query("id == 0").first().asFlow()
-        flow.collect { changes: SingleQueryChange<SyncPrefs> ->
-            Logd(TAG, "syncPrefsJob flow.collect")
-            when (changes) {
-                is UpdatedObject -> syncPrefs = changes.obj
-                is InitialObject -> syncPrefs = changes.obj
-                is DeletedObject -> {}
-                is PendingObject -> {}
+    if (syncPrefsJob == null) {
+        syncPrefs = realm.query(SyncPrefs::class).query("id == 0").first().find() ?: upsertBlk(SyncPrefs()) {}
+        syncPrefsJob = CoroutineScope(Dispatchers.IO).launch {
+            val flow = realm.query(SyncPrefs::class).query("id == 0").first().asFlow()
+            flow.collect { changes: SingleQueryChange<SyncPrefs> ->
+                Logd(TAG, "syncPrefsJob flow.collect")
+                when (changes) {
+                    is UpdatedObject -> syncPrefs = changes.obj
+                    is InitialObject -> syncPrefs = changes.obj
+                    is DeletedObject -> {}
+                    is PendingObject -> {}
+                }
             }
         }
     }

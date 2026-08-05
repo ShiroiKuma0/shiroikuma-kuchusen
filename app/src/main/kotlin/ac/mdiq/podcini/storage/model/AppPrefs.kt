@@ -55,7 +55,6 @@ class AppPrefs: RealmObject {
     var autoBackupLimit: Int = 2
     var autoBackupTimeStamp: Long = 0L
 
-    var postRepeatsInternal: Int = 24
     var postRepeatsTime: Long = 0L
 
     var useCustomMediaFolder: Boolean = false
@@ -161,7 +160,6 @@ class AppPrefs: RealmObject {
         if (autoBackupIntervall != other.autoBackupIntervall) return false
         if (autoBackupLimit != other.autoBackupLimit) return false
         if (autoBackupTimeStamp != other.autoBackupTimeStamp) return false
-        if (postRepeatsInternal != other.postRepeatsInternal) return false
         if (postRepeatsTime != other.postRepeatsTime) return false
         if (useCustomMediaFolder != other.useCustomMediaFolder) return false
         if (customFolderUnavailable != other.customFolderUnavailable) return false
@@ -243,7 +241,6 @@ class AppPrefs: RealmObject {
         result = 31 * result + autoBackupIntervall
         result = 31 * result + autoBackupLimit
         result = 31 * result + autoBackupTimeStamp.hashCode()
-        result = 31 * result + postRepeatsInternal.hashCode()
         result = 31 * result + postRepeatsTime.hashCode()
         result = 31 * result + useCustomMediaFolder.hashCode()
         result = 31 * result + customFolderUnavailable.hashCode()

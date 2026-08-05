@@ -131,7 +131,20 @@ import kotlinx.coroutines.withContext
 private var curSearchString by mutableStateOf("")
 fun setSearchTerms(query: String? = null) {
     Logd("setSearchTerms", "query: $query")
-    if (query != null) curSearchString = query
+    if (query != null) {
+        curSearchString = query
+        saveToSearchHistory()
+    }
+}
+
+private fun saveToSearchHistory() {
+    runOnIOScope {
+        upsert(appAttribs) {
+            if (curSearchString in it.searchHistory) it.searchHistory.remove(curSearchString)
+            it.searchHistory.add(0, curSearchString)
+            if (it.searchHistory.size > SearchHistorySize + 4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
+        }
+    }
 }
 
 private val remoteMediaCache = LruCache<String, List<Episode>>(1)
@@ -318,13 +331,7 @@ fun SearchScreen() {
                     SearchBarRow(R.string.search_hint, defaultText = curSearchString, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
                         if (str.isBlank()) return@SearchBarRow
                         curSearchString = str
-                        runOnIOScope {
-                            upsert(appAttribs) {
-                                if (str in it.searchHistory) it.searchHistory.remove(str)
-                                it.searchHistory.add(0, str)
-                                if (it.searchHistory.size > SearchHistorySize + 4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
-                            }
-                        }
+                        saveToSearchHistory()
                     }
                     if (vm.selectedTabIndex in listOf(0, 2)) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable { showSortDialog = true })
                 } },

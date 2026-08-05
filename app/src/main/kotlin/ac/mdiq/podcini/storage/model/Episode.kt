@@ -725,8 +725,8 @@ fun Episode.toBasicDTO() = EpisodeDTO(
     commentTime = this.commentTime,
 )
 
-fun EpisodeDTO.toRealm(): Episode = Episode().apply {
-    val dto = this@toRealm
+fun EpisodeDTO.toEpisode(): Episode = Episode().apply {
+    val dto = this@toEpisode
     id = dto.id
     val e = episodeById(id) ?: this
 
@@ -755,7 +755,7 @@ fun EpisodeDTO.toRealm(): Episode = Episode().apply {
         it.marks = dto.marks.toRealmSet()
         it.clips = dto.clips.toRealmSet()
         it.todos.clear()
-        it.todos.addAll(dto.todos.map { td -> td.toRealm() })
+        it.todos.addAll(dto.todos.map { td -> td.toTodo() })
 
         if (dto.ratingTime > 0L || dto.rating > Rating.UNRATED.code) it.setRating(Rating.fromCode(dto.rating), setTime = dto.ratingTime)
         if (dto.commentTime > 0L || dto.comment.isNotBlank()) it.addComment(dto.comment, addition = false, setTime = dto.commentTime)
@@ -821,4 +821,4 @@ fun Episode.toWidget() = WidgetEpisode(
     r = this.rating
 )
 
-fun WidgetEpisode.toRealm() = realm.query(Episode::class).query("id = ${this.id}").first().find()
+fun WidgetEpisode.findEpisode() = realm.query(Episode::class).query("id = ${this.id}").first().find()
