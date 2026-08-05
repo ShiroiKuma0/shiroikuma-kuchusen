@@ -10,6 +10,7 @@ import ac.mdiq.podcini.storage.database.addClientEpisode
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -199,7 +200,8 @@ fun LogsScreen() {
         if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismiss = { showSharedDialog.value = false })
 
         var sharedUrl by remember { mutableStateOf("") }
-        if (sharedUrl.isNotBlank()) ConfirmAddToFeed(onDismiss = { sharedUrl = "" }) { toFeed->
+        if (sharedUrl.isNotBlank()) ConfirmAddToFeed(onDismiss = {  }) { toFeed->
+            Logd(TAG, "ConfirmAddToFeed cb sharedUrl: $sharedUrl")
             val log = realm.query(ShareLog::class).query("url == $0", sharedUrl).first().find()
             var client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 1 } == true }
             if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
@@ -207,34 +209,42 @@ fun LogsScreen() {
                 client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 0 } == true }
                 if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
             }
+            sharedUrl = ""
         }
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
                 Row (modifier = Modifier.clickable {
-                    if (log.status < ShareLog.Status.SUCCESS.ordinal) receiveShared(log.url!!, context as MainActivity, false, log) { _, _ ->  sharedUrl = log.url!! }
-                    else {
-                        Logd(TAG, "shared log url: ${log.url}")
-                        var hasError = false
-                        when(log.type) {
-                            ShareLog.ShareType.Media.name -> {
-                                val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
-                                if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
-                                else hasError = true
-                            }
-                            ShareLog.ShareType.Podcast.name -> {
-                                val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
-                                if (feed != null) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
-                                else hasError = true
-                            }
-                            else -> {
-                                showSharedDialog.value = true
-                                sharedlogState.value = log
-                            }
+                    Logd(TAG, "shared log url: ${log.url}")
+                    if (log.status in listOf(ShareLog.Status.ERROR.ordinal, ShareLog.Status.MISSING.ordinal)) {
+                        Logt(TAG, "Handling shared url...")
+                        runOnIOScope { receiveShared(log.url!!, context as MainActivity, false, log) { _, _ ->  sharedUrl = log.url!! } }
+                        return@clickable
+                    }
+                    var hasError = false
+                    when(log.type) {
+                        ShareLog.ShareType.Media.name -> {
+                            val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
+                            if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
+                            else hasError = true
                         }
-                        if (hasError) {
+                        ShareLog.ShareType.Podcast.name -> {
+                            val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
+                            if (feed != null) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
+                            else hasError = true
+                        }
+                        else -> {
                             showSharedDialog.value = true
                             sharedlogState.value = log
+                        }
+                    }
+                    if (hasError) {
+                        runOnIOScope {
+                            Logt(TAG, "Handling shared url...")
+                            val log_ = upsertBlk(log) { it.status = ShareLog.Status.MISSING.ordinal }
+                            vm.shareLogs = listOf()
+                            vm.loadShareLog()
+                            receiveShared(log_.url!!, context as MainActivity, false, log_) { _, _ -> sharedUrl = log_.url!! }
                         }
                     }
                 }) {
@@ -250,12 +260,7 @@ fun LogsScreen() {
                         }
                         Text(log.title?:"unknown title", color = textColor)
                         Text(log.url?:"unknown url", color = textColor)
-                        val statusText = when (log.status) {
-                            ShareLog.Status.ERROR.ordinal -> ShareLog.Status.ERROR.name
-                            ShareLog.Status.SUCCESS.ordinal -> ShareLog.Status.SUCCESS.name
-                            ShareLog.Status.EXISTING.ordinal -> ShareLog.Status.EXISTING.name
-                            else -> ""
-                        }
+                        val statusText = ShareLog.Status.entries.getOrNull(log.status)?.name ?: ShareLog.Status.ERROR.name
                         Row {
                             Text(statusText, color = textColor)
                             Spacer(Modifier.weight(1f))
@@ -342,7 +347,8 @@ fun LogsScreen() {
                 }
             }
         }
-        val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
+//        val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
+        val message = status.reasonDetailed
         val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
         CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {

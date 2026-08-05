@@ -589,6 +589,7 @@ class Feed : RealmObject {
         if (eigenTitle != other.eigenTitle) return false
         if (customTitle != other.customTitle) return false
         if (link != other.link) return false
+        if (downloadUrl != other.downloadUrl) return false
         if (langSet.size != other.langSet.size) return false
         if (author != other.author) return false
         if (type != other.type) return false
@@ -670,6 +671,7 @@ class Feed : RealmObject {
         result = 31 * result + (eigenTitle?.hashCode() ?: 0)
         result = 31 * result + (customTitle?.hashCode() ?: 0)
         result = 31 * result + (link?.hashCode() ?: 0)
+        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
         result = 31 * result + langSet.size
         result = 31 * result + (author?.hashCode() ?: 0)
         result = 31 * result + (type?.hashCode() ?: 0)

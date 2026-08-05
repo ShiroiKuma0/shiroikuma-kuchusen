@@ -1,3 +1,13 @@
+# 12.5.6
+
+* in Shares mode of Logs screen
+	* click on a Success log with missing feed/episode turns it into Missing status
+	* click on a Error/Missing log opens the share dialog
+	* fixed crash on log handled by an external app
+* in Downloads mode of Logs screen, details of a Success log are shown on popup
+* in FeedSettings, fixed edit url not persisted
+* not toasting "new episode duration less than 1 second"
+
 # 12.5.5
 
 * in StreamChanger popup, added Protocols for video streams, and only selecting bitrate or resolution activates Confirm

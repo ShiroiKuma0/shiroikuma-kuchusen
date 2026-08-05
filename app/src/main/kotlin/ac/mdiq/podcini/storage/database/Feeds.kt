@@ -4,8 +4,9 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.shared.getEntityId
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
@@ -14,18 +15,16 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.QueueEntry
-import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.toEpisode
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.FeedType
+import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.LogtFor
 import android.app.backup.BackupManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -526,7 +525,8 @@ suspend fun updateFeedSimple(newFeed: Feed, downloadStatus: DownloadResult? = nu
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
         if (episode.duration < 1000 && !savedFeed.acceptTinyEpisodes) {
-            LogtFor(TAG, episode.id, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
+//            LogtFor(TAG, episode.id, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
+            Logd(TAG, "new episode duration less than 1 second, ignored. in Feed: ${newFeed.title}")
             downloadStatus?.addDetail("new episode duration less than 1 second, ignored: ${episode.title}")
             continue
         }

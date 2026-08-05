@@ -283,7 +283,7 @@ fun CommonToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     if (isForeground && commonConfirms.isEmpty()) {
-        Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }, properties = PopupProperties(focusable = true, clippingEnabled = false)) {
+        Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }, properties = PopupProperties(focusable = false, clippingEnabled = false)) {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 var onHold by remember { mutableStateOf(false) }
                 Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.End) {

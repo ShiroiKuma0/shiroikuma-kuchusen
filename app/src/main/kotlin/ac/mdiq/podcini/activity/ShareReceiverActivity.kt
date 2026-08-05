@@ -10,6 +10,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.utils.toSafeUri
@@ -72,23 +73,20 @@ class ShareReceiverActivity : ComponentActivity() {
         var failed by mutableStateOf(false)
         var client by mutableStateOf<SourceGatewayClient?>(null)
         var existing by mutableStateOf<List<Episode>?>(null)
+        suspend fun addEpisode(toFeed: Feed) {
+            val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
+            if (client != null) addClientEpisode(client!!, text, toFeed, log)
+            else Loge(TAG, "Failed adding episode: client is null. url=$text")
+        }
         setContent { PodciniTheme {
             when {
                 failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
                     confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed->
-                    val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
-                    if (client != null) addClientEpisode(client!!, text, toFeed, log)
-                    else Loge(TAG, "Failed adding episode: client is null")
-                }
+                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(toFeed) }
                 existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed->
-                    val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
-                    if (client != null) addClientEpisode(client!!, text, toFeed, log)
-                    else Loge(TAG, "Failed adding episode: client is null")
-                }
+                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(toFeed) }
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {

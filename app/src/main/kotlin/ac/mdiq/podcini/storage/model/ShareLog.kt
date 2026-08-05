@@ -31,7 +31,8 @@ class ShareLog : RealmObject {
     enum class Status {
         ERROR,
         SUCCESS,
-        EXISTING
+        EXISTING,
+        MISSING
     }
 
     enum class ShareType {
