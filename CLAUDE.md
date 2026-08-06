@@ -42,7 +42,7 @@ source packages remain unchanged — only the installed package id, label, and i
 
 We base our version on upstream and add a fork increment (`BUILD_NUMBER`).
 
-- `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (currently `12.1.7` / `60`).
+- `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (currently `12.5.6` / `94`).
 - `BUILD_NUMBER` is **our** increment. It starts at `1` and bumps by `1` on every build.
 - Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"` (e.g. `12.1.7+1`).
 - Fork `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (e.g. `60 * 10000 + 1 = 600001`).
