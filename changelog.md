@@ -6,6 +6,7 @@
 	* Clear logs is moved to the menu
 	* EpisodeInfo opened from Logs screen does not have a Close icon
 * some code cleaning: removed most ordinal references in enum classes
+* github actions not working?
 
 # 12.5.6
 
