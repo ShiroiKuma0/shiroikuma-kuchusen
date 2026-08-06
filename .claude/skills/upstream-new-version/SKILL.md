@@ -1,12 +1,12 @@
 ---
 name: upstream-new-version
-description: Rebase our fork onto a new upstream release of XilinJia/Podcini.A. Use when 白い熊 says a new upstream version is out, asks to update/sync to upstream, bump to the new Podcini.A release, or rebase custom onto the latest upstream. Fast-forwards the main mirror, replays our custom layer, resets the version base + build counter, and builds the new +1 via the build-apk skill.
+description: Rebase our fork onto a new upstream release of XilinJia/Podcini.A. Use when 白い熊 says a new upstream version is out, asks to update/sync to upstream, bump to the new Podcini.A release, or rebase custom onto the latest upstream. Fast-forwards the main mirror, replays our custom layer, resets the version base + build counter, and builds the new +001 via the build-apk skill.
 ---
 
 # Rebase the fork onto a new upstream release
 
 This codifies the "new upstream version" half of the fork workflow. The goal: move `main` to the
-new upstream release, replay our `custom` customizations on top of it, and produce a fresh `+1` build.
+new upstream release, replay our `custom` customizations on top of it, and produce a fresh `+001` build.
 
 > **Never `git push` or `git commit` unprompted, and never `adb install`.** Same hard rules as
 > everyday development (see CLAUDE.md). After the rebase + build you stop and let 白い熊 test; you
@@ -16,7 +16,8 @@ new upstream release, replay our `custom` customizations on top of it, and produ
 
 - `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (XilinJia/Podcini.A).
 - `BUILD_NUMBER` is **our** fork increment. It **resets to `1`** on each new upstream version.
-- Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"`, `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER`.
+- Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"` with the counter **zero-padded to three
+  digits** (e.g. `12.5.6+001`); `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (plain integer).
 - `app/build.gradle.kts` derives `forkVersionName` / `forkVersionCode` from those three and exposes
   the `buildFork` task. The code namespace stays `ac.mdiq.podcini`; only the installed `APP_ID`
   (`shiroikuma.kuchusen`) and the label differ.
@@ -73,10 +74,10 @@ anti-tamper, and `com.github.XilinJia:PodciniLib` is consumed straight from jitp
    `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew :app:tasks --group build` should list
    `buildFork` and report `BUILD SUCCESSFUL`.
 
-6. **Build the new `+1`** via the **build-apk** skill
+6. **Build the new `+001`** via the **build-apk** skill
    (`JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork < /dev/null`); build-apk then
    delivers the APK automatically via `/after-build` (adb push if a phone is connected, else scp to
-   skhw — no prompt). This is the first build of the new upstream line (`<newVersion>+1`).
+   skhw — no prompt). This is the first build of the new upstream line (`<newVersion>+001`).
 
 7. **Stop.** Let 白い熊 test. Commit/push only on their explicit **"Push"** (force-push needed for
    `custom` since rebasing rewrites history: `git push --force-with-lease origin custom`; `main` is a
