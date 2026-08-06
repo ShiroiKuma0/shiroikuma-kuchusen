@@ -40,9 +40,10 @@ description: Build the signed free release APK with the buildFork Gradle task, t
 
 1. **Note the output filename.** Read the current version and build number:
    - `grep -E 'VERSION_NAME|VERSION_CODE|BUILD_NUMBER' gradle.properties`
-   - The APK will be `shiroikuma-kuchusen_<VERSION_NAME>+<BUILD_NUMBER>_arm64-v8a.apk`,
+   - The APK will be `shiroikuma-kuchusen_<VERSION_NAME>+<BUILD_NUMBER>_arm64-v8a.apk` with the
+     counter **zero-padded to three digits** (e.g. `shiroikuma-kuchusen_12.5.6+002_arm64-v8a.apk`),
      using the `BUILD_NUMBER` value **before** the build (the task bumps it afterward).
-   - versionCode for that build = `VERSION_CODE * 10000 + BUILD_NUMBER`.
+   - versionCode for that build = `VERSION_CODE * 10000 + BUILD_NUMBER` (plain integer, unpadded).
 
 2. **Build** (needs JDK 21 — the default `java` on this machine is JDK 11):
    - `JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork < /dev/null`
