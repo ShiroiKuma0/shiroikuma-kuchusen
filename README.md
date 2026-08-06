@@ -10,7 +10,7 @@ A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additi
 
 Installs **side-by-side** with Podcini.A (app id `shiroikuma.kuchusen`).
 
-**📥 Latest release: [`12.4.10+5`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
+**📥 Latest release: [`12.5.6+002`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
 
 </div>
 
@@ -47,4 +47,4 @@ cd shiroikuma-kuchusen
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork
 ```
 
-`buildFork` assembles the signed arm64-v8a `free` release APK as `shiroikuma-kuchusen_<version>+<build>_arm64-v8a.apk` and bumps the build counter. Development happens on the `custom` branch; `main` mirrors upstream.
+`buildFork` assembles the signed arm64-v8a `free` release APK as `shiroikuma-kuchusen_<version>+<build>_arm64-v8a.apk` — the build counter zero-padded to three digits, so builds sort in order — and bumps the counter. Development happens on the `custom` branch; `main` mirrors upstream.
