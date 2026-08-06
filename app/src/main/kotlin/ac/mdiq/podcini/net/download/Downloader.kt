@@ -124,7 +124,7 @@ abstract class Downloader(val request: DownloadRequest) {
                 Loge(TAG, "Could not find appropriate downloader for " + request.source)
                 return null
             }
-            return if (request.feedfileType == RequestTye.FEED.ordinal) FeedDownloader(request) else EpisodeDownloader(request)
+            return if (request.feedfileType == RequestType.FEED.code) FeedDownloader(request) else EpisodeDownloader(request)
         }
     }
 }
@@ -263,7 +263,7 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
             Logd(TAG, "starting downloadEpisode(): destination: ${request.destination}")
             if (request.source == null) return@withContext
             startTiming()
-            downloadStates[request.source] = DownloadStatus(DownloadStatus.State.QUEUED.ordinal, 5)
+            downloadStates[request.source] = DownloadStatus(DownloadStatus.State.QUEUED.code, 5)
             timeIt("$TAG start")
 
             val destFile = request.destination.toUF()
@@ -289,7 +289,7 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
                                 if (currentProgress / 10 > lastReportedProgress / 10 || currentProgress == 100) {
                                     lastReportedProgress = currentProgress
                                     withContext(Dispatchers.Main.immediate) {
-                                        downloadStates[request.source] = DownloadStatus(if (request.progressPercent < 100) DownloadStatus.State.RUNNING.ordinal else DownloadStatus.State.COMPLETED.ordinal, request.progressPercent)
+                                        downloadStates[request.source] = DownloadStatus(if (request.progressPercent < 100) DownloadStatus.State.RUNNING.code else DownloadStatus.State.COMPLETED.code, request.progressPercent)
                                     }
                                 }
                                 //                                Logd(TAG, "writeBody request.soFar: ${request.soFar} progressPercent: $progressPercent")
@@ -318,7 +318,7 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
                             val progress = (100 * bytesSentTotal / contentLength!!).toInt()
                             //                        timeIt("$TAG got progress: $progress")
                             request.progressPercent = progress
-                            downloadStates[request.source] = DownloadStatus(if(request.progressPercent < 100) DownloadStatus.State.RUNNING.ordinal else DownloadStatus.State.COMPLETED.ordinal, request.progressPercent)
+                            downloadStates[request.source] = DownloadStatus(if(request.progressPercent < 100) DownloadStatus.State.RUNNING.code else DownloadStatus.State.COMPLETED.code, request.progressPercent)
                         }
                     }
                     attributes.put(CredentialsKey, request)
@@ -393,13 +393,13 @@ class EpisodeDownloader(request: DownloadRequest): Downloader(request) {
                         else -> throw IOException("Unexpected HTTP status ${response.status}")
                     }
                     timeIt("$TAG after when")
-                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.ordinal, 10)
+                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.code, 10)
                     checkIfRedirect(response)
                     timeIt("$TAG after checkIfRedirect")
-                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.ordinal, 15)
+                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.code, 15)
                     request.ensureMediaFileExists()
                     timeIt("$TAG after ensureMediaFileExists")
-                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.ordinal, 18)
+                    downloadStates[request.source] = DownloadStatus(DownloadStatus.State.RUNNING.code, 18)
                     request.statusMsg = (R.string.download_running)
 
                     if (appPrefs.checkAvailableSpace) {

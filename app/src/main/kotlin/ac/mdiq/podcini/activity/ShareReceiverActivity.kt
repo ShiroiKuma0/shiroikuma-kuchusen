@@ -91,7 +91,7 @@ class ShareReceiverActivity : ComponentActivity() {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {
                             Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
-                                EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true, showActionButtons = false)
+                                EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
                             }
                             Button(modifier = Modifier.align(Alignment.BottomEnd) , onClick = { addAsNew =  true }) { Text(stringResource(R.string.add_as_new)) }
                         }
@@ -136,7 +136,7 @@ class ShareReceiverActivity : ComponentActivity() {
                 }
                 else -> {
                     fun openAsFeed(source: String?) {
-                        if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Podcast.name }
+                        if (log != null) upsertBlk(log) { it.type = ShareLog.ShareType.Feed.name }
                         Logd(TAG, "openAsFeed Activity is started with url $sharedText")
                         val intent = Intent(getAppContext(), MainActivity::class.java).apply {
                             putExtra(Extras.feed_url.name, sharedText)

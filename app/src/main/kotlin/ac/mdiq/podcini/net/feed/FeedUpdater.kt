@@ -15,7 +15,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.sources.EPISODE_BATCH_SIZE
-import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.appAttribs

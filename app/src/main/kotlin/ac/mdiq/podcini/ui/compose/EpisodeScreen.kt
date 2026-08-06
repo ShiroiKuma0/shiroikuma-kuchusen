@@ -134,7 +134,7 @@ var episodeForInfo by mutableStateOf<Episode?>(null)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList()), allowOpenFeed: Boolean = false) {
+fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList()), allowOpenFeed: Boolean = false, showClose: Boolean = true) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
 
@@ -226,7 +226,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)))
             Column {
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { episodeForInfo = null })
+                    if (showClose) Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { episodeForInfo = null })
                     Spacer(Modifier.weight(1f))
                     if (allowOpenFeed && episodeFeed != null) IconButton(onClick = {
                         navTo(FeedDetails(feedId = episodeFeed.id))
@@ -294,7 +294,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                                 val dlStats = downloadStates[episode.downloadUrl]
                                 if (dlStats != null) {
                                     actionButton!!.processing.intValue = dlStats.progress
-                                    if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) actionButton!!.type = ButtonTypes.PLAY
+                                    if (dlStats.state == DownloadStatus.State.COMPLETED.code) actionButton!!.type = ButtonTypes.PLAY
                                 }
                                 Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick() }, onLongClick = { showAltActionsDialog = true }))
                             }

@@ -233,13 +233,13 @@ suspend fun addClientEpisode(client: SourceGatewayClient, url: String,  toFeed: 
     val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
     if (episode != null) {
         val episodes = toFeed.episodes
-        val status = if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) ShareLog.Status.EXISTING.ordinal
+        val status = if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) ShareLog.Status.EXISTING.code
         else {
             episode.id = getEntityId()
             episode.feedId = toFeed.id
             upsertBlk(episode) {}
             EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-            ShareLog.Status.SUCCESS.ordinal
+            ShareLog.Status.SUCCESS.code
         }
         if (log != null) upsert(log) {
             it.title = episode.title

@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity
 import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
-import ac.mdiq.podcini.net.download.RequestTye
+import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addClientEpisode
@@ -22,6 +22,7 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
+import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -34,6 +35,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +47,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -52,14 +55,19 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -90,12 +98,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+enum class LogsModes(val res: Int) {
+    Session(R.drawable.baseline_running_with_errors_24),
+    Downloads(R.drawable.ic_download),
+    Shares(R.drawable.ic_share),
+    Deletions(R.drawable.outline_delete_history_24)
+}
+
 class LogsVM: ViewModel() {
     internal var shareLogs by mutableStateOf<List<ShareLog>>(listOf())
     internal var deletionLogs by mutableStateOf<List<SubscriptionLog>>(listOf())
     internal var downloadLogs by mutableStateOf<List<DownloadResult>>(listOf())
-    internal var title by mutableStateOf("Session")
+    internal var mode by mutableStateOf(LogsModes.Session )
     internal var showDeleteConfirmDialog = mutableStateOf(false)
+
+    var showSuccessLogs by mutableStateOf(false)
 
     internal fun clearAllLogs() {
         deletionLogs = listOf()
@@ -108,7 +125,7 @@ class LogsVM: ViewModel() {
             val result =  realm.query(ShareLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
                 shareLogs = result
-                title = "Shares"
+                mode = LogsModes.Shares
             } else Logt(TAG, "Share log is empty")
         }
     }
@@ -119,7 +136,7 @@ class LogsVM: ViewModel() {
             val result = realm.query(SubscriptionLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
                 deletionLogs = result
-                title = "Deletions"
+                mode = LogsModes.Deletions
             } else Logt(TAG, "Deletion log is empty")
         }
     }
@@ -130,7 +147,7 @@ class LogsVM: ViewModel() {
             val result =  realm.query(DownloadResult::class).sort("completionTime",  Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
                 downloadLogs = result
-                title = "Downloads"
+                mode = LogsModes.Downloads
             } else Logt(TAG, "Download log is empty")
         }
     }
@@ -171,9 +188,9 @@ fun LogsScreen() {
     @Composable
     fun SharedDetailDialog(status: ShareLog, onDismiss: () -> Unit) {
         val message = when (status.status) {
-            ShareLog.Status.ERROR.ordinal -> status.details
-            ShareLog.Status.SUCCESS.ordinal -> stringResource(R.string.download_successful)
-            ShareLog.Status.EXISTING.ordinal -> stringResource(R.string.share_existing)
+            ShareLog.Status.ERROR.code -> status.details
+            ShareLog.Status.SUCCESS.code -> stringResource(R.string.download_successful)
+            ShareLog.Status.EXISTING.code -> stringResource(R.string.share_existing)
             else -> ""
         }
         CommonPopupCard(onDismiss = { onDismiss() }) {
@@ -214,61 +231,56 @@ fun LogsScreen() {
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.shareLogs) { log ->
-                Row (modifier = Modifier.clickable {
-                    Logd(TAG, "shared log url: ${log.url}")
-                    if (log.status in listOf(ShareLog.Status.ERROR.ordinal, ShareLog.Status.MISSING.ordinal)) {
-                        Logt(TAG, "Handling shared url...")
-                        runOnIOScope { receiveShared(log.url!!, context as MainActivity, false, log) { _, _ ->  sharedUrl = log.url!! } }
-                        return@clickable
-                    }
-                    var hasError = false
-                    when(log.type) {
-                        ShareLog.ShareType.Media.name -> {
-                            val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
-                            if (episode != null) navTo(EpisodeInfo(episodeId=episode.id))
-                            else hasError = true
-                        }
-                        ShareLog.ShareType.Podcast.name -> {
-                            val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
-                            if (feed != null) navTo(FeedDetails(feedId=feed.id, modeName=FeedScreenMode.Info.name))
-                            else hasError = true
-                        }
-                        else -> {
-                            showSharedDialog.value = true
-                            sharedlogState.value = log
-                        }
-                    }
-                    if (hasError) {
-                        runOnIOScope {
+                if (vm.showSuccessLogs == (log.status == ShareLog.Status.SUCCESS.code)) {
+                    Row(modifier = Modifier.fillMaxWidth().clickable {
+                        Logd(TAG, "shared log url: ${log.url}")
+                        if (log.status in listOf(ShareLog.Status.ERROR.code, ShareLog.Status.MISSING.code)) {
                             Logt(TAG, "Handling shared url...")
-                            val log_ = upsertBlk(log) { it.status = ShareLog.Status.MISSING.ordinal }
-                            vm.shareLogs = listOf()
-                            vm.loadShareLog()
-                            receiveShared(log_.url!!, context as MainActivity, false, log_) { _, _ -> sharedUrl = log_.url!! }
+                            runOnIOScope { receiveShared(log.url!!, context as MainActivity, false, log) { _, _ -> sharedUrl = log.url!! } }
+                            return@clickable
                         }
-                    }
-                }) {
-                    Column {
-                        Row {
-                            val icon = remember { if (log.status == ShareLog.Status.SUCCESS.ordinal) Icons.Filled.Info else Icons.Filled.Warning }
-                            val iconColor = remember { if (log.status == ShareLog.Status.SUCCESS.ordinal) Color.Green else Color.Yellow }
-                            Icon(icon, "Info", tint = iconColor, modifier = Modifier.padding(end = 2.dp))
-                            Text(formatDateTimeFlex(log.id), color = textColor)
-                            Spacer(Modifier.weight(1f))
-                            var showAction by remember { mutableStateOf(log.status < ShareLog.Status.SUCCESS.ordinal) }
-                            if (showAction) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null, modifier = Modifier.width(25.dp).height(25.dp).clickable {})
+                        var hasError = false
+                        when (log.type) {
+                            ShareLog.ShareType.Media.name -> {
+                                val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
+                                if (episode != null) navTo(EpisodeInfo(episodeId = episode.id))
+                                else hasError = true
+                            }
+                            "Podcast", ShareLog.ShareType.Feed.name -> {
+                                val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title ?: "", log.author ?: "").first().find()
+                                if (feed != null) navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
+                                else hasError = true
+                            }
+                            else -> {
+                                showSharedDialog.value = true
+                                sharedlogState.value = log
+                            }
                         }
-                        Text(log.title?:"unknown title", color = textColor)
-                        Text(log.url?:"unknown url", color = textColor)
-                        val statusText = ShareLog.Status.entries.getOrNull(log.status)?.name ?: ShareLog.Status.ERROR.name
-                        Row {
-                            Text(statusText, color = textColor)
-                            Spacer(Modifier.weight(1f))
-                            Text(log.type?:"unknow type", color = textColor)
+                        if (hasError) {
+                            runOnIOScope {
+                                Logt(TAG, "Handling shared url...")
+                                val log_ = upsertBlk(log) { it.status = ShareLog.Status.MISSING.code }
+                                vm.shareLogs = listOf()
+                                vm.loadShareLog()
+                                receiveShared(log_.url!!, context as MainActivity, false, log_) { _, _ -> sharedUrl = log_.url!! }
+                            }
                         }
-                        if (log.status < ShareLog.Status.SUCCESS.ordinal) {
-                            Text(log.details, color = Color.Red)
-                            Text(stringResource(R.string.download_error_tap_for_details), color = textColor)
+                    }) {
+                        Column {
+                            Row {
+                                Icon(if (log.status == ShareLog.Status.SUCCESS.code) Icons.Filled.Info else Icons.Filled.Warning, "Info", tint = if (log.status == ShareLog.Status.SUCCESS.code) Color.Green else Color.Yellow, modifier = Modifier.padding(end = 2.dp))
+                                Text(formatDateTimeFlex(log.id), color = textColor)
+                                Spacer(Modifier.weight(1f))
+                                if (log.status < ShareLog.Status.SUCCESS.code) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null, modifier = Modifier.width(25.dp).height(25.dp).clickable {})
+                            }
+                            Text(log.title ?: "unknown title", color = textColor)
+                            Text(log.url ?: "unknown url", color = textColor)
+                            Row {
+                                val statusText = remember(log.status) { ShareLog.Status.entries.firstOrNull { it.code == log.status }?.name ?: ShareLog.Status.ERROR.name }
+                                Text(statusText, color = textColor)
+                                Spacer(Modifier.weight(1f))
+                                Text(log.type ?: "unknow type", color = textColor)
+                            }
                         }
                     }
                 }
@@ -337,17 +349,16 @@ fun LogsScreen() {
         Logd(TAG, "DownlaodDetailDialog ${status.feedfileType} status.feedfileId: ${status.feedfileId}")
         LaunchedEffect(status.feedfileId) {
             when (status.feedfileType) {
-                RequestTye.FEEDMEDIA.ordinal -> {
+                RequestType.FEEDMEDIA.code -> {
                     media = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                     if (media != null) url = media!!.downloadUrl ?: ""
                 }
-                RequestTye.FEED.ordinal -> {
+                RequestType.FEED.code -> {
                     feed = feedsMap[status.feedfileId]
                     if (feed != null) url = feed!!.downloadUrl ?: ""
                 }
             }
         }
-//        val message = if (!status.isSuccessful) status.reasonDetailed else context.getString(R.string.download_successful)
         val message = status.reasonDetailed
         val messageFull = context.getString(R.string.download_log_details_message, context.getString(status.reason?.res ?: R.string.download_error_error_unknown), message, url)
         CommonPopupCard(onDismiss = { onDismiss() }) {
@@ -380,43 +391,38 @@ fun LogsScreen() {
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.downloadLogs) { position, status ->
-                Row (modifier = Modifier.clickable {
-                    showDialog.value = true
-                    dialogParam.value = status
-                }) {
-                    Column {
-                        Row {
-                            val icon = remember { if (status.isSuccessful) Icons.Filled.Info else Icons.Filled.Warning }
-                            val iconColor = remember { if (status.isSuccessful) Color.Green else Color.Yellow }
-                            Icon(icon, "Info", tint = iconColor, modifier = Modifier.padding(end = 2.dp))
-                            Text(status.title.ifEmpty { stringResource(R.string.download_log_title_unknown) }, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        val statusText = remember {"" +
-                                when (status.feedfileType) {
-                                    RequestTye.FEED.ordinal ->  context.getString(R.string.download_type_feed)
-                                    RequestTye.FEEDMEDIA.ordinal -> context.getString(R.string.download_type_media)
+                if (vm.showSuccessLogs == status.isSuccessful) {
+                    Row(modifier = Modifier.clickable {
+                        showDialog.value = true
+                        dialogParam.value = status
+                    }) {
+                        Column {
+                            Row {
+                                Icon(if (status.isSuccessful) Icons.Filled.Info else Icons.Filled.Warning, "Info", tint =  if (status.isSuccessful) Color.Green else Color.Yellow, modifier = Modifier.padding(end = 2.dp))
+                                Text(status.title.ifEmpty { stringResource(R.string.download_log_title_unknown) }, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            val statusText = remember(status) {
+                                "" + when (status.feedfileType) {
+                                    RequestType.FEED.code -> context.getString(R.string.download_type_feed)
+                                    RequestType.FEEDMEDIA.code -> context.getString(R.string.download_type_media)
                                     else -> ""
                                 } + " · " + formatDateTimeFlex(status.completionTime)
+                            }
+                            Text(statusText, color = textColor)
+                            if (!status.isSuccessful) Text(stringResource(status.reason?.res ?: R.string.download_error_error_unknown), color = Color.Red)
                         }
-                        Text(statusText, color = textColor)
-                        if (!status.isSuccessful) {
-                            Text(stringResource(status.reason?.res ?: R.string.download_error_error_unknown), color = Color.Red)
-                            Text(stringResource(R.string.download_error_tap_for_details), color = textColor)
+                        fun newerWasSuccessful(downloadStatusIndex: Int, feedTypeId: Int, id: Long): Boolean {
+                            for (i in 0 until downloadStatusIndex) {
+                                val status_: DownloadResult = vm.downloadLogs[i]
+                                if (status_.feedfileType == feedTypeId && status_.feedfileId == id && status_.isSuccessful) return true
+                            }
+                            return false
                         }
-                    }
-                    fun newerWasSuccessful(downloadStatusIndex: Int, feedTypeId: Int, id: Long): Boolean {
-                        for (i in 0 until downloadStatusIndex) {
-                            val status_: DownloadResult = vm.downloadLogs[i]
-                            if (status_.feedfileType == feedTypeId && status_.feedfileId == id && status_.isSuccessful) return true
-                        }
-                        return false
-                    }
-                    var showAction by remember { mutableStateOf(!status.isSuccessful && !newerWasSuccessful(position, status.feedfileType, status.feedfileId)) }
-                    if (showAction) {
-                        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_refresh), tint = textColor, contentDescription = null,
-                            modifier = Modifier.width(28.dp).height(32.dp).clickable {
+                        var showAction by remember { mutableStateOf(!status.isSuccessful && !newerWasSuccessful(position, status.feedfileType, status.feedfileId)) }
+                        if (showAction) {
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_refresh), tint = textColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).clickable {
                                 when (status.feedfileType) {
-                                    RequestTye.FEED.ordinal -> {
+                                    RequestType.FEED.code -> {
                                         showAction = false
                                         val feed: Feed? = feedsMap[status.feedfileId]
                                         if (feed == null) {
@@ -425,7 +431,7 @@ fun LogsScreen() {
                                         }
                                         runOnIOScope { FeedUpdater(listOf(feed)).start() }
                                     }
-                                    RequestTye.FEEDMEDIA.ordinal -> {
+                                    RequestType.FEEDMEDIA.code -> {
                                         showAction = false
                                         val item_ = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                                         if (item_ != null) ActionButton(item_, ButtonTypes.DOWNLOAD).onClick()
@@ -433,6 +439,7 @@ fun LogsScreen() {
                                     }
                                 }
                             })
+                        }
                     }
                 }
             }
@@ -442,28 +449,35 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) },
+            TopAppBar(title = { Icon(imageVector = ImageVector.vectorResource(vm.mode.res), contentDescription = "mode") },
                 navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
-                if (vm.title != "Session") IconButton(onClick = {
-                    vm.clearAllLogs()
-                    vm.title = "Session"
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_running_with_errors_24), contentDescription = "session") }
-                if (vm.title != "Downloads") IconButton(onClick = {
-                    vm.clearAllLogs()
-                    vm.loadDownloadLog()
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "download") }
-                if (vm.title != "Shares") IconButton(onClick = {
-                    vm.clearAllLogs()
-                    vm.loadShareLog()
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
-                if (vm.title != "Deletions") IconButton(onClick = {
-                    vm.clearAllLogs()
-                    vm.loadDeletionLog()
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_delete_history_24), contentDescription = "Deletions") }
-                IconButton(onClick = {
-                    vm.showDeleteConfirmDialog.value = true
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "clear history") }
+                    if (vm.mode in listOf(LogsModes.Downloads, LogsModes.Shares)) Switch(checked = vm.showSuccessLogs, onCheckedChange = { vm.showSuccessLogs = !vm.showSuccessLogs },
+                        thumbContent = { Icon(imageVector = if (vm.showSuccessLogs) Icons.Filled.Info else Icons.Filled.Warning, contentDescription = null, tint = if (vm.showSuccessLogs) Color.Green else Color.Yellow , modifier = Modifier.size(SwitchDefaults.IconSize)) })
+                    if (vm.mode != LogsModes.Session) IconButton(onClick = {
+                        vm.clearAllLogs()
+                        vm.mode = LogsModes.Session
+                    }) { Icon(imageVector = ImageVector.vectorResource(LogsModes.Session.res), contentDescription = "session") }
+                    if (vm.mode != LogsModes.Downloads) IconButton(onClick = {
+                        vm.clearAllLogs()
+                        vm.loadDownloadLog()
+                    }) { Icon(imageVector = ImageVector.vectorResource(LogsModes.Downloads.res), contentDescription = "download") }
+                    if (vm.mode != LogsModes.Shares) IconButton(onClick = {
+                        vm.clearAllLogs()
+                        vm.loadShareLog()
+                    }) { Icon(imageVector = ImageVector.vectorResource(LogsModes.Shares.res), contentDescription = "share") }
+                    if (vm.mode != LogsModes.Deletions) IconButton(onClick = {
+                        vm.clearAllLogs()
+                        vm.loadDeletionLog()
+                    }) { Icon(imageVector = ImageVector.vectorResource(LogsModes.Deletions.res), contentDescription = "Deletions") }
+                    var expanded by remember { mutableStateOf(false) }
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.clear_logs)) }, onClick = {
+                            vm.showDeleteConfirmDialog.value = true
+                            expanded = false
+                        })
+                    }
             })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }

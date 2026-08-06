@@ -140,18 +140,18 @@ fun InforBar(swipeActions: SwipeActions?, content: @Composable (RowScope.()->Uni
     }
 }
 
-enum class LayoutMode {
-    Normal, WideImage, FeedTitle
+enum class LayoutMode(val code: Int) {
+    Normal(0), WideImage(1), FeedTitle(2);
 }
 
 enum class StatusRowMode {
-    Normal, Comment, Tags, Todos
+    Normal, Comment, Tags, Todos;
 }
 
 @Composable
 fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: Boolean = false, curQueue: PlayQueue? = null,
                       lazyListState: LazyListState = rememberLazyListState(), scrollToOnStart: Int = -1,
-                      layoutMode: Int = LayoutMode.Normal.ordinal,
+                      layoutMode: Int = LayoutMode.Normal.code,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
                       statusRowMode: StatusRowMode = StatusRowMode.Normal,
                       swipeActions: SwipeActions? = null,
@@ -295,10 +295,10 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
         val useFeedImage = remember(feed?.useEpisodeImage) { feed?.useFeedImage() == true }
 
-        val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
+        val titleMaxLines = if (layoutMode == LayoutMode.Normal.code) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
 //        val density = LocalDensity.current
-        val imageWidth = if (layoutMode == LayoutMode.WideImage.ordinal) 150.dp else 56.dp
-        val imageHeight = if (layoutMode == LayoutMode.WideImage.ordinal) 100.dp else 56.dp
+        val imageWidth = if (layoutMode == LayoutMode.WideImage.code) 150.dp else 56.dp
+        val imageHeight = if (layoutMode == LayoutMode.WideImage.code) 100.dp else 56.dp
 
 //        Logd(TAG, "outside of LazyColumn")
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -419,7 +419,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     }
                                 }
                                 when (layoutMode) {
-                                    LayoutMode.Normal.ordinal -> {
+                                    LayoutMode.Normal.code -> {
                                         when (statusRowMode) {
                                             StatusRowMode.Comment -> Comment()
                                             StatusRowMode.Tags -> Tags()
@@ -427,7 +427,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             else -> StatusRow()
                                         }
                                     }
-                                    LayoutMode.WideImage.ordinal -> {
+                                    LayoutMode.WideImage.code -> {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                             Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
@@ -451,7 +451,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                             }
                                         }
                                     }
-                                    LayoutMode.FeedTitle.ordinal -> {
+                                    LayoutMode.FeedTitle.code -> {
                                         Logd(TAG, "title: ${episode.feed?.title}")
                                         Text(episode.feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         when (statusRowMode) {
@@ -504,10 +504,10 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
 //                                        Logd(TAG, "${episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
                                         actionButton.processing.intValue = dlStats.progress
                                         when (dlStats.state) {
-                                            DownloadStatus.State.COMPLETED.ordinal -> {
+                                            DownloadStatus.State.COMPLETED.code -> {
 //                                                actionButton.update(episode)
                                             }
-                                            DownloadStatus.State.INCOMPLETE.ordinal -> actionButton.type = ButtonTypes.DOWNLOAD
+                                            DownloadStatus.State.INCOMPLETE.code -> actionButton.type = ButtonTypes.DOWNLOAD
                                             else -> {}
                                         }
                                     }

@@ -22,7 +22,7 @@ abstract class EpisodeDLManager {
     }
 
     fun isDownloading(url: String): Boolean {
-        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state < DownloadStatus.State.COMPLETED.ordinal)
+        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state < DownloadStatus.State.COMPLETED.code)
     }
 
     abstract fun downloadNow(episodes: List<Episode>, ignoreConstraints: Boolean)
@@ -37,7 +37,7 @@ abstract class EpisodeDLManager {
         const val TAG = "EpisodeDLManager"
 
         suspend fun updateDB(request: DownloadRequest) {
-            downloadStates[request.source!!] = DownloadStatus(DownloadStatus.State.COMPLETED.ordinal, -1)
+            downloadStates[request.source!!] = DownloadStatus(DownloadStatus.State.COMPLETED.code, -1)
             var item = realm.query(Episode::class).query("id == ${request.feedfileId}").first().find()
             if (item == null) {
                 Loge(TAG, "Could not find downloaded episode object in database")

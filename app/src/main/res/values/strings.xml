@@ -95,6 +95,8 @@
     <string name="share_url_label">Share URL</string>
     <string name="go_to_position_label">Go to this position</string>
 
+    <string name="clear_logs">Clear the logs</string>
+
     <!-- Playback history -->
     <string name="clear_history_label">Clear history</string>
     <string name="clear_playback_history_msg">This will clear the entire playback history. Are you sure you want to proceed\?</string>

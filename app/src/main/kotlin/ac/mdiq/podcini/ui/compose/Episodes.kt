@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.playEpisodeAtTime
-import ac.mdiq.podcini.net.download.RequestTye
+import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
@@ -382,7 +382,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     if (showTodoDialog) TodoDialog(episode, onTodo) { showTodoDialog = false}
 
     val playerLogs = remember(episode.id) { sessionLogs.filter { it.contains(episode.id.toString()) } }
-    val dlLogs = remember(episode.id) { realm.query(DownloadResult::class).query("feedfileId == ${episode.id} AND feedfileType == ${RequestTye.FEEDMEDIA.ordinal}").sort("completionTime",  Sort.DESCENDING).find() }
+    val dlLogs = remember(episode.id) { realm.query(DownloadResult::class).query("feedfileId == ${episode.id} AND feedfileType == ${RequestType.FEEDMEDIA.code}").sort("completionTime",  Sort.DESCENDING).find() }
 
     LaunchedEffect(episode) {
         Logd(TAG, "LaunchedEffect(episode, episodeId)")
@@ -618,7 +618,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismiss: () -> Unit) {
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },  confirmButton = {},
         text = {
             Logd(TAG, "episode.related: ${episode.related.size}")
-            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true, showActionButtons = false,
+            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false,
                 actionButtonCB = {e1, _ ->
                     runOnIOScope {
                         realm.write {

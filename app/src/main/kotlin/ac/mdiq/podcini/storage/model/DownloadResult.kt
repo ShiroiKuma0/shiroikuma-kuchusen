@@ -2,7 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
-import ac.mdiq.podcini.net.download.RequestTye
+import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.shared.FeedIPC
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsert
@@ -46,7 +46,7 @@ class DownloadResult : RealmObject {
      */
     var reasonDetailed: String
 
-    constructor(feedId: Long, title: String, reason: DownloadError?, successful: Boolean, reasonDetailed: String, feedfileType: Int = RequestTye.FEED.ordinal, completionDate: Long = nowInMillis()) {
+    constructor(feedId: Long, title: String, reason: DownloadError?, successful: Boolean, reasonDetailed: String, feedfileType: Int = RequestType.FEED.code, completionDate: Long = nowInMillis()) {
         this.title = title
         this.feedfileId = feedId
         this.isSuccessful = successful
@@ -57,10 +57,10 @@ class DownloadResult : RealmObject {
     }
 
     constructor(feed: Feed, reason: DownloadError?, successful: Boolean, reasonDetailed: String, completionDate: Long = nowInMillis())
-            : this(feed.id, feed.title?:"no title", reason, successful, reasonDetailed, RequestTye.FEED.ordinal, completionDate)
+            : this(feed.id, feed.title?:"no title", reason, successful, reasonDetailed, RequestType.FEED.code, completionDate)
 
     constructor(feed: FeedIPC, reason: DownloadError?, successful: Boolean, reasonDetailed: String, completionDate: Long = nowInMillis())
-            : this(feed.id, feed.title?:"no title", reason, successful, reasonDetailed, RequestTye.FEED.ordinal, completionDate)
+            : this(feed.id, feed.title?:"no title", reason, successful, reasonDetailed, RequestType.FEED.code, completionDate)
 
     constructor() : this(0L, "", DownloadError.ERROR_NOT_FOUND, false, "") {}
 

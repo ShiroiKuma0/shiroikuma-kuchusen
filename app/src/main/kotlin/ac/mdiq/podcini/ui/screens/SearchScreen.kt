@@ -465,7 +465,7 @@ fun SearchScreen() {
                             Spacer(modifier = Modifier.weight(0.1f))
                             PlayRandom(vm.remoteMedia)
                         }
-                        EpisodeLazyColumn(vm.remoteMedia, isExternal = true, layoutMode = LayoutMode.WideImage.ordinal, swipeActions = null, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+                        EpisodeLazyColumn(vm.remoteMedia, isExternal = true, layoutMode = LayoutMode.WideImage.code, swipeActions = null, actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
                     }
                     3 -> PAFeedsColumn()
                 }

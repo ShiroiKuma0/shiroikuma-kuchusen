@@ -2,7 +2,6 @@ package ac.mdiq.podcini.config.settings
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.allFeeds
-import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.div

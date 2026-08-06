@@ -14,5 +14,5 @@ private const val TAG: String = "EpisodeInfoScreen"
 @Composable
 fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val episode = remember { realm.query<Episode>("id == $0", episodeId).first().find() }
-    if (episode != null) EpisodeScreen(episode, allowOpenFeed = true)
+    if (episode != null) EpisodeScreen(episode, allowOpenFeed = true, showClose = false)
 }

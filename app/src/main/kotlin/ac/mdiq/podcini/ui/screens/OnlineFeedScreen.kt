@@ -569,7 +569,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                             if (vm.feedId != 0L) {
                                 if (vm.isShared) {
                                     val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
-                                    if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
+                                    if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.code }
                                 }
                                 navTo(FeedDetails(feedId = vm.feedId, modeName = FeedScreenMode.Info.name))
                             } else {
@@ -581,7 +581,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                     subscribe(vm.feed!!)
                                     if (vm.isShared) {
                                         val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
-                                        if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.ordinal }
+                                        if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.code }
                                     }
                                     withContext(Dispatchers.Main) {
                                         vm.feedId = vm.feed?.id ?: 0L

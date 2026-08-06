@@ -14,7 +14,10 @@ import ac.mdiq.podcini.utils.Logs
 import android.os.Bundle
 import io.ktor.util.AttributeKey
 
-enum class RequestTye { FEED, FEEDMEDIA }
+enum class RequestType(val code: Int) {
+    FEED(0),
+    FEEDMEDIA(1);
+}
 
 class DownloadRequest private constructor(
     var destination: String,
@@ -114,7 +117,7 @@ class DownloadRequest private constructor(
             this.source = if (media.downloadUrl != null) prepareUrl(media.downloadUrl!!) else null
             this.title = media.title ?: media.downloadUrl
             this.feedfileId = media.id
-            this.feedfileType = RequestTye.FEEDMEDIA.ordinal
+            this.feedfileType = RequestType.FEEDMEDIA.code
         }
         constructor(destination: String, feed: Feed) {
             this.destination = destination
@@ -125,7 +128,7 @@ class DownloadRequest private constructor(
             }
             this.title = feed.textIdentifier
             this.feedfileId = feed.id
-            this.feedfileType = RequestTye.FEED.ordinal
+            this.feedfileType = RequestType.FEED.code
             arguments.putInt(REQUEST_ARG_PAGE_NR, feed.pageNr)
         }
         fun withInitiatedByUser(initiatedByUser: Boolean): Builder {

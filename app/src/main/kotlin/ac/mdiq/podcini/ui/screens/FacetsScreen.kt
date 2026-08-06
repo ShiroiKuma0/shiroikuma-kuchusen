@@ -133,7 +133,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class QuickAccess {
-    New, Planned, Repeats, Due, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None
+    New, Planned, Repeats, Due, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom, None;
 }
 
 var facetsMode by mutableStateOf(QuickAccess.None)

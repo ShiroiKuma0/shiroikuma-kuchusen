@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.RequestTye
+import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.net.sync.transceive.sendFeed
@@ -248,7 +248,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
         Logd(TAG, "FeedDetailsVM init feedId: $feedId")
         timeIt("$TAG start of init")
         feedEpisodesSize = realm.query(Episode::class).query("feedId == $feedId").count().find().toInt()
-        logs = realm.query(DownloadResult::class).query("feedfileId == $feedId AND feedfileType == ${RequestTye.FEED.ordinal}").sort("completionTime",  Sort.DESCENDING).find()
+        logs = realm.query(DownloadResult::class).query("feedfileId == $feedId AND feedfileType == ${RequestType.FEED.code}").sort("completionTime",  Sort.DESCENDING).find()
         timeIt("$TAG end of init")
     }
 
@@ -700,7 +700,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         }
                     }
                     EpisodeLazyColumn(
-                        episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal,
+                        episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.code else LayoutMode.Normal.code,
                         swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                         refreshCB = {
                             when {

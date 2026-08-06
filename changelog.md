@@ -1,3 +1,12 @@
+# 12.5.7
+
+* further amended Logs screen
+	* replaced mode title with icon
+	* added switch in Downloads and Shares modes to show success/failure logs only
+	* Clear logs is moved to the menu
+	* EpisodeInfo opened from Logs screen does not have a Close icon
+* some code cleaning: removed most ordinal references in enum classes
+
 # 12.5.6
 
 * in Shares mode of Logs screen
