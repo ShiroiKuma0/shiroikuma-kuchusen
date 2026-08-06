@@ -31,10 +31,11 @@ if (keystorePropertiesFile.exists()) {
 }
 
 // Fork version: VERSION_NAME/VERSION_CODE track upstream (gradle.properties); BUILD_NUMBER is our
-// per-build increment. versionName = "<VERSION_NAME>+<BUILD_NUMBER>",
-// versionCode = VERSION_CODE * 10000 + BUILD_NUMBER.
+// per-build increment. versionName = "<VERSION_NAME>+<BUILD_NUMBER padded to 3 digits>" (so APK
+// filenames sort in build order — "+010" after "+009", not before "+9"),
+// versionCode = VERSION_CODE * 10000 + BUILD_NUMBER (plain integer; padding is text only).
 val buildNumber = project.property("BUILD_NUMBER").toString().toInt()
-val forkVersionName = "${project.property("VERSION_NAME")}+$buildNumber"
+val forkVersionName = "${project.property("VERSION_NAME")}+${buildNumber.toString().padStart(3, '0')}"
 val forkVersionCode = project.property("VERSION_CODE").toString().toInt() * 10000 + buildNumber
 
 configure<ApplicationExtension> {
