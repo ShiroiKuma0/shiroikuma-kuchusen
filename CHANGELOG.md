@@ -2,6 +2,50 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.5.6+002 (versionCode 940002)
+
+Rebased onto upstream **v12.5.6** (versionCode 94) — twelve upstream releases on from the 12.4.10
+base — and the fork's build counter switched to zero-padded numbering.
+
+### Fork layer
+
+- **Toasts re-styled onto upstream's new toast stack.** Upstream removed the single-message
+  `CustomToast` in favour of `CommonToast`, which queues messages instead of overriding them, shows
+  up to three at once, and carries a lock toggle that holds them on screen for up to a minute. The
+  house style was ported onto that new composable rather than the deleted one, so toasts keep the
+  black background, yellow border and yellow text **and** gain the queueing behaviour. Confirm
+  dialogs are likewise queued upstream and shown one at a time, which the fork inherits unchanged.
+- **The clean-exit back handler survives the `toastMassege` → `toastMessages` rename.** Back on the
+  home screen with nothing left to pop still finishes the activity instead of reporting "No more
+  screens back".
+- **Build counter is now zero-padded to three digits** — `versionName` reads `12.5.6+002`, and the
+  APK it names is `shiroikuma-kuchusen_12.5.6+002_arm64-v8a.apk`. Unpadded counters sort wrongly as
+  text (`+10` lands before `+3`), burying the newest build in the middle of a file list; three digits
+  holds up to `+999`, which the `versionCode` multiplier already capped it at. The padding is **text
+  only** — `versionCode` keeps the plain integer (`94 * 10000 + 2 = 940002`), so upgrades stay
+  monotonic across the switch. Builds and releases made before the switch keep their names; nothing
+  is retagged or renamed.
+
+### Inherited from upstream 12.4.11 → 12.5.6
+
+- **Stream selection.** A `StreamChanger` popup in PlayerDetailed picks locale, codec and bitrate for
+  audio, and codec, resolution and protocol for video; a "Prefer muxed video" feed option falls back
+  to the muxed stream, and resolution is shown while playing video.
+- **Due media.** A new **Due** mode in the Facets screen collects all Again/Forever media past due, a
+  daily reminder surfaces them, auto-download/enqueue no longer queues them, and a "Set due date"
+  swipe action was added for Again, Forever and Later media.
+- **Logs screen.** Shares-mode logs turn stale Success entries into Missing on click and reopen the
+  share dialog from Error/Missing ones; Downloads-mode Success entries show details in a popup;
+  "Subscriptions" became "Deletions".
+- **OnlineFeed and external apps.** Better handling of feeds shared from other apps (no more
+  double-open), prior cancellation logs surfaced, preserved/frozen feeds shown, and PeerTube video
+  sources fixed together with PeerPop.
+- **Playback.** Player buffer sizing tuned for faster start, force-video/audio-only switching fixed,
+  preferred locale/codec/bitrate reset per episode, and a toast about language availability when no
+  eligible audio stream exists.
+- Assorted fixes: feed-settings URL edits now persist, Library feed-origin filters amended and a
+  crash fixed, Search tolerates special characters and records all queries in history.
+
 ## 12.4.10+5 (versionCode 820005)
 
 Implements 白い熊's **保存復元** state-export contract, and turns the category backup into a full restore point.
