@@ -2,6 +2,38 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.5.7+001 (versionCode 950001)
+
+Rebased onto upstream **v12.5.7** (versionCode 95). A pure tracking release — **no new fork
+features**; the whole custom layer replayed onto the new base and the build counter reset to `+001`.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **The UI-page shortcut survived upstream's Library rework.** Upstream rewrote a large part of
+  `LibraryScreen`; the fork's long-press on the subscriptions screen's top-right menu button — which
+  jumps straight to the 白い熊 空中線 UI page, short tap still opening the menu — sits on the same
+  icon as before.
+- **Version base moved to 12.5.7 / 95**, so this line's codes (`950001`, `950002`, …) all exceed the
+  12.5.6 line's (`940001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.5.7
+
+- **Logs screen, further amended.** The mode title is now an icon; Session, Downloads and Shares
+  modes gained a switch to show success- or error-only entries; Downloads mode hides past superseded
+  items and moves the **Redo** action into the details dialog; the details dialogs were reformatted
+  (a plain "Reason:" line replaces the old run-on technical-reason/file-URL block); **Clear logs**
+  moved into the menu; and EpisodeInfo opened from the Logs screen no longer carries a Close icon.
+- **Persisted enum values no longer ride on `ordinal`.** Enums stored in the database — `ShareLog.Status`,
+  the download `RequestType` behind `DownloadResult.feedfileType` — now carry explicit integer codes
+  instead of their declaration order, so reordering or inserting a constant upstream can no longer
+  silently reinterpret existing rows. `RequestTye` was also corrected to `RequestType`, and
+  `ShareType.Podcast` renamed to `Feed`.
+- The custom-media-folder warning now says it falls back to the internal media folder rather than
+  that it is "currently using" one.
+
 ## 12.5.6+002 (versionCode 940002)
 
 Rebased onto upstream **v12.5.6** (versionCode 94) — twelve upstream releases on from the 12.4.10
