@@ -1,3 +1,13 @@
+# 12.5.8
+
+* fixed issue of external audio media bypassing player cache during playback
+* in Logs screen
+	* past superseded Shares logs are not shown
+	* in Downloads details popup
+		* Open button is present also for failure download
+		* Redo is changed to Retry, and is present for failure download
+* texts in OnlineFeed screen are selectable
+
 # 12.5.7
 
 * further amended Logs screen

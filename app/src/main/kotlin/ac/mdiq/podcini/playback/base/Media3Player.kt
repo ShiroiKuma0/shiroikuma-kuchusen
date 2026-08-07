@@ -82,8 +82,11 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -130,6 +133,8 @@ import kotlin.time.Instant
 
 class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private var exoPlayer: ExoPlayer? = null
+
+    private var recordingFactory: SegmentSavingDataSourceFactory? = null
 
     private var loadControl: DynamicLoadControl? = null
 
@@ -585,13 +590,37 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
 //            .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
         val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
+        baseHttpDataSourceFactory.setTransferListener(
+            object : TransferListener {
+                override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    Logd(TAG, "HTTP INITIALIZING: ${dataSpec.uri}")
+                }
+                override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    Logd(TAG, "HTTP TRANSFER START: ${dataSpec.uri}")
+                }
+                override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {}
+                override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                    Logd(TAG, "HTTP TRANSFER END")
+                }
+            }
+        )
         val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        val recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
-        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory).setDataSourceFactory(recordingFactory)
+        cacheDataSourceFactory.setEventListener(
+            object : CacheDataSource.EventListener {
+                override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
+                    Logd(TAG, "CacheDataSource onCachedBytesRead cached=$cachedBytesRead")
+                }
+                override fun onCacheIgnored(reason: Int) {
+                    Logd(TAG, "CacheDataSource onCacheIgnored ignored=$reason")
+                }
+            }
+        )
+        recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory).setDataSourceFactory(recordingFactory!!)
 
         exoPlayer = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
@@ -667,9 +696,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 val audioSpec = setAudioSpec(audioSpecs, media)
                 if (audioSpec != null) {
                     if (!audioSpec.url.isNullOrBlank()) {
-                        val cacheFactory = CacheDataSource.Factory().setCache(getCache()).setUpstreamDataSourceFactory(httpDataSourceFactory).setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-                        val dataSourceFactory = DefaultDataSource.Factory(context, cacheFactory)
-                        aSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
+                        aSource = ProgressiveMediaSource.Factory(recordingFactory!!).createMediaSource(MediaItem.Builder().setMediaMetadata(metadata).setTag(metadata).setUri(audioSpec.url!!.toSafeUri()).setCustomCacheKey(media.id.toString()).build())
                         Logd(TAG, "mediaSourceFromClient aSource set to: ${audioSpec.url}")
                     } else Loge(TAG, "eligible audioStream or its url is null or blank")
                 }

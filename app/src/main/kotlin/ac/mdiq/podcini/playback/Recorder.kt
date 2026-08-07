@@ -42,8 +42,14 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
         currentDataSpec?.let { cacheDataSource.open(it) }
     }
 
+//    private var readCalls = 0L
+//    private var totalBytesRead = 0L
+
     override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
         val bytesRead = cacheDataSource.read(buffer, offset, length)
+//        readCalls++
+//        if (bytesRead > 0) totalBytesRead += bytesRead
+//        if (readCalls % 10000 == 0L) Logd(TAG, "readCalls=$readCalls totalBytes=$totalBytesRead")
         if (isRecording) {
             Logd(TAG, "read isRecording bytesRead: $bytesRead")
             if (bytesRead > 0) {

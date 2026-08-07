@@ -123,7 +123,7 @@ class LogsVM: ViewModel() {
             Logd(TAG, "loadShareLog() called")
             val result =  realm.query(ShareLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                shareLogs = result
+                shareLogs = result.distinctBy { it.url }
                 mode = LogsModes.Shares
             } else Logt(TAG, "Share log is empty")
         }
@@ -372,22 +372,23 @@ fun LogsScreen() {
                 if (feed == null && media == null) Text(stringResource(R.string.content_not_exist))
 
                 Row(Modifier.padding(top = 10.dp)) {
-                    Spacer(Modifier.weight(0.5f))
+                    Spacer(Modifier.weight(0.2f))
                     val message = stringResource(status.reason?.res ?: R.string.download_error_error_unknown) + "\n" + status.reasonDetailed + "\n" + url
                     Text(stringResource(R.string.copy_to_clipboard), color = textColor, modifier = Modifier.clickable { copyToClipboard(message) })
                     Spacer(Modifier.weight(0.3f))
-                    val bynText = if (feed != null || media != null) { if (status.isSuccessful) stringResource(R.string.open) else stringResource(R.string.redo) } else "OK"
-                    Text(bynText, color = textColor, modifier = Modifier.clickable {
-                        if (status.isSuccessful) {
-                            if (feed != null) navTo(FeedDetails(feedId = feed!!.id, modeName = FeedScreenMode.Info.name))
-                            else if (media != null) navTo(EpisodeInfo(episodeId = media!!.id))
-                        } else {
-                            if (feed != null) runOnIOScope { FeedUpdater(listOf(feed!!)).start() }
-                            else if (media != null) {
-                                ActionButton(media!!, ButtonTypes.DOWNLOAD).onClick()
-                                Logt(TAG, context.getString(R.string.status_downloading_label))
-                            }
+                    if (!status.isSuccessful) Text(stringResource(R.string.retry), color = textColor, modifier = Modifier.clickable {
+                        if (feed != null) runOnIOScope { FeedUpdater(listOf(feed!!)).start() }
+                        else if (media != null) {
+                            ActionButton(media!!, ButtonTypes.DOWNLOAD).onClick()
+                            Logt(TAG, context.getString(R.string.status_downloading_label))
                         }
+                        onDismiss()
+                    })
+                    Spacer(Modifier.weight(0.2f))
+                    val bynText = if (feed != null || media != null) stringResource(R.string.open) else "OK"
+                    Text(bynText, color = textColor, modifier = Modifier.clickable {
+                        if (feed != null) navTo(FeedDetails(feedId = feed!!.id, modeName = FeedScreenMode.Info.name))
+                        else if (media != null) navTo(EpisodeInfo(episodeId = media!!.id))
                         onDismiss()
                     })
                     Spacer(Modifier.weight(0.2f))

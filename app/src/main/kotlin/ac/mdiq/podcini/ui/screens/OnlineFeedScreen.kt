@@ -72,6 +72,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -617,44 +618,46 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-                    if (vm.subLogs.isNotEmpty()) {
-                        Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
-                        for (sLog in vm.subLogs) {
-                            val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
-                            Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                            if (!sLog.description.isNullOrBlank()) Text(sLog.description?:"", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                            val ratingRes = remember { fromCode(sLog.rating).res }
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)) {
-                                Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
-                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                SelectionContainer {
+                    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
+                        if (vm.subLogs.isNotEmpty()) {
+                            Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
+                            for (sLog in vm.subLogs) {
+                                val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
+                                Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                                if (!sLog.description.isNullOrBlank()) Text(sLog.description ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                                val ratingRes = remember { fromCode(sLog.rating).res }
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)) {
+                                    Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
+                                    Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                                }
+                                Text(sLog.url ?: "no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                                Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                             }
-                            Text(sLog.url ?: "no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                            Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                         }
-                    }
-                    Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                    if (!vm.feed?.episodes.isNullOrEmpty()) {
-                        Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                        Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    }
-                    Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp).clickable {
-                        searchFeedsOnline(query = "${vm.feed?.author} podcasts")
-                        navTo(FindFeeds)
-                    })
-                    LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        items(vm.relatedResults) { result ->
-                            AsyncImage(model = ImageRequest.Builder(context).data(result.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
-                                navTo(OnlineFeed(url = result.feedUrl ?: "", source = result.source))
-                            })
+                        Text("${vm.numEpisodes} episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                        Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                        if (!vm.feed?.episodes.isNullOrEmpty()) {
+                            Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                            Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                         }
+                        Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp).clickable {
+                            searchFeedsOnline(query = "${vm.feed?.author} podcasts")
+                            navTo(FindFeeds)
+                        })
+                        LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            items(vm.relatedResults) { result ->
+                                AsyncImage(model = ImageRequest.Builder(context).data(result.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable {
+                                    navTo(OnlineFeed(url = result.feedUrl ?: "", source = result.source))
+                                })
+                            }
+                        }
+                        val info = remember(vm.feed) { if (vm.feed == null) "" else "${vm.feed!!.langSet.joinToString(" ")} ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}" }
+                        Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                        Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                        Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     }
-                    val info = remember(vm.feed) { if (vm.feed == null) "" else "${vm.feed!!.langSet.joinToString(" ")} ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}" }
-                    Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
-                    Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                 }
             }
             if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {

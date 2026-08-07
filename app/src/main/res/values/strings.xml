@@ -250,7 +250,7 @@
     <string name="progressing_label">Processing</string>
 
     <string name="open_podcast">Open podcast</string>
-    <string name="redo">Redo</string>
+    <string name="retry">Retry</string>
     <string name="open">Open</string>
     <string name="content_not_exist">Content no longer exists.</string>
 
