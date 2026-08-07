@@ -200,7 +200,7 @@
     <string name="download_pending">Čakajúce sťahovania</string>
     <string name="download_running">Prebieha sťahovanie</string>
     <string name="download_error_details">Podrobnosti</string>
-    <string name="download_log_details_message">%1$s \n\ntechnický dôvod: \n %2$s \n\nsúbor URL:\n%3$s</string>
+
     <string name="download_error_retrying">Sťahovanie súboru \"%1$s\" zlyhalo. Bude zopakované neskôr.</string>
     <string name="download_error_not_retrying">Sťahovanie súboru \"%1$s\" zlyhalo.</string>
     <string name="download_error_tap_for_details">Kliknite pre zobrazenie detailov.</string>

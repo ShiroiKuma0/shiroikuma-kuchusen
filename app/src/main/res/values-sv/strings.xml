@@ -198,7 +198,7 @@
     <string name="download_pending">Avvaktar nedladdning</string>
     <string name="download_running">Nedladdning pågår</string>
     <string name="download_error_details">Detaljer</string>
-    <string name="download_log_details_message">%1$s\\n\\nTeknisk andledning: \\n %2$s\\n\\nFil URL:\\n%3$s</string>
+
     <string name="download_error_retrying">Nedladdning av \"%1$s\" misslyckades. Kommer att försökas igen senare.</string>
     <string name="download_error_not_retrying">Nedladdning av \"%1$s\" misslyckades.</string>
     <string name="download_error_tap_for_details">Tryck för att visa detaljer.</string>

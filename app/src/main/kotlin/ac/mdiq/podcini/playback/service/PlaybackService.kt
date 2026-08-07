@@ -211,7 +211,6 @@ class PlaybackService : MediaLibraryService() {
         }
         override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
             Logd(TAG, "MyMediaSessionCallback onCustomCommand ${customCommand.customAction}")
-            /* Handling custom command buttons from player notification. */
             when (customCommand.customAction) {
                 NotificationCustomButton.REWIND.customAction -> theatres[0].mPlayer?.seekDelta(-rewindSecs * 1000)
                 NotificationCustomButton.FORWARD.customAction -> theatres[0].mPlayer?.seekDelta(fastForwardSecs * 1000)
@@ -295,7 +294,6 @@ class PlaybackService : MediaLibraryService() {
         override fun onAddMediaItems(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, mediaItems: MutableList<MediaItem>): ListenableFuture<MutableList<MediaItem>> {
             Logd(TAG, "MyMediaSessionCallback onAddMediaItems called ${mediaItems.size} ${mediaItems[0]}")
             // TODO check this out
-            /* This is the trickiest part, if you don't do this here, nothing will play */
             val episode = episodeByGuidOrUrl(null, mediaItems.first().mediaId, copy = false) ?: return Futures.immediateFuture(mutableListOf())
             if (!InTheatre.isCurMedia(episode)) {
                 for (i in 0..1) {

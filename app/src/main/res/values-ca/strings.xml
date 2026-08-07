@@ -140,7 +140,7 @@
   <string name="download_pending">Baixada pendent</string>
   <string name="download_running">Baixada en procés</string>
   <string name="download_error_details">Detalls</string>
-  <string name="download_log_details_message">%1$s \n\nMotiu tècnic: \n%2$s \n\nEnllaç del fitxer:\n%3$s</string>
+
   <string name="download_error_retrying">La descàrrega de «%1$s» ha fallat, es tornarà a intentar més endavant</string>
   <string name="download_error_not_retrying">La descàrrega de «%1$s» ha fallat</string>
   <string name="download_error_tap_for_details">Toqueu per veure detalls.</string>

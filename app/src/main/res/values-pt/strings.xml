@@ -200,7 +200,7 @@
     <string name="download_pending">Descarga pendente</string>
     <string name="download_running">Descarga atual</string>
     <string name="download_error_details">Detalhes</string>
-    <string name="download_log_details_message">%1$s \n\nMotivo técnico: \n%2$s \n\nURL do ficheiro:\n%3$s</string>
+
     <string name="download_error_retrying">Não foi possível descarregar \"%1$s\". Tente mais tarde.</string>
     <string name="download_error_not_retrying">Não foi possível descarregar \"%1$s\"</string>
     <string name="download_error_tap_for_details">Toque para ver detalhes</string>

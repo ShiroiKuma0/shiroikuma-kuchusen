@@ -200,7 +200,7 @@
     <string name="download_pending">Čeká na stažení</string>
     <string name="download_running">Probíhá stahování</string>
     <string name="download_error_details">Detaily</string>
-    <string name="download_log_details_message">%1$s \n\nTechnická příčina: \n%2$s \n\nURL souboru:\n%3$s</string>
+
     <string name="download_error_retrying">Stahování \"%1$s\" selhalo. Bude zopakováno později.</string>
     <string name="download_error_not_retrying">Stahování \"%1$s\" selhalo.</string>
     <string name="download_error_tap_for_details">Klikněte pro zobrazení detailů.</string>

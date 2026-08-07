@@ -154,7 +154,7 @@
   <string name="download_pending">הורדה ממתינה</string>
   <string name="download_running">הורדה מתבצעת</string>
   <string name="download_error_details">פרטים</string>
-  <string name="download_log_details_message">%1$s \n\nסיבה טכנית: \n%2$s \n\nכתובת הקובץ:\n%3$s</string>
+
   <string name="download_error_retrying">הורדה של „%1$s” נכשלה. ננסה שוב מאוחר יותר.</string>
   <string name="download_error_not_retrying">ההורדה של „%1$s” נכשלה.</string>
   <string name="download_error_tap_for_details">יש לגעת כדי להציג עוד פרטים.</string>

@@ -203,7 +203,7 @@
     <string name="download_pending">التنزيل فى الانتظار</string>
     <string name="download_running">جارى التنزيل</string>
     <string name="download_error_details">تفاصيل</string>
-    <string name="download_log_details_message">%1$s \n\nسبب تقني: \n%2$s \n\n رابط الملف:\n%3$s</string>
+
     <string name="download_error_retrying">فشل تنزيل \"%1$s\". ستتم إعادة المحاولة لاحقا.</string>
     <string name="download_error_not_retrying">فشل تنزيل \"%1$s\".</string>
     <string name="download_error_tap_for_details">إضغط لرؤية التفاصيل.</string>

@@ -200,7 +200,7 @@
     <string name="download_pending">Потрібно завантажити</string>
     <string name="download_running">Завантаження</string>
     <string name="download_error_details">Детальніше</string>
-    <string name="download_log_details_message">%1$s \n\nТехнічна причина: \n%2$s \n\nПосилання на файл:\n%3$s</string>
+
     <string name="download_error_retrying">Не вдалося завантажити \"%1$s\". Ми спробуємо ще пізніше.</string>
     <string name="download_error_not_retrying">Не вдалося завантажити \"%1$s\".</string>
     <string name="download_error_tap_for_details">Торкніться, щоб переглянути деталі.</string>

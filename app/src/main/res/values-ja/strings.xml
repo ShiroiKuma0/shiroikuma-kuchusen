@@ -199,7 +199,7 @@
     <string name="download_pending">ダウンロード保留中</string>
     <string name="download_running">ダウンロード実行中</string>
     <string name="download_error_details">詳細</string>
-    <string name="download_log_details_message">%1$s \n\n技術的な理由: \n%2$s \n\nファイル URL:\n%3$s</string>
+
     <string name="download_error_retrying">\"%1$s\" のダウンロードに失敗しました。後で再試行します。</string>
     <string name="download_error_not_retrying">\"%1$s\" のダウンロードに失敗しました。</string>
     <string name="download_error_tap_for_details">タップして詳細を表示します。</string>

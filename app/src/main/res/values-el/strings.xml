@@ -198,7 +198,7 @@
     <string name="download_pending">Λήψη σε αναμονή</string>
     <string name="download_running">Εκτελείται λήψη</string>
     <string name="download_error_details">Λεπτομέρειες</string>
-    <string name="download_log_details_message">%1$s \n\nTechnical reason: \n%2$s \n\nFile URL:\n%3$s</string>
+
     <string name="download_error_retrying">Η λήψη του \"%1$s\" απέτυχε. Θα ξαναδοκιμαστεί αργότερα.</string>
     <string name="download_error_not_retrying">Η λήψη του \"%1$s\" απέτυχε.</string>
     <string name="download_error_tap_for_details">Πατήστε για να δείτε λεπτομέρειες.</string>

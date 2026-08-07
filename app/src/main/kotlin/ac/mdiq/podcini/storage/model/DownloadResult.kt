@@ -17,18 +17,12 @@ class DownloadResult : RealmObject {
     var id: Long = 0L
         private set
 
-    /**
-     * A human-readable string which is shown to the user so that he can
-     * identify the download. Should be the title of the item/feed/media or the
-     * URL if the download has no other title.
-     */
     var title: String
     var feedfileId: Long
-    /**
-     * Is used to determine the type of the feedfile even if the feedfile does
-     * not exist anymore. The value should be FEEDFILETYPE_FEED, FEEDFILETYPE_FEEDIMAGE or FEEDFILETYPE_FEEDMEDIA
-     */
+
+    // defined with RequestType
     var feedfileType: Int
+
     var isSuccessful: Boolean
 
     @Ignore var reason: DownloadError? = DownloadError.ERROR_NOT_FOUND
@@ -40,10 +34,6 @@ class DownloadResult : RealmObject {
     var reasonCode: Int = 0
 
     var completionTime: Long = 0L
-    /**
-     * A message which can be presented to the user to give more information.
-     * Should be null if Download was successful.
-     */
     var reasonDetailed: String
 
     constructor(feedId: Long, title: String, reason: DownloadError?, successful: Boolean, reasonDetailed: String, feedfileType: Int = RequestType.FEED.code, completionDate: Long = nowInMillis()) {
@@ -85,9 +75,6 @@ class DownloadResult : RealmObject {
 
     companion object {
         private const val TAG = "DownloadResult"
-        /**
-         * Downloaders should use this constant for the size attribute if necessary so that the listadapters etc. can react properly.
-         */
         const val SIZE_UNKNOWN: Int = -1
 
         var idCounter: Long = -1

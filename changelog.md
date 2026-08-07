@@ -2,11 +2,14 @@
 
 * further amended Logs screen
 	* replaced mode title with icon
-	* added switch in Downloads and Shares modes to show success/failure logs only
+	* added switch in Session, Downloads and Shares modes to show success/error logs only
+	* in Downloads mode
+		* past superseded items are not shown
+		* Redo action is moved to the dialog
+	* reformatted details dialogs
 	* Clear logs is moved to the menu
 	* EpisodeInfo opened from Logs screen does not have a Close icon
-* some code cleaning: removed most ordinal references in enum classes
-* github actions not working?
+* some code cleaning, and removed most ordinal references in enum classes
 
 # 12.5.6
 

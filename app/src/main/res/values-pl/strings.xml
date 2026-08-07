@@ -202,7 +202,7 @@
     <string name="download_pending">Pobieranie w toku</string>
     <string name="download_running">Pobieram</string>
     <string name="download_error_details">Szczegóły</string>
-    <string name="download_log_details_message">%1$s \n\nTechniczne powody: \n%2$s \n\nAdres URL pliku:\n%3$s</string>
+
     <string name="download_error_retrying">Pobieranie \"%1$s\" nie powiodło się. Spróbujemy ponownie później.</string>
     <string name="download_error_not_retrying">Pobieranie \"%1$s\" nie powiodło się.</string>
     <string name="download_error_tap_for_details">Naciśnij, aby zobaczyć szczegóły</string>

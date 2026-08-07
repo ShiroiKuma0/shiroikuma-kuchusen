@@ -140,7 +140,7 @@
   <string name="download_pending">Nedlastning venter</string>
   <string name="download_running">Nedlasting pågår</string>
   <string name="download_error_details">Detaljer</string>
-  <string name="download_log_details_message">%1$s \n\nTeknisk årsak: \n%2$s \n\nFil URL:\n%3$s</string>
+
   <string name="download_error_retrying">Nedlasting av \"%1$s\" feilet. Prøves på nytt senere.</string>
   <string name="download_error_not_retrying">Nedlasting av \"%1$s\" feilet.</string>
   <string name="download_error_tap_for_details">Trykk for se detaljer.</string>

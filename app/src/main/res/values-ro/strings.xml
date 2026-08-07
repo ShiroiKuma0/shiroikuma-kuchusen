@@ -199,7 +199,7 @@
     <string name="download_pending">Descărcare în așteptare</string>
     <string name="download_running">Se descarcă</string>
     <string name="download_error_details">Detalii</string>
-    <string name="download_log_details_message">%1$s \n\nMotivul tehnic: \n%2$s \n\nURL-ul Fișierului:\n%3$s</string>
+
     <string name="download_error_retrying">Descărcarea \"%1$s\" a eșuat. Se va reîncerca descăracrea mai târziu.</string>
     <string name="download_error_not_retrying">Descărcarea \"%1$s\" a eșuat.</string>
     <string name="download_error_tap_for_details">Atingeți pentru mai multe detalii.</string>

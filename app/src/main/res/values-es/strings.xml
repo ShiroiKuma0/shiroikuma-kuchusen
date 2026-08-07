@@ -200,7 +200,7 @@
     <string name="download_pending">Descarga pendiente</string>
     <string name="download_running">Descarga en curso</string>
     <string name="download_error_details">Detalles</string>
-    <string name="download_log_details_message">%1$s \n\nMotivo técnico: \n%2$s \n\nURL de archivo:\n%3$s</string>
+
     <string name="download_error_retrying">La descarga de \"%1$s\" falló. Se intentará de nuevo más tarde.</string>
     <string name="download_error_not_retrying">La descarga de \"%1$s\" falló.</string>
     <string name="download_error_tap_for_details">Seleccione para ver detalles.</string>

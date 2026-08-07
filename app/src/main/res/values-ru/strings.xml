@@ -200,7 +200,7 @@
     <string name="download_pending">Загрузка в ожидании</string>
     <string name="download_running">Загрузка в процессе</string>
     <string name="download_error_details">Подробнее</string>
-    <string name="download_log_details_message">%1$s \n\nПричина: \n%2$s \n\Адрес файла:\n%3$s</string>
+
     <string name="download_error_retrying">\"%1$s\" загрузка не удалась. Повтор – позже.</string>
     <string name="download_error_not_retrying">\"%1$s\" загрузка не удалась.</string>
     <string name="download_error_tap_for_details">Подробнее…</string>

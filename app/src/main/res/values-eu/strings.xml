@@ -142,7 +142,7 @@
   <string name="download_pending">Deskargatzeko zain</string>
   <string name="download_running">Deskarga abian</string>
   <string name="download_error_details">Xehetasunak</string>
-  <string name="download_log_details_message">%1$s \n\nArrazoi teknikoa: \n%2$s \n\nFitxategiaren URLa:\n%3$s</string>
+
   <string name="download_error_retrying">\"%1$s\" deskargak huts egin du. Gero beste saiakera bat egingo da.</string>
   <string name="download_error_not_retrying">\"%1$s\" deskargak huts egin du.</string>
   <string name="download_error_tap_for_details">Sakatu xehetasunak ikusteko.</string>

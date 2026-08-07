@@ -198,7 +198,7 @@
     <string name="download_pending">بارگیری معوق</string>
     <string name="download_running">بارگیری در حال اجرا</string>
     <string name="download_error_details">جزئیات</string>
-    <string name="download_log_details_message">%1$s \n\nدلیل فنی: \n%2$s \n\nنشانی پرونده:\n%3$s</string>
+
     <string name="download_error_retrying">بارگیری «%1$s» شکست خورد. بعداُ دوباره تلاش خواهد شد.</string>
     <string name="download_error_not_retrying">بارگیری «%1$s» شکست خورد.</string>
     <string name="download_error_tap_for_details">برای مشاهده جزئیات ضربه بزنید.</string>

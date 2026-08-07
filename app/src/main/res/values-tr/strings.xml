@@ -276,7 +276,7 @@
     <string name="download_pending">İndirme bekliyor</string>
     <string name="download_running">İndirme çalışıyor</string>
     <string name="download_error_details">Ayrıntılar</string>
-    <string name="download_log_details_message">%1$s \n\nTeknik neden: \n%2$s \n\nDosya URL\'si:\n%3$s</string>
+
     <string name="download_error_retrying">\"%1$s\" indirmesi başarısız oldu. Daha sonra tekrar denenecek.</string>
     <string name="download_error_not_retrying">\"%1$s\" indirmesi başarısız oldu.</string>
     <string name="download_error_tap_for_details">Ayrıntıları görmek için dokunun.</string>

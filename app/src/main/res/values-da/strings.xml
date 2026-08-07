@@ -198,7 +198,7 @@
     <string name="download_pending">Afventer overførsel</string>
     <string name="download_running">Overfører</string>
     <string name="download_error_details">Detaljer</string>
-    <string name="download_log_details_message">%1$s \n\nTeknisk årsag: \n%2$s \n\nFil-URL:\n%3$s</string>
+
     <string name="download_error_retrying">Overførsel af \"%1$s\" mislykkedes. Vil blive forsøgt igen senere.</string>
     <string name="download_error_not_retrying">Overførsel af \"%1$s\" mislykkedes.</string>
     <string name="download_error_tap_for_details">Tryk for se detaljer.</string>

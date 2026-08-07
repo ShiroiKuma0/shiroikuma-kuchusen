@@ -198,7 +198,7 @@
     <string name="download_pending">In afwachting van downloaden</string>
     <string name="download_running">Bezig met downloaden</string>
     <string name="download_error_details">Beschrijving</string>
-    <string name="download_log_details_message">%1$s \n\nTechnische reden: \n%2$s \n\nBestandsurl:\n%3$s</string>
+
     <string name="download_error_retrying">Download van \"%1$s\" mislukt. Wordt later opnieuw geprobeerd.</string>
     <string name="download_error_not_retrying">Download van \"%1$s\" mislukt.</string>
     <string name="download_error_tap_for_details">Tik voor meer informatie.</string>

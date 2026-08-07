@@ -198,7 +198,7 @@
     <string name="download_pending">Lataus odottamassa</string>
     <string name="download_running">Lataamassa</string>
     <string name="download_error_details">Tiedot</string>
-    <string name="download_log_details_message">%1$s \n\nTekninen syy: \n%2$s \n\nTiedoston URL:\n%3$s</string>
+
     <string name="download_error_retrying">\"%1$s\":n lataus epäonnistui. Yritetään myöhemmin uudelleen.</string>
     <string name="download_error_not_retrying">\"%1$s\":n lataus epäonnistui.</string>
     <string name="download_error_tap_for_details">Napauta nähdäksesi lisätiedot.</string>

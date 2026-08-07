@@ -197,7 +197,7 @@
     <string name="download_pending">下载等待中</string>
     <string name="download_running">下载正在运行</string>
     <string name="download_error_details">详细信息</string>
-    <string name="download_log_details_message">%1$s \n\n技术原因： \n%2$s \n\n文件URL：\n%3$s</string>
+
     <string name="download_error_retrying">下载“%1$s”失败。稍后将重试一次。</string>
     <string name="download_error_not_retrying">下载 \"%1$s\" 失败。</string>
     <string name="download_error_tap_for_details">点击查看详细信息。</string>
