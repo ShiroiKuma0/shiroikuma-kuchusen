@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 96
-        versionName = "12.5.8"
+        versionCode = 97
+        versionName = "12.5.9"
 
         ndkVersion = "29.0.14206865"
 
@@ -197,12 +197,12 @@ dependencies {
 
     implementation("androidx.glance:glance-appwidget:1.1.1")
 
-    implementation("androidx.media3:media3-exoplayer:1.10.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.10.1")
-    implementation("androidx.media3:media3-ui:1.10.1")
-    implementation("androidx.media3:media3-common:1.10.1")
-    implementation("androidx.media3:media3-session:1.10.1")
-    implementation("androidx.media3:media3-exoplayer-hls:1.10.1")
+    implementation("androidx.media3:media3-exoplayer:1.11.0")
+    implementation("androidx.media3:media3-datasource-okhttp:1.11.0")
+    implementation("androidx.media3:media3-ui:1.11.0")
+    implementation("androidx.media3:media3-common:1.11.0")
+    implementation("androidx.media3:media3-session:1.11.0")
+    implementation("androidx.media3:media3-exoplayer-hls:1.11.0")
 
     implementation("com.google.android.material:material:1.14.0")
 

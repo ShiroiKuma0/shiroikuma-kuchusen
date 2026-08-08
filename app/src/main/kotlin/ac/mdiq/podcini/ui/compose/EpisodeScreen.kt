@@ -255,49 +255,47 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                         }
                     }
                 }
-                Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column {
-                        SelectionContainer { Text(episode.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()) }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (episode.downloadUrl.isNullOrBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
-                            val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
-                            Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
-                            if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                            val pubTimeText = remember(episode.id) { formatDateTimeFlex(episode.pubDate) }
-                            val txtvDuration = remember(episode.id) { if (episode.duration > 0) durationStringFull(episode.duration) else "" }
-                            var txtvSize by remember(episode.id) { mutableStateOf("") }
-                            LaunchedEffect(episode.id) {
-                                Logd(TAG, "LaunchedEffect(episode.id)")
-                                when {
-                                    episode.size > 0 -> txtvSize = formatShortFileSize(episode.size)
-                                    isImageDownloadAllowed && canCheckMediaSize(episode) && !episode.isSizeSetUnknown() ->
-                                        runOnIOScope {
-                                            val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
-                                            txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(sizeValue)
-                                        }
-                                    else -> txtvSize = ""
-                                }
-                                Logd(TAG, "LaunchedEffect(episode.id) ended")
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp)) {
+                    SelectionContainer { Text(episode.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (episode.downloadUrl.isNullOrBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
+                        val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
+                        Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                        if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                        val pubTimeText = remember(episode.id) { formatDateTimeFlex(episode.pubDate) }
+                        val txtvDuration = remember(episode.id) { if (episode.duration > 0) durationStringFull(episode.duration) else "" }
+                        var txtvSize by remember(episode.id) { mutableStateOf("") }
+                        LaunchedEffect(episode.id) {
+                            Logd(TAG, "LaunchedEffect(episode.id)")
+                            when {
+                                episode.size > 0 -> txtvSize = formatShortFileSize(episode.size)
+                                isImageDownloadAllowed && canCheckMediaSize(episode) && !episode.isSizeSetUnknown() ->
+                                    runOnIOScope {
+                                        val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
+                                        txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(sizeValue)
+                                    }
+                                else -> txtvSize = ""
                             }
-                            Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
-                            Spacer(Modifier.weight(1f))
-                            val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id } }
-                            //                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(
-                                onClick = {
-                                    if (timers.isEmpty()) showAddTimerDialog = true
-                                    else showTimetableDialog = true
-                                },
-                                onLongClick = { showAddTimerDialog = true  }))
-                            Spacer(Modifier.weight(0.5f))
-                            if (actionButton != null) {
-                                val dlStats = downloadStates[episode.downloadUrl]
-                                if (dlStats != null) {
-                                    actionButton!!.processing.intValue = dlStats.progress
-                                    if (dlStats.state == DownloadStatus.State.COMPLETED.code) actionButton!!.type = ButtonTypes.PLAY
-                                }
-                                Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick() }, onLongClick = { showAltActionsDialog = true }))
+                            Logd(TAG, "LaunchedEffect(episode.id) ended")
+                        }
+                        Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.weight(1f))
+                        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id } }
+                        //                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
+                        Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(
+                            onClick = {
+                                if (timers.isEmpty()) showAddTimerDialog = true
+                                else showTimetableDialog = true
+                            },
+                            onLongClick = { showAddTimerDialog = true  }))
+                        Spacer(Modifier.weight(0.5f))
+                        if (actionButton != null) {
+                            val dlStats = downloadStates[episode.downloadUrl]
+                            if (dlStats != null) {
+                                actionButton!!.processing.intValue = dlStats.progress
+                                if (dlStats.state == DownloadStatus.State.COMPLETED.code) actionButton!!.type = ButtonTypes.PLAY
                             }
+                            Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick() }, onLongClick = { showAltActionsDialog = true }))
                         }
                     }
                 }

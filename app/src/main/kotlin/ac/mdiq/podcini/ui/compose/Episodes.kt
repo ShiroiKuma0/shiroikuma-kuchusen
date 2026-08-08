@@ -214,6 +214,7 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
+            val authorityText = stringResource(R.string.provider_authority)
             TextButton(onClick = {
                 when (option) {
                     1 -> {
@@ -254,7 +255,7 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                     3 -> {
                         val lurl = item.fileUrl
                         if (!lurl.isNullOrEmpty()) {
-                            val fileUri = FileProvider.getUriForFile(ctx, ctx.getString(R.string.provider_authority), File(lurl))
+                            val fileUri = FileProvider.getUriForFile(ctx, authorityText, File(lurl))
                             ShareCompat.IntentBuilder(ctx).setType(item.mimeType).addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
                             Logd(TAG, "shareFeedItemFile called")
                         }
@@ -424,6 +425,10 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     }
 
     Column {
+        if (episode.lastPlayedTime > 0L) {
+            val playTimeText = remember(episode.lastPlayedTime) { formatDateTimeFlex(episode.lastPlayedTime) }
+            Text(stringResource(R.string.last_played_date) + ": " + playTimeText, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
+        }
         val todos = remember(episode.id) { episode.todos }
         if (todos.isNotEmpty()) {
             var show by remember { mutableStateOf(false) }
@@ -853,7 +858,7 @@ fun EditTimerDialog(timer: Timer, onDismiss: () -> Unit) {
 @Composable
 fun AddTimerDialog(episode: Episode, onDismiss: () -> Unit) {
     CommonPopupCard(onDismiss = onDismiss) {
-        val zdt = remember { Instant.fromEpochMilliseconds(System.currentTimeMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
+        val zdt = remember { Instant.fromEpochMilliseconds(nowInMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
         var month by remember(zdt) { mutableIntStateOf(zdt.month.number) }
         var date by remember(zdt) { mutableIntStateOf(zdt.day) }

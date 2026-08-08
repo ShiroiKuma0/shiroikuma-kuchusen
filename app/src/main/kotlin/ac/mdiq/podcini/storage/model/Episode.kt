@@ -337,7 +337,7 @@ class Episode : RealmObject {
         }
     }
 
-    fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(System.currentTimeMillis()) + ":\n"
+    fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(nowInMillis()) + ":\n"
 
     fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
         if (addition) {

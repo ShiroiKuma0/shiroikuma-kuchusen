@@ -847,14 +847,14 @@ abstract class MediaPlayerBase {
         if (position > it.duration) it.duration = position
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
-            var delta = (nowInMillis() - it.startTime)
+            var delta = nowInMillis() - it.startTime
             if (delta > 3 * max(it.playedDuration, 60000)) {
-                // LogtFor(TAG, curEpisode?.id, "upsertDB likely invalid delta: $delta ${it.title}")
                 it.startTime = nowInMillis()
                 delta = 0L
-            } else it.timeSpent = it.timeSpentOnStart + delta
+            }
+            it.timeSpent = it.timeSpentOnStart + delta
         }
-        it.lastPlayedTime = (System.currentTimeMillis())
+        it.lastPlayedTime = nowInMillis()
         if (it.playState == EpisodeState.NEW.code) it.setPlayState(EpisodeState.UNPLAYED)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
     }
@@ -903,11 +903,7 @@ abstract class MediaPlayerBase {
                 var autoEnableByTime = true
                 val fromSetting = autoEnableFrom
                 val toSetting = autoEnableTo
-                if (fromSetting != toSetting) autoEnableByTime = isInTimeRange(
-                    fromSetting,
-                    toSetting,
-                    Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
-                )
+                if (fromSetting != toSetting) autoEnableByTime = isInTimeRange(fromSetting, toSetting, Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour)
                 if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isActive != true) {
                     sleepManager?.setTimer(lastTimerValue.minutes.inWholeMilliseconds)
                     // TODO: what to do?

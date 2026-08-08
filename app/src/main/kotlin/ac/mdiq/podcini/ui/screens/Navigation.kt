@@ -102,7 +102,7 @@ val defaultNavKey: NavKey
     }
 
 @OptIn(ExperimentalMaterial3Api::class)
-val myEntryProvider = entryProvider<NavKey> {
+val myEntryProvider = entryProvider {
     entry<Library>{ LibraryScreen() }
     entry<Queues>{ k-> QueuesScreen(k.id) }
     entry<FeedDetails>{ k-> FeedDetailsScreen(k.feedId, k.modeName) }

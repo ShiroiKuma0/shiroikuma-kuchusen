@@ -1,3 +1,15 @@
+# 12.5.9
+
+* in OnlineFeed screen
+	* if feed exists, "Limit episodes" row is not shown, number of episodes in existing feed is shown
+	* if the existing feed has a different url, "Update url" button is shown, which updates the feed's url and opens it
+* in Library, reset language filter when feeds are added/removed
+* in MediaPlayer, when checking duplicates, duration is checked to be close
+* in EpisodeInfo, show last played date if set
+* ensured when receiving feeds from other device, feeds are put to the current volume
+* some code refactoring
+* updated media3
+	
 # 12.5.8
 
 * fixed issue of external audio media bypassing player cache during playback

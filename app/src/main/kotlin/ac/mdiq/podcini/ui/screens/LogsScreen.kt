@@ -6,16 +6,18 @@ import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.net.feed.FeedUpdater
 import ac.mdiq.podcini.sources.sourceClients
-import ac.mdiq.podcini.storage.database.addClientEpisode
+import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
@@ -27,6 +29,7 @@ import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.sessionLogs
@@ -219,11 +222,35 @@ fun LogsScreen() {
         if (sharedUrl.isNotBlank()) ConfirmAddToFeed(onDismiss = {  }) { toFeed->
             Logd(TAG, "ConfirmAddToFeed cb sharedUrl: $sharedUrl")
             val log = realm.query(ShareLog::class).query("url == $0", sharedUrl).first().find()
-            var client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 1 } == true }
-            if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
-            else {
-                client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 0 } == true }
-                if (client != null) addClientEpisode(client, sharedUrl, toFeed, log)
+            val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 1 } == true }
+            if (client != null) {
+                val episode = client.withProvider { it.buildEpisode(sharedUrl)?.toEpisode() }
+                if (episode != null) addToFeed(episode, toFeed, log)
+                else {
+                    Loge(TAG, "Failed adding episode: client can't handle. url=$sharedUrl")
+                    if (log != null) upsert(log) {
+                        it.details = "client can't handle"
+                        it.status = ShareLog.Status.ERROR.code
+                    }
+                }
+            } else {
+                val clients = sourceClients.filter { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 0 } == true }
+                var success = false
+                for (c in clients) {
+                    val episode = c.withProvider { it.buildEpisode(sharedUrl)?.toEpisode() }
+                    if (episode != null) {
+                        addToFeed(episode, toFeed, log)
+                        success = true
+                        break
+                    }
+                }
+                if (!success) {
+                    Loge(TAG, "Failed adding episode: no client can handle. url=$sharedUrl")
+                    if (log != null) upsert(log) {
+                        it.details = "no client can handle"
+                        it.status = ShareLog.Status.ERROR.code
+                    }
+                }
             }
             sharedUrl = ""
         }

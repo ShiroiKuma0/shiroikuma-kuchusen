@@ -38,6 +38,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import kotlin.math.min
 
 private const val TAG: String = "Episodes"
@@ -246,33 +247,35 @@ fun canCheckMediaSize(episode: Episode): Boolean {
 fun checkAndMarkDuplicates(episode: Episode): Episode {
     var updated = false
     realm.writeBlocking {
-        val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", episode.title, episode.downloadUrl).find()
-        if (duplicates.size > 1) {
-            Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
+        val candidates = query(Episode::class, "title == $0 OR downloadUrl == $1", episode.title, episode.downloadUrl).find()
+        if (candidates.size > 1) {
+            Logt(TAG, "Found ${candidates.size - 1} duplicate episodes, setting to Ignored")
+            val duplicates = mutableListOf<Episode>()
+            for (e in candidates) {
+                if (e.id == episode.id) continue
+                if (e.duration > 0L && episode.duration > 0L && abs(e.duration - episode.duration) < 0.05 * (e.duration + episode.duration)) duplicates.add(e)
+            }
             val comment = "duplicate"
             for (e in duplicates) {
-                if (e.id != episode.id) {
-                    when {
-                        e.playState <= EpisodeState.AGAIN.code -> {
-                            e.setPlayState(EpisodeState.IGNORED)
-                            e.addComment(comment)
+                when {
+                    e.playState <= EpisodeState.AGAIN.code -> {
+                        e.setPlayState(EpisodeState.IGNORED)
+                        e.addComment(comment)
+                    }
+                    episode.playState == EpisodeState.IGNORED.code -> { }
+                    else -> {
+                        val m = findLatest(episode)?.let {
+                            it.setPlayState(EpisodeState.IGNORED)
+                            it.addComment(comment)
+                            it
                         }
-                        episode.playState == EpisodeState.IGNORED.code -> { }
-                        else -> {
-                            val m = findLatest(episode)?.let {
-                                it.setPlayState(EpisodeState.IGNORED)
-                                it.addComment(comment)
-                                it
-                            }
-                            m?.let { updated = true }
-                            LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
-                        }
+                        m?.let { updated = true }
+                        LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
                     }
                 }
             }
             for (e in duplicates) {
                 for (e1 in duplicates) {
-                    if (e.id == e1.id) continue
                     e.related.add(e1)
                 }
             }

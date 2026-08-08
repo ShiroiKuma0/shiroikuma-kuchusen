@@ -22,6 +22,7 @@ import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.EPISODES_LIMIT
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -153,14 +154,14 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     internal var feedOptions: List<String?> = listOf()
 
-    internal var feedId by mutableLongStateOf(0L)
-
     internal var infoBarText = mutableStateOf("")
 
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
 
     internal val episodes = mutableStateListOf<Episode>()
 
+    internal var feedId by mutableLongStateOf(0L)
+    var updatedFeedUrl by mutableStateOf("")
     internal var feed by mutableStateOf<Feed?>(null)
     internal var username: String? = null
     internal var password: String? = null
@@ -177,8 +178,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var errorMessage by mutableStateOf("")
     internal var errorDetails by mutableStateOf("")
 
-    var sLog by mutableStateOf<SubscriptionLog?>(null)
-
     var gatewayClient: SourceGatewayClient? = null
 
     init {
@@ -190,7 +189,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
         Logd(TAG, "OnlineFeedVM init feedUrl: $feedUrl feedSource: $feedSource isShared: $isShared")
 
-        checkExisting(preparedUrl, feed)
+        findExisting(preparedUrl)?.apply { feedId = this.id }
 
         val showError = { message: String?, details: String ->
             errorMessage = message ?: "No message"
@@ -206,6 +205,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             showProgress = true
             // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
             if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
+
             suspend fun handleClientFeeds(): Boolean {
                 feedOptions = gatewayClient?.withProvider { it.feedsTitlesAtUrl(url) } ?: listOf()
                 val feedOptions_ = feedOptions.filter { it != null && it != "playlists" && it != "shorts" }
@@ -218,16 +218,19 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                     feedOptions_.size <= 1 -> {
                         val fipc = gatewayClient?.withProvider { it.buildFeed(url, 0) }
                         if (fipc != null) {
-                            val exist = checkExisting(preparedUrl, fipc.toFeed())
-                            Logd(TAG, "handleClientFeeds feed exists: $exist ${fipc.title}")
+                            var exist = findExisting(preparedUrl)
                             if (exist != null) {
-                                feed = exist
-                                showProgress = false
-                                showFeedDisplay = true
-                                enableSubscribe = true
-                                subButTextRes = R.string.open
+                                setExist(exist, R.string.open)
                                 return true
                             }
+                            exist = findExisting(fipc.toFeed())
+                            if (exist != null) {
+                                setExist(exist, R.string.update_url)
+                                updatedFeedUrl = fipc.downloadUrl ?:""
+                                Logd(TAG, "handleClientFeeds updatedFeedUrl: $updatedFeedUrl")
+                                return true
+                            }
+                            Logd(TAG, "handleClientFeeds feed exists: $exist ${fipc.title}")
                             val eList = mutableListOf<EpisodeIPC>()
                             var episodes = gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) } ?: listOf()
                             while (episodes.isNotEmpty()) {
@@ -296,40 +299,47 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         timeIt("$TAG end of init")
     }
 
-    fun checkExisting(url: String, feed_: Feed?): Feed? {
+    fun setExist(exist: Feed, textRes: Int) {
+        feedId = exist.id
+        feed = exist
+        numEpisodes = getEpisodesCount(null, feedId)
+        showProgress = false
+        showFeedDisplay = true
+        enableSubscribe = true
+        subButTextRes = textRes
+    }
+
+    fun findExisting(feed_: Feed?): Feed? {
         Logd(TAG, "checkExisting check for ${feed_?.title} ${feed_?.author}")
-        fun isSameFeed(f: Feed, title: String?, author: String?): Boolean {
+        fun isSameFeed(f: Feed): Boolean {
             Logd(TAG, "isSameFeed check with feed: ${f.type} ${f.title} ${f.author}")
             fun getDomain(url: String): String? = try { URI(url).host?.removePrefix("www.") } catch (e: Exception) { null }
-            return if (isExtFeed(f)) {
-                when {
-                    f.downloadUrl.isNullOrBlank() -> false
-                    f.downloadUrl == url -> true
-                    else -> {
-                        val d1 = getDomain(f.downloadUrl!!)
-                        val d2 = getDomain(url)
-                        val ds1 = f.description?.take(100).orEmpty()
-                        val ds2 = f.description?.take(100).orEmpty()
-                        Logd(TAG, "isSameFeed d1: $d1 d2: $d2")
-                        (f.title == title && f.author == author && d1 == d2 && ds1 == ds2)
-                    }
-                }
-            } else f.downloadUrl == url
+            val d1 = getDomain(f.downloadUrl?:"")
+            val d2 = getDomain(feed_?.downloadUrl?:"")
+            val ds1 = f.description?.take(100).orEmpty()
+            val ds2 = f.description?.take(100).orEmpty()
+            Logd(TAG, "isSameFeed d1: $d1 d2: $d2")
+            return  (f.title == feed_?.title && f.author == feed_?.author && d1 == d2 && ds1 == ds2)
         }
+        for (f in allFeeds) if (isSameFeed(f)) return f
+        return null
+    }
+
+    fun findExisting(url: String): Feed? {
         if (url.isNotBlank()) for (f in allFeeds) {
-            if (isSameFeed(f, feed_?.title, feed_?.author)) {
+            if (f.downloadUrl == url) {
                 Logd(TAG, "checkExisting found existing feed: ${f.title}")
-                feedId = f.id
                 return f
             }
         }
         return null
     }
 
+
     internal fun handleFeed(feed_: Feed) {
         Logd(TAG, "handleFeed feed_.title: ${feed_.title} ${feed_.author}")
         feed = feed_
-        checkExisting(preparedUrl, feed)
+//        findExisting(preparedUrl, feed)?.apply { feedId = this.id }
 
         val results = mutableListOf<SubscriptionLog>()
         if (!feed_.title.isNullOrBlank()) feedLogsMap?.get(feed_.title)?.apply { results.add(this) }
@@ -463,7 +473,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismiss = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
 
     @Composable
-    fun ShowTabsDialog(onDismiss: () -> Unit, handleFeed: (Feed) -> Unit) {
+    fun ShowTabsDialog(onDismiss: () -> Unit) {
         val ytTabsMap = remember { mutableStateMapOf<Int, String>() }
         AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
             title = { Text(stringResource(R.string.choose_tab), style = CustomTextStyles.titleCustom) },
@@ -490,12 +500,28 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             confirmButton = {
                 TextButton(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
+                        // TODO: ytTabsMap doesn't handle multiple keys
                         for (i in ytTabsMap.keys) {
                             Logd(TAG, "Subscribing $i ${vm.feedOptions[i]} ${ytTabsMap[i]}")
                             val endUrl = ytTabsMap[i] ?: continue
                             val fipc = vm.gatewayClient?.withProvider { it.buildFeed(url, i) }
                             if (fipc != null) {
                                 fipc.title = "${fipc.title}: $endUrl"
+                                Logd(TAG, "url: $url")
+                                Logd(TAG, "preparedUrl: ${vm.preparedUrl}")
+                                Logd(TAG, "fipc.title: ${fipc.title} ${fipc.downloadUrl}")
+                                var exist = vm.findExisting(url)
+                                if (exist != null) {
+                                    vm.setExist(exist, R.string.open)
+                                    return@launch
+                                }
+                                exist = vm.findExisting(fipc.toFeed())
+                                if (exist != null) {
+                                    vm.setExist(exist, R.string.update_url)
+                                    vm.updatedFeedUrl = fipc.downloadUrl ?:""
+                                    Logd(TAG, "updatedFeedUrl: ${vm.updatedFeedUrl}")
+                                    return@launch
+                                }
                                 val eList = mutableListOf<EpisodeIPC>()
                                 var episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
                                 while (episodes.isNotEmpty()) {
@@ -506,7 +532,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                     episodes = vm.gatewayClient?.withProvider { it.getEpisodes(EPISODE_BATCH_SIZE, 0L) }?: listOf()
                                 }
                                 fipc.episodes = eList
-                                handleFeed(fipc.toFeed())
+                                vm.handleFeed(fipc.toFeed())
                             } else Loge(TAG, "Subscribe feed failed")
                         }
                     }
@@ -516,7 +542,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
-    if (vm.showTabsDialog) ShowTabsDialog(onDismiss = { vm.showTabsDialog = false }) { feed -> vm.handleFeed(feed) }
+    if (vm.showTabsDialog) ShowTabsDialog(onDismiss = { vm.showTabsDialog = false })
 
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
@@ -572,6 +598,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                     val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
                                     if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.code }
                                 }
+                                if (vm.updatedFeedUrl.isNotBlank() && vm.feed != null) upsertBlk(vm.feed!!) { it.downloadUrl = vm.updatedFeedUrl }
                                 navTo(FeedDetails(feedId = vm.feedId, modeName = FeedScreenMode.Info.name))
                             } else {
                                 if (vm.feed == null) return@Button
@@ -604,8 +631,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     }
                 }
                 Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    //                    TODO: alternate_urls_spinner
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    //                    TODO: add alternate_urls_spinner
+                    if (vm.feedId == 0L) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
                         NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = false, modifier = Modifier.weight(0.5f)) {
                             Logd(TAG, "limitEpisodesCount: $it")

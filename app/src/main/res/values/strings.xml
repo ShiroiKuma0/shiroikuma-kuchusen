@@ -252,6 +252,8 @@
     <string name="open_podcast">Open podcast</string>
     <string name="retry">Retry</string>
     <string name="open">Open</string>
+    <string name="update_url">Update url</string>
+
     <string name="content_not_exist">Content no longer exists.</string>
 
     <plurals name="updated_feeds_batch_label">

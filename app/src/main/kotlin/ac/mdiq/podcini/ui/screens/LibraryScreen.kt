@@ -542,8 +542,11 @@ class LibraryVM : ViewModel() {
         }
 
         viewModelScope.launch {
-            snapshotFlow { feedCount }.distinctUntilChanged().collect {
-                upsert(subPrefs) { it.langsSel = appAttribs.langSet }
+            snapshotFlow { appAttribs.langSet.size }.distinctUntilChanged().collect {
+                upsert(subPrefs) {
+                    it.langsSel = appAttribs.langSet
+                    it.feedsFilteredInc()
+                }
             }
         }
 
@@ -1551,7 +1554,7 @@ fun LibraryScreen() {
         }
 
         @Composable
-        fun ReceiveDialog() {
+        fun ReceiveContentDialog() {
             var tcpPort by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
             var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
             val ip = remember { getLocalIpAddress() }
@@ -1600,7 +1603,7 @@ fun LibraryScreen() {
             )
         }
 
-        if (showReceiverDialog) ReceiveDialog()
+        if (showReceiverDialog) ReceiveContentDialog()
 
         if (showSendCatalogDialog) SendToDevice(onDismiss = { showSendCatalogDialog = false}) { host, port -> sendCatalog(host, port) { showSendCatalogDialog =  false } }
 

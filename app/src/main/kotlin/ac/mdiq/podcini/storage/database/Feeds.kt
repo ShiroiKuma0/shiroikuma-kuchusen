@@ -6,7 +6,6 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
@@ -16,7 +15,6 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.ShareLog
-import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -85,7 +83,6 @@ fun monitorFeeds() {
         feedsFlow.collect { changes: ResultsChange<Feed> ->
             allFeeds = changes.list
             feedsMap = allFeeds.associateBy { it.id }
-            feedCount = allFeeds.size
             Logd(TAG, "monitorFeedList feeds updated size: ${allFeeds.size}")
             when (changes) {
                 is UpdatedResults -> {
@@ -108,6 +105,7 @@ fun monitorFeeds() {
                 }
                 else -> Logd(TAG, "monitorFeedList other $changes")
             }
+            feedCount = allFeeds.size
         }
     }
 }
@@ -229,25 +227,19 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     return feed
 }
 
-suspend fun addClientEpisode(client: SourceGatewayClient, url: String,  toFeed: Feed, log: ShareLog? = null) {
-    val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
-    if (episode != null) {
-        val episodes = toFeed.episodes
-        val status = if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) ShareLog.Status.EXISTING.code
-        else {
-            episode.id = getEntityId()
-            episode.feedId = toFeed.id
-            upsertBlk(episode) {}
-            EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-            ShareLog.Status.SUCCESS.code
-        }
-        if (log != null) upsert(log) {
-            it.title = episode.title
-            it.status = status
-        }
-    } else {
-        Loge(TAG, "Error adding media at url: $url")
-        if (log != null) upsert(log) { it.details = "Can not build episode" }
+suspend fun addToFeed(episode: Episode, toFeed: Feed, log: ShareLog? = null) {
+    val episodes = toFeed.episodes
+    val status = if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) ShareLog.Status.EXISTING.code
+    else {
+        episode.id = getEntityId()
+        episode.feedId = toFeed.id
+        upsertBlk(episode) {}
+        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
+        ShareLog.Status.SUCCESS.code
+    }
+    if (log != null) upsert(log) {
+        it.title = episode.title
+        it.status = status
     }
 }
 

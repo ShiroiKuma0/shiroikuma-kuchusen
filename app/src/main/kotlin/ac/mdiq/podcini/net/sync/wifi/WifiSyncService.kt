@@ -62,7 +62,7 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
                 delay(1000)
 //                TODO: not using lastSync
                 val lastSync = SynchronizationSettings.lastEpisodeActionSynchronizationTimestamp
-                val newTimeStamp = pushEpisodeActions(this, 0L, System.currentTimeMillis())
+                val newTimeStamp = pushEpisodeActions(this, 0L, nowInMillis())
                 SynchronizationSettings.setLastEpisodeActionSynchronizationAttemptTimestamp(newTimeStamp)
                 EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "50"))
                 sendToPeer("AllSent", "AllSent")
@@ -95,7 +95,7 @@ class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(
                 EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "50"))
                 //                TODO: not using lastSync
                 val lastSync = SynchronizationSettings.lastEpisodeActionSynchronizationTimestamp
-                val newTimeStamp = pushEpisodeActions(this, 0L, System.currentTimeMillis())
+                val newTimeStamp = pushEpisodeActions(this, 0L, nowInMillis())
                 SynchronizationSettings.setLastEpisodeActionSynchronizationAttemptTimestamp(newTimeStamp)
                 sendToPeer("AllSent", "AllSent")
             }

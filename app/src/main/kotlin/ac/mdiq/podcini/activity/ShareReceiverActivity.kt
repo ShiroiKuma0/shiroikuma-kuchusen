@@ -5,9 +5,10 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Extras
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.sourceClients
-import ac.mdiq.podcini.storage.database.addClientEpisode
+import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -75,8 +76,23 @@ class ShareReceiverActivity : ComponentActivity() {
         var existing by mutableStateOf<List<Episode>?>(null)
         suspend fun addEpisode(toFeed: Feed) {
             val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
-            if (client != null) addClientEpisode(client!!, text, toFeed, log)
-            else Loge(TAG, "Failed adding episode: client is null. url=$text")
+            if (client != null) {
+                val episode = client?.withProvider { it.buildEpisode(text)?.toEpisode() }
+                if (episode != null) addToFeed(episode, toFeed, log)
+                else {
+                    Loge(TAG, "Failed adding episode: client can't handle. url=$text")
+                    if (log != null) upsert(log) {
+                        it.details = "Can not build episode"
+                        it.status = ShareLog.Status.ERROR.code
+                    }
+                }
+            } else {
+                Loge(TAG, "Failed adding episode: client is null. url=$text")
+                if (log != null) upsert(log) {
+                    it.details = "client is null"
+                    it.status = ShareLog.Status.ERROR.code
+                }
+            }
         }
         setContent { PodciniTheme {
             when {

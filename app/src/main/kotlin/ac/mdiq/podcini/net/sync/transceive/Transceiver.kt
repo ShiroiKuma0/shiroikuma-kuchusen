@@ -245,10 +245,7 @@ class FeedReceiver(port: Int, val volumeId: Long): Receiver(port) {
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<FeedPackage>(json)
                     val f = pkg.feed.toFeed()
-                    upsertBlk(f) {
-                        it.volumeId = volumeId
-                        it.freeze(false)
-                    }
+                    upsertBlk(f) { it.volumeId = volumeId }
                     Logd(TAG, "Saved feed: ${f.title}")
 
                     runOnIOScope {
