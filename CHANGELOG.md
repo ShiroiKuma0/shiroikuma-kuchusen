@@ -2,6 +2,38 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.5.8+001 (versionCode 960001)
+
+Rebased onto upstream **v12.5.8** (versionCode 96). A pure tracking release — **no new fork
+features**; the whole custom layer replayed onto the new base and the build counter reset to `+001`.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`96` / `"12.5.8"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  Every other commit in the custom layer applied without conflict.
+- **Version base moved to 12.5.8 / 96**, so this line's codes (`960001`, `960002`, …) all exceed the
+  12.5.7 line's (`950001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.5.8
+
+- **External audio no longer bypasses the player cache.** Media3Player used to build a second,
+  separate `CacheDataSource` chain when playing a stream chosen through the client-side audio-spec
+  path, so that media was fetched outside the cache the rest of playback uses. The player now holds
+  its single `SegmentSavingDataSourceFactory` as a field and hands that same factory to the
+  client-side source, so external audio streams through the shared cache like everything else.
+  HTTP transfer and cache-hit logging was added alongside it.
+- **Logs screen.** Superseded Shares entries are hidden — the list is now deduplicated by URL, so a
+  feed shared repeatedly shows only its most recent entry. In the Downloads details popup a failed
+  download now offers **both** actions: **Open**, previously shown only for successes, and **Retry**
+  — the old **Redo**, renamed and moved so it appears on failures.
+- **OnlineFeed texts are selectable.** The feed description, episode titles and the removal/cancel
+  log block sit inside a selection container, so a podcast's details can be copied out by hand.
+
 ## 12.5.7+001 (versionCode 950001)
 
 Rebased onto upstream **v12.5.7** (versionCode 95). A pure tracking release — **no new fork
