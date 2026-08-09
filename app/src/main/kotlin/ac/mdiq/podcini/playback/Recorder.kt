@@ -6,6 +6,9 @@ import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.LogeFor
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.TransferListener
@@ -14,6 +17,8 @@ import kotlinx.coroutines.runBlocking
 import okio.BufferedSink
 import okio.buffer
 
+var isRecording by mutableStateOf(false)
+
 class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
     private val TAG = "SegmentSavingDataSource"
 
@@ -21,7 +26,6 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
 
     private var mediaId: String = ""
 
-    private var isRecording = false
     private var clipTempFile: UnifiedFile? = null
     private var clipTempFos: BufferedSink? = null
     private var clipStartByte: Long = 0L
@@ -29,29 +33,31 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
 
     private var bitrate: Int = 0
 
+    private var isOpen = false
     override fun open(dataSpec: DataSpec): Long {
         currentDataSpec = dataSpec
-        mediaId = dataSpec.key ?: dataSpec.uri.toString()
+//        mediaId = dataSpec.key ?: dataSpec.uri.toString()
+        Logd(TAG, "open cacheKey=${dataSpec.key}")
 //        val existingSpans = getCache().getCachedSpans(mediaId)
 //        Logd(TAG, "open Before listener: mediaId=[$mediaId] spans=${existingSpans.size}, totalBytes=${existingSpans.sumOf { it.length }}")
-        return cacheDataSource.open(dataSpec).also { Logd(TAG, "Open: position=${dataSpec.position}, length=$it") }
+
+        if (isOpen) try { cacheDataSource.close() } catch (_: Exception) { } finally { isOpen = false }
+        val bytesToRead = cacheDataSource.open(dataSpec)
+        Logd(TAG, "Open: position=${dataSpec.position}, length=$bytesToRead")
+        isOpen = true
+        return bytesToRead
     }
 
-    fun forceCommitCurrentSink() {
-        cacheDataSource.close()
-        currentDataSpec?.let { cacheDataSource.open(it) }
-    }
-
-//    private var readCalls = 0L
-//    private var totalBytesRead = 0L
+    private var readCalls = 0L
+    private var totalBytesRead = 0L
 
     override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
         val bytesRead = cacheDataSource.read(buffer, offset, length)
-//        readCalls++
-//        if (bytesRead > 0) totalBytesRead += bytesRead
-//        if (readCalls % 10000 == 0L) Logd(TAG, "readCalls=$readCalls totalBytes=$totalBytesRead")
+        readCalls++
+        if (bytesRead > 0) totalBytesRead += bytesRead
+        if (readCalls % 1000 == 0L) Logd(TAG, "read readCalls=$readCalls totalBytes=$totalBytesRead")
         if (isRecording) {
-            Logd(TAG, "read isRecording bytesRead: $bytesRead")
+//            if (readCalls % 100 == 0L) Logd(TAG, "read isRecording readCalls=$readCalls totalBytes=$totalBytesRead")
             if (bytesRead > 0) {
                 clipTempFos?.write(buffer, offset, bytesRead)
                 clipBytesWritten += bytesRead
@@ -62,13 +68,7 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
 
     override fun close() {
 //        Logd(TAG, "closing")
-        if (isRecording) stopRecording(0) // Fallback if not explicitly stopped
-        clipTempFos?.flush()
-        clipTempFos?.close()
-        clipTempFos = null
-        clipTempFile = null
-        clipBytesWritten = 0L
-        cacheDataSource.close()
+        try { if (isOpen) cacheDataSource.close() } finally { isOpen = false }
     }
 
     fun startRecording(startPositionMs: Long, bitrate: Int, tmpDir: UnifiedFile) {
@@ -84,14 +84,13 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
     }
 
     fun stopRecording(endPositionMs: Long): UnifiedFile? {
+        Logd(TAG, "stopRecording isRecording: $isRecording")
         if (isRecording) {
             isRecording = false
             clipTempFos?.flush()
             clipTempFos?.close()
-            forceCommitCurrentSink()
-            clipTempFos = null
             val endByte = (endPositionMs * bitrate / 8 / 1000)
-            Logd(TAG, "Stopped recording at byte offset $endByte, written: $clipBytesWritten")
+            Logd(TAG, "stopRecording at byte offset $endByte, written: $clipBytesWritten")
             return clipTempFile?.takeIf { runBlocking { it.exists() } && clipBytesWritten > 0 }
         }
         return null
@@ -108,7 +107,11 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
 }
 
 class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+    @Volatile
+    var currentDataSource: SegmentSavingDataSource? = null
+        private set
+
     override fun createDataSource(): DataSource {
-        return SegmentSavingDataSource(upstreamFactory.createDataSource())
+        return SegmentSavingDataSource(upstreamFactory.createDataSource()).also { currentDataSource = it }
     }
 }

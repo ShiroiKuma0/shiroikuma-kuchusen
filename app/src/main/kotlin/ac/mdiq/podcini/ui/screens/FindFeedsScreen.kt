@@ -93,7 +93,7 @@ fun searchFeedsOnline(searcherName: String = "", query: String? = null) {
     if (searcherName.isNotBlank()) {
         val searcher_ = searcherInfos.find { it.tag == searcherName }?.searcher
         if (searcher_ != null) searchProvider = searcher_
-    }
+    } else searchProvider = searcherInfos.find { it.tag == "Combined" }!!.searcher
 }
 
 class FindFeedsVM: ViewModel() {

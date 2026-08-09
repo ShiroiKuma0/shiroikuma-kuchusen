@@ -209,6 +209,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             suspend fun handleClientFeeds(): Boolean {
                 feedOptions = gatewayClient?.withProvider { it.feedsTitlesAtUrl(url) } ?: listOf()
                 val feedOptions_ = feedOptions.filter { it != null && it != "playlists" && it != "shorts" }
+                Logd(TAG, "feedOptions_: ${feedOptions_.size}")
                 when {
                     feedOptions_.size > 1 -> {
                         showTabsDialog = true

@@ -18,18 +18,15 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.LogtFor
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
 import androidx.core.app.NotificationManagerCompat
@@ -255,28 +252,26 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                 if (e.id == episode.id) continue
                 if (e.duration > 0L && episode.duration > 0L && abs(e.duration - episode.duration) < 0.05 * (e.duration + episode.duration)) duplicates.add(e)
             }
+            val ignoredDups = duplicates.filter { it.playState == EpisodeState.IGNORED.code }
             val comment = "duplicate"
             for (e in duplicates) {
-                when {
-                    e.playState <= EpisodeState.AGAIN.code -> {
-                        e.setPlayState(EpisodeState.IGNORED)
-                        e.addComment(comment)
-                    }
-                    episode.playState == EpisodeState.IGNORED.code -> { }
-                    else -> {
-                        val m = findLatest(episode)?.let {
-                            it.setPlayState(EpisodeState.IGNORED)
-                            it.addComment(comment)
-                            it
-                        }
-                        m?.let { updated = true }
-                        LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
-                    }
+                if (e.playState <= EpisodeState.AGAIN.code) {
+                    e.setPlayState(EpisodeState.IGNORED)
+                    e.addComment(comment)
                 }
             }
-            for (e in duplicates) {
-                for (e1 in duplicates) {
-                    e.related.add(e1)
+            if (ignoredDups.isNotEmpty()) {
+                val m = findLatest(episode)?.let {
+                    it.setPlayState(EpisodeState.IGNORED)
+                    it.addComment(comment)
+                    it
+                }
+                m?.let { updated = true }
+//                LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
+            }
+            for (e in candidates) {
+                for (e1 in candidates) {
+                    if (e.id != e1.id) e.related.add(e1)
                 }
             }
         }

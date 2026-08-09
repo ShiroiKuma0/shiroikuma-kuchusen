@@ -1,3 +1,11 @@
+# 12.5.10
+
+* in MediaPlayer, when checking duplicates, episodes with same title are always added as Related regardless of duration
+* amended/fixed clip recording, added toast on media from external sources not supported
+* in OnlineFeed, ensure to toast error when given url has not valid page
+* modernized the parse date routine
+* in FindFeed screen, fixed setting of "Search all sources"
+
 # 12.5.9
 
 * in OnlineFeed screen

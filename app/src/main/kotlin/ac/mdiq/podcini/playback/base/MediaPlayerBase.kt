@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableFrom
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.lastTimerValue
@@ -840,6 +841,11 @@ abstract class MediaPlayerBase {
             upsertBlk(playable) { upsertDB(it, position) }
             prevPosition = position
         }
+
+        val cache = getCache()
+        Logd(TAG, "persistCurrentPosition cache keys=${cache.keys}")
+        Logd(TAG, "persistCurrentPosition cache space=${cache.cacheSpace}")
+        for (key in cache.keys) Logd(TAG, "persistCurrentPosition key=$key spans=${cache.getCachedSpans(key)}")
     }
 
     private fun upsertDB(it: Episode, position: Int) {
@@ -1045,7 +1051,7 @@ abstract class MediaPlayerBase {
 
     abstract fun notifySystem()
 
-    abstract suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
+    abstract fun recordClip(startPositionMs: Long, endPositionMs: Long? = null)
 
     open fun onDestroy() {
         currentMediaType = MediaType.UNKNOWN

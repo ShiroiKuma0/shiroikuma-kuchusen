@@ -60,6 +60,8 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
                 try {
                     val doc = Ksoup.parseGetRequest(url)
                     val linkElements = doc.select("link[type=application/rss+xml]")
+                    Logd(TAG, "buildPodcast got elements: ${linkElements.size}")
+                    if (linkElements.isEmpty()) showError("buildPodcast error: failed getting elements in html", "")
                     //                TODO: should show all as options
                     for (element in linkElements) {
                         val rssUrl = element.attr("href")
@@ -67,7 +69,7 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
                         buildPodcast(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
                     }
                     return
-                } catch (e: Throwable) { Loge(TAG, e, "buildPodcast error")}
+                } catch (e: Throwable) { showError("buildPodcast error ${e.message}", "") }
             }
             "XML" -> {}
             else -> {

@@ -13,6 +13,7 @@ import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.forcePlaybackReset
+import ac.mdiq.podcini.playback.isRecording
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
@@ -176,7 +177,6 @@ import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -467,7 +467,7 @@ fun ControlUI(vm: AVPlayerVM) {
             Text(formatNumberKmp(vm.curPlaybackSpeed.toDouble()), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.weight(0.1f))
-        val recordColor = if (recordingStartTime == null) { if (episode != null && player.isPlaying) buttonColor else Color.Gray } else Color.Red
+        val recordColor = if (!isRecording) { if (episode != null && player.isPlaying) buttonColor else Color.Gray } else Color.Red
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColor, contentDescription = "record",
             modifier = Modifier.size(buttonSize).combinedClickable(
                 onClick = {
@@ -478,14 +478,12 @@ fun ControlUI(vm: AVPlayerVM) {
                     } else Loge(TAG, "Marking position only works during playback.") },
                 onLongClick = {
                     if (episode != null && player.isPlaying) {
-                        scope.launch {
-                            if (recordingStartTime == null) {
-                                recordingStartTime = player.getPosition().toLong()
-                                player.saveClipInOriginalFormat(recordingStartTime!!)
-                            } else {
-                                player.saveClipInOriginalFormat(recordingStartTime!!, player.getPosition().toLong())
-                                recordingStartTime = null
-                            }
+                        if (recordingStartTime == null) {
+                            recordingStartTime = player.getPosition().toLong()
+                            player.recordClip(recordingStartTime!!)
+                        } else {
+                            player.recordClip(recordingStartTime!!, player.getPosition().toLong())
+                            recordingStartTime = null
                         }
                     } else Loge(TAG, "Recording only works during playback.")
                 }))
@@ -503,10 +501,8 @@ fun ControlUI(vm: AVPlayerVM) {
                 if (episode != null) {
                     vm.showPlayButton = !vm.showPlayButton
                     if (vm.showPlayButton && recordingStartTime != null) {
-                        scope.launch(Dispatchers.IO) {
-                            player.saveClipInOriginalFormat(recordingStartTime!!, (player.getPosition()).toLong())
-                            recordingStartTime = null
-                        }
+                        player.recordClip(recordingStartTime!!, (player.getPosition()).toLong())
+                        recordingStartTime = null
                     }
                     Logd(TAG, "Play button clicked: status: ${player.status} is ready: ${playbackService?.isServiceReady()}")
                     PlaybackStarter(episode).shouldStreamThisTime(null).start(vm.playerId)

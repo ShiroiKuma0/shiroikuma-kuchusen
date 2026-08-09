@@ -37,13 +37,13 @@ object PodcastHandler {
 
     private class ParsingLimitReachedException : RuntimeException()
 
-    /**
-     * Parses the date but if the date is in the future, returns null.
-     */
     fun parseOrNullIfFuture(input: String?): Instant? {
         val date = parseDate(input) ?: return null
         val now = Clock.System.now()
-        if (date > now) return null
+        if (date > now) {
+            Logd(TAG, "parseOrNullIfFuture date in the future: ${date.toEpochMilliseconds()}")
+            return null
+        }
         return date
     }
 
