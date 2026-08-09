@@ -2,6 +2,49 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.5.9+001 (versionCode 970001)
+
+Rebased onto upstream **v12.5.9** (versionCode 97). A pure tracking release — **no new fork
+features**; the whole custom layer replayed onto the new base and the build counter reset to `+001`.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`97` / `"12.5.9"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  Every other commit in the custom layer applied without conflict.
+- **Version base moved to 12.5.9 / 97**, so this line's codes (`970001`, `970002`, …) all exceed the
+  12.5.8 line's (`960001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.5.9
+
+- **OnlineFeed knows a feed you already have.** The existence check was split in two: a strict
+  match on download URL, and a fuzzy match on title, author, domain and description prefix. A feed
+  found by URL opens with **Open** and the "Limit episodes" row gives way to the episode count of
+  the copy you already hold; a feed recognised by content but living at a *different* URL now
+  offers **Update url**, which rewrites the subscription's download URL to the new one and opens
+  it — previously the same podcast under a moved URL looked like a stranger and could be subscribed
+  twice. The fuzzy match no longer applies only to external-source feeds.
+- **Duplicate detection also compares durations.** Marking duplicates as Ignored used to key on
+  title-or-URL alone; the candidates are now kept only when both durations are known and within 5 %
+  of each other, so two genuinely different episodes sharing a title survive.
+- **EpisodeInfo shows the last-played date** above the details when the episode has ever been
+  played.
+- **Feeds received from another device land in the current volume.** The wifi transceiver's feed
+  receiver stopped clearing the frozen flag on arrival and simply assigns the receiving volume.
+- **Sharing an unsupported URL now says so.** `ShareReceiverActivity` builds the episode itself and
+  writes an explicit Shares-log error ("Can not build episode" / "client is null") instead of
+  failing silently into logcat; `addClientEpisode` became the narrower `addToFeed`.
+- **Library's language filter resets on feed churn.** The selected-languages preference now follows
+  the *size of the known language set* rather than the feed count, and bumps the feeds-filtered
+  counter, so adding or removing feeds re-evaluates the filter instead of leaving a stale selection.
+- **Media3 1.10.1 → 1.11.0.** Assorted refactoring alongside: `System.currentTimeMillis()` calls in
+  the player, sync service and timer dialog moved to the app's own `nowInMillis()`, and
+  `EpisodeScreen`'s header was restructured.
+
 ## 12.5.8+001 (versionCode 960001)
 
 Rebased onto upstream **v12.5.8** (versionCode 96). A pure tracking release — **no new fork
