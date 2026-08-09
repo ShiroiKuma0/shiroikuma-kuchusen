@@ -87,7 +87,10 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheDataSink
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -114,6 +117,7 @@ import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -125,6 +129,7 @@ import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
 import okio.Path.Companion.toOkioPath
 import okio.buffer
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.reflect.Field
 import java.nio.ByteBuffer
@@ -605,14 +610,18 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         )
         val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
+        val cacheDataSinkFactory = CacheDataSink.Factory()
+            .setCache(getCache())
+            .setFragmentSize(1 * 1024 * 1024L)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory)
+//            .setCacheWriteDataSinkFactory(cacheDataSinkFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         cacheDataSourceFactory.setEventListener(
             object : CacheDataSource.EventListener {
                 override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
-                    Logd(TAG, "CacheDataSource onCachedBytesRead cached=$cachedBytesRead")
+                    Logd(TAG, "CacheDataSource CACHE READ cachedBytes=$cachedBytesRead cacheSize=$cacheSizeBytes")
                 }
                 override fun onCacheIgnored(reason: Int) {
                     Logd(TAG, "CacheDataSource onCacheIgnored ignored=$reason")
@@ -997,28 +1006,156 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
     }
 
+    fun isRangeCached(cache:  SimpleCache, key: String, startByte: Long, endByte: Long): Boolean {
+        var coveredUntil = startByte
+//        Logd(TAG, "isRangeCached cache keys=${cache.keys}")
+        val spans = cache.getCachedSpans(key).sortedBy { it.position }
+        Logd(TAG, "isRangeCached key: $key spans: ${spans.size}")
+        for (span in spans) {
+            val spanStart = span.position
+            val spanEnd = span.position + span.length
+            if (spanEnd <= coveredUntil) continue
+            if (spanStart > coveredUntil) return false
+            coveredUntil = maxOf(coveredUntil, spanEnd)
+            if (coveredUntil >= endByte) return true
+        }
+        return false
+    }
+
+    fun recordClip1(startPositionMs: Long, endPositionMs: Long?) {
+        val mediaItem = exoPlayer!!.currentMediaItem ?: run {
+            LogeFor(TAG, curEpisode?.id, "recordClip No current media item.")
+            return
+        }
+        val uri = mediaItem.localConfiguration?.uri ?: run {
+            LogeFor(TAG, curEpisode?.id, "recordClip No URI in MediaItem.")
+            return
+        }
+        val tracks = exoPlayer!!.currentTracks
+        val audioFormat = tracks.groups.asSequence()
+            .flatMap { group -> (0 until group.length).map { group.getTrackFormat(it) } }
+            .firstOrNull { it.sampleMimeType?.startsWith("audio/") == true }
+        if (audioFormat == null) {
+            LogeFor(TAG, curEpisode?.id,  "recordClip No audio track found.")
+            return
+        }
+        val mimeType = audioFormat.sampleMimeType
+        Logd(TAG, "mimeType: [$mimeType]")
+        val ext = getFileExtensionFromMimeType(mimeType)
+        if (ext == null) {
+            LogeFor(TAG, curEpisode?.id, "recordClip Audio format not supported: $ext")
+            return
+        }
+        if (endPositionMs == null) {
+            if (uri.scheme == "file" || uri.scheme == "content") {
+                Logd(TAG, "recordClip uri is file or content, will extract from the file.")
+                return
+            }
+//            curDataSource = recordingFactory?.currentDataSource
+//            curDataSource?.startRecording(startPositionMs, bitrate, cacheDir)
+            return
+        }
+
+        val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
+        val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
+
+        runOnIOScope {
+            val clipname = "${durationStringShort(startPositionMs, false, "m")}-${durationStringShort(endPositionMs, false, "m")}.$ext"
+            val outputFile = curEpisode!!.getClipFile(clipname)
+            when {
+                uri.scheme == "file" || uri.scheme == "content" -> {
+                    val bytesPerSecond = bitrate / 8.0
+                    val startByte = (startPositionMs * bytesPerSecond / 1000).toLong()
+                    val endByte = (endPositionMs * bytesPerSecond / 1000).toLong()
+                    val bytesToRead = endByte - startByte
+                    val tempFile = cacheDir / "temp_segment.${outputFile.extension}"
+                    try {
+                        val sourceFile = uri.toUF()
+                        val allBytes = sourceFile.readBytes()
+                        val segmentBytes = allBytes.sliceArray(startByte.toInt() until (startByte + bytesToRead).toInt())
+                        tempFile.writeBytes(segmentBytes)
+                        val segment = tempFile.readBytes()
+                        if (segment.isNotEmpty()) {
+                            val adjustedSegment = when (audioFormat.sampleMimeType) {
+                                "audio/mp3" -> adjustMp3Clip(segment)
+                                "audio/aac" -> adjustRawAacClip(segment)
+                                "audio/ogg" -> adjustLocalOggClip(segment)
+                                "audio/mp4" -> adjustLocalMp4Clip(segment)
+                                else -> segment
+                            }
+                            outputFile.writeBytes(adjustedSegment)
+                            upsert(curEpisode!!) { it.clips.add(clipname) }
+                            Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
+                        } else LogeFor(TAG, curEpisode?.id, "Failed to extract segment from local media")
+                    } catch (e: Exception) {
+                        LogsFor(TAG, curEpisode?.id, e, "FileKit operation failed")
+                    } finally {
+                        tempFile.delete()
+                    }
+                }
+                else -> {   // streaming
+                    val cache = getCache()
+                    val bytesPerSecond = bitrate / 8.0
+                    val startByte = startBytePlayer ?: (startPositionMs * bytesPerSecond / 1000).toLong()
+                    val endByte = endBytePlayer ?: (endPositionMs * bytesPerSecond / 1000).toLong()
+                    val bytesToRead = endByte - startByte
+                    val key = curEpisode!!.id.toString()
+                    cache.addListener(key, object : Cache.Listener {
+                        override fun onSpanAdded(cache: Cache, span: CacheSpan) {
+                            Logd(TAG, "SPAN ADDED key=${span.key} position=${span.position} length=${span.length}")
+                        }
+                        override fun onSpanRemoved(cache: Cache, span: CacheSpan) {
+                            Logd(TAG, "SPAN REMOVED key=${span.key}")
+                        }
+                        override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) {
+                            Logd(TAG, "SPAN TOUCHED key=${newSpan.key}")
+                        }
+                    })
+
+                    Logd(TAG, "recordClip waiting for cache spans written $startByte $endByte")
+                    while (!isRangeCached(cache, key, startByte, endByte)) delay(400)
+//                    while (!cache.isCached(key, startByte, endByte - startByte)) delay(500)
+                    Logd(TAG, "recordClip cache spans are in range")
+                    val dataSource = recordingFactory!!.createDataSource()
+                    try {
+                        dataSource.open(DataSpec(uri, startByte, endByte - startByte))
+                        val buffer = ByteArray(64 * 1024)
+                        val recordingSink = ByteArrayOutputStream()
+                        while (true) {
+                            val bytesRead = dataSource.read(buffer, 0, buffer.size)
+                            if (bytesRead == C.RESULT_END_OF_INPUT) break
+                            recordingSink.write(buffer, 0, bytesRead)
+                        }
+                        Logd(TAG, "recordClip clip written to sink")
+                        val bytes = recordingSink.toByteArray()
+                        val adjusted = when (audioFormat.sampleMimeType) {
+                            "audio/mp3" -> adjustMp3Clip(bytes)
+                            "audio/aac" -> adjustRawAacClip(bytes)
+                            "audio/ogg" -> adjustOggClip(bytes, cache, key, startByte, endByte)
+                            "audio/mp4" -> adjustMp4Clip(bytes, cache, key, startByte, endByte)
+                            else -> bytes
+                        }
+                        Logd(TAG, "recordClip clip adjusted")
+                        outputFile.writeBytes(adjusted)
+                        recordingSink.close()
+                        upsert(curEpisode!!) { it.clips.add(clipname) }
+                        Logd(TAG, "Saved clip file to: ${outputFile.absPath}")
+                        return@runOnIOScope
+                    } finally { dataSource.close() }
+                }
+            }
+        }
+    }
+
     private var curDataSource: SegmentSavingDataSource? = null
 
-    /**
-     * Wrapper to handle start/stop/save with SegmentSavingDataSource
-     * startPositionMs: Long? = null, // Null for stop/save
-     * endPositionMs: Long? = null,   // Null for start
-     */
-    override suspend fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long?) {
+    override fun recordClip(startPositionMs: Long, endPositionMs: Long?) {
         val mediaItem = exoPlayer!!.currentMediaItem ?: run {
             LogeFor(TAG, curEpisode?.id, "No current media item.")
             return
         }
         val uri = mediaItem.localConfiguration?.uri ?: run {
             LogeFor(TAG, curEpisode?.id, "No URI in MediaItem.")
-            return
-        }
-        if (endPositionMs == null) {
-            if (uri.scheme == "file" || uri.scheme == "content") {
-                Logd(TAG, "uri is file or content, will extract from the file.")
-                return
-            }
-            curDataSource?.startRecording(startPositionMs, bitrate, cacheDir)
             return
         }
         val tracks = exoPlayer!!.currentTracks
@@ -1036,125 +1173,149 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             LogeFor(TAG, curEpisode?.id, "Audio format not supported: $ext")
             return
         }
+        if (endPositionMs == null) {
+            if (uri.scheme == "file" || uri.scheme == "content") {
+                Logd(TAG, "uri is file or content, will extract from the file.")
+                return
+            }
+            curDataSource = recordingFactory?.currentDataSource
+            curDataSource?.startRecording(startPositionMs, bitrate, cacheDir)
+            val currentPos = exoPlayer!!.currentPosition
+            val seekTarget = (currentPos - 1000L).coerceAtLeast(0L)
+            exoPlayer?.seekTo(seekTarget)
+            return
+        }
 
         val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
         val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
-        val clipname = "${durationStringShort(startPositionMs, false, "m")}-${durationStringShort(endPositionMs, false, "m")}.$ext"
-        val outputFile = curEpisode!!.getClipFile(clipname)
-        when {
-            uri.scheme == "file" || uri.scheme == "content" -> {
-                val bytesPerSecond = bitrate / 8.0
-                val startByte = (startPositionMs * bytesPerSecond / 1000).toLong()
-                val endByte = (endPositionMs * bytesPerSecond / 1000).toLong()
-                val bytesToRead = endByte - startByte
-                val tempFile = cacheDir / "temp_segment.${outputFile.extension}"
-                try {
-                    val sourceFile = uri.toUF()
-                    val allBytes = sourceFile.readBytes()
-                    val segmentBytes = allBytes.sliceArray(startByte.toInt() until (startByte + bytesToRead).toInt())
-                    tempFile.writeBytes(segmentBytes)
-                    val segment = tempFile.readBytes()
-                    if (segment.isNotEmpty()) {
-                        val adjustedSegment = when (audioFormat.sampleMimeType) {
-                            "audio/mp3" -> adjustMp3Clip(segment)
-                            "audio/aac" -> adjustRawAacClip(segment)
-                            "audio/ogg" -> adjustLocalOggClip(segment)
-                            "audio/mp4" -> adjustLocalMp4Clip(segment)
-                            else -> segment
-                        }
-                        outputFile.writeBytes(adjustedSegment)
-                        upsert(curEpisode!!) { it.clips.add(clipname) }
-                        Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
-                    } else LogeFor(TAG, curEpisode?.id, "Failed to extract segment from local media")
-                } catch (e: Exception) { LogsFor(TAG, curEpisode?.id, e, "FileKit operation failed")
-                } finally { tempFile.delete() }
-            }
-            else -> {   // streaming
-                val tempFileDS = curDataSource?.stopRecording(endPositionMs)
-                val cache = getCache()
-                val bytesPerSecond = bitrate / 8.0
-                val startByte = startBytePlayer ?: (startPositionMs * bytesPerSecond / 1000).toLong()
-                val endByte = endBytePlayer ?: (endPositionMs * bytesPerSecond / 1000).toLong()
-                val bytesToRead = endByte - startByte
-                val key = curEpisode!!.id.toString()
-                val spans = cache.getCachedSpans(key)
-                Logd(TAG, "spans found: ${spans.size} ${curEpisode!!.id}")
-                for (sp in spans) Logd(TAG, "span: ${sp.position} ${sp.length}")
-                val cacheSpans = cache.getCachedSpans(key).filter { span -> span.position <= startByte && (span.position + span.length) >= endByte }
-                Logd(TAG, "cacheSpans found: ${cacheSpans.size}")
-                val cacheSpan = cache.getCachedSpans(key).firstOrNull { span -> span.position <= startByte && (span.position + span.length) >= endByte }
-                Logd(TAG, "cacheSpan found: ${cacheSpan != null}")
-                if (cacheSpan?.file?.exists() == true) {
-                    val javaFile = cacheSpan.file ?: run { LogeFor(TAG, curEpisode?.id,"CacheSpan is null or has no file"); return }
-                    val path = javaFile.toOkioPath()
-                    val tempFile = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
-                    try {
-                        fs.source(path).buffer().use { input ->
-                            val bytesToSkip = if (startByte >= cacheSpan.position) startByte - cacheSpan.position else 0L
-                            input.skip(bytesToSkip)
-                            val segmentData = input.readByteArray(bytesToRead)
-                            val totalRead = segmentData.size
-                            tempFile.writeBytes(segmentData)
-                            Logd(TAG, "Total written: $totalRead bytes")
-                        }
-                    } catch (e: Exception) { LogsFor(TAG, curEpisode?.id, e, "Failed to extract from cache span") }
-
-                    val segment = tempFile.readBytes()
-                    tempFile.delete()
-                    if (segment.isNotEmpty()) {
-                        val adjustedSegment = when (audioFormat.sampleMimeType) {
-                            "audio/mp3" -> adjustMp3Clip(segment)
-                            "audio/aac" -> adjustRawAacClip(segment)
-                            "audio/ogg" -> adjustOggClip(segment, cache, key, startByte, endByte)
-                            "audio/mp4" -> adjustMp4Clip(segment, cache, key, startByte, endByte)
-                            else -> segment
-                        }
-                        outputFile.writeBytes(adjustedSegment)
-                        upsert(curEpisode!!) { it.clips.add(clipname) }
-                        Logd(TAG, "Saved cached segment of ${(endPositionMs - startPositionMs) / 1000} seconds to: ${outputFile.absPath}")
-                        return
-                    } else Logd(TAG, "Failed to extract segment from cache")
-                }
-                Logd(TAG, "Single span not found for range $startByte to $endByte or failed to extract segment from cache. Attempting full extraction.")
-                val fullBytes = getFullFileFromCache(cache, key)
-                if (fullBytes != null && audioFormat.sampleMimeType == "audio/mp4") {
-                    outputFile.writeBytes(fullBytes)
-                    upsert(curEpisode!!) { it.clips.add(clipname) }
-                    Logd(TAG, "Saved full MP4 file to: ${outputFile.absPath} (re-muxing needed for partial clip)")
-                    return
-                }
-                if (tempFileDS != null) {
-                    Logd(TAG, "Segment not available in cache or full file extraction. Trying with player extract")
+        runOnIOScope {
+            val clipname = "${durationStringShort(startPositionMs, false, "m")}-${durationStringShort(endPositionMs, false, "m")}.$ext"
+            val outputFile = curEpisode!!.getClipFile(clipname)
+            when {
+                uri.scheme == "file" || uri.scheme == "content" -> {
                     val bytesPerSecond = bitrate / 8.0
                     val startByte = (startPositionMs * bytesPerSecond / 1000).toLong()
                     val endByte = (endPositionMs * bytesPerSecond / 1000).toLong()
                     val bytesToRead = endByte - startByte
-                    val tempOutput = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
+                    val tempFile = cacheDir / "temp_segment.${outputFile.extension}"
                     try {
-                        tempFileDS.source().buffer().use { input ->
-                            val segmentData = input.readByteArray(bytesToRead)
-                            val totalRead = segmentData.size
-                            tempOutput.writeBytes(segmentData)
-                            Logd(TAG, "Total written: $totalRead bytes")
+                        val sourceFile = uri.toUF()
+                        val allBytes = sourceFile.readBytes()
+                        val segmentBytes = allBytes.sliceArray(startByte.toInt() until (startByte + bytesToRead).toInt())
+                        tempFile.writeBytes(segmentBytes)
+                        val segment = tempFile.readBytes()
+                        if (segment.isNotEmpty()) {
+                            val adjustedSegment = when (audioFormat.sampleMimeType) {
+                                "audio/mp3" -> adjustMp3Clip(segment)
+                                "audio/aac" -> adjustRawAacClip(segment)
+                                "audio/ogg" -> adjustLocalOggClip(segment)
+                                "audio/mp4" -> adjustLocalMp4Clip(segment)
+                                else -> segment
+                            }
+                            outputFile.writeBytes(adjustedSegment)
+                            upsert(curEpisode!!) { it.clips.add(clipname) }
+                            Logd(TAG, "Saved local clip to: ${outputFile.absPath}")
+                        } else LogeFor(TAG, curEpisode?.id, "Failed to extract segment from local media")
+                    } catch (e: Exception) {
+                        LogsFor(TAG, curEpisode?.id, e, "FileKit operation failed")
+                    } finally {
+                        tempFile.delete()
+                    }
+                }
+                else -> {   // streaming
+                    Logd(TAG, "curDataSource==null: ${curDataSource==null}")
+                    val tempFileDS = curDataSource?.stopRecording(endPositionMs)
+                    val cache = getCache()
+                    val bytesPerSecond = bitrate / 8.0
+                    val startByte = startBytePlayer ?: (startPositionMs * bytesPerSecond / 1000).toLong()
+                    val endByte = endBytePlayer ?: (endPositionMs * bytesPerSecond / 1000).toLong()
+                    val bytesToRead = endByte - startByte
+                    val key = curEpisode!!.id.toString()
+                    val spans = cache.getCachedSpans(key)
+                    Logd(TAG, "spans found: ${spans.size} ${curEpisode!!.id}")
+                    for (sp in spans) Logd(TAG, "span: ${sp.position} ${sp.length}")
+                    val cacheSpans = cache.getCachedSpans(key).filter { span -> span.position <= startByte && (span.position + span.length) >= endByte }
+                    Logd(TAG, "cacheSpans found: ${cacheSpans.size}")
+                    val cacheSpan = cache.getCachedSpans(key).firstOrNull { span -> span.position <= startByte && (span.position + span.length) >= endByte }
+                    Logd(TAG, "cacheSpan found: ${cacheSpan != null}")
+                    if (false && cacheSpan?.file?.exists() == true) {
+                        val javaFile = cacheSpan?.file ?: run { LogeFor(TAG, curEpisode?.id, "CacheSpan is null or has no file"); return@runOnIOScope }
+                        val path = javaFile.toOkioPath()
+                        val tempFile = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
+                        try {
+                            fs.source(path).buffer().use { input ->
+                                val bytesToSkip = if (startByte >= cacheSpan.position) startByte - cacheSpan.position else 0L
+                                input.skip(bytesToSkip)
+                                val segmentData = input.readByteArray(bytesToRead)
+                                val totalRead = segmentData.size
+                                tempFile.writeBytes(segmentData)
+                                Logd(TAG, "Total written: $totalRead bytes")
+                            }
+                        } catch (e: Exception) {
+                            LogsFor(TAG, curEpisode?.id, e, "Failed to extract from cache span")
                         }
-                    } catch (e: Exception) { LogsFor(TAG, curEpisode?.id, e, "Failed to extract from cache span") }
-                    val segment = tempOutput.readBytes()
-                    tempOutput.delete()
-                    if (segment.isNotEmpty()) {
-                        val adjustedSegment = when (audioFormat.sampleMimeType) {
-                            "audio/mp3" -> adjustMp3Clip(segment)
-                            "audio/aac" -> adjustRawAacClip(segment)
-                            "audio/ogg" -> adjustOggClip(segment, cache, key, startByte, endByte)
-                            "audio/mp4" -> adjustMp4Clip(segment, cache, key, startByte, endByte)
-                            else -> segment
-                        }
-                        outputFile.writeBytes(adjustedSegment)
+
+                        val segment = tempFile.readBytes()
+                        tempFile.delete()
+                        if (segment.isNotEmpty()) {
+                            val adjustedSegment = when (audioFormat.sampleMimeType) {
+                                "audio/mp3" -> adjustMp3Clip(segment)
+                                "audio/aac" -> adjustRawAacClip(segment)
+                                "audio/ogg" -> adjustOggClip(segment, cache, key, startByte, endByte)
+//                                "audio/mp4" -> adjustMp4Clip(segment, cache, key, startByte, endByte)
+                                else -> segment
+                            }
+                            outputFile.writeBytes(adjustedSegment)
+                            upsert(curEpisode!!) { it.clips.add(clipname) }
+                            Logd(TAG, "Saved cached segment of ${(endPositionMs - startPositionMs) / 1000} seconds to: ${outputFile.absPath}")
+                            return@runOnIOScope
+                        } else Logd(TAG, "Failed to extract segment from cache")
+                    }
+
+                    Logd(TAG, "Single span not found for range $startByte to $endByte or failed to extract segment from cache. Attempting full extraction.")
+                    val fullBytes = getFullFileFromCache(cache, key)
+                    if (false && fullBytes != null && audioFormat.sampleMimeType == "audio/mp4") {
+                        outputFile.writeBytes(fullBytes!!)
                         upsert(curEpisode!!) { it.clips.add(clipname) }
-                        Logd(TAG, "Saved clip to: ${outputFile.absPath}")
-                    } else LogeFor(TAG, curEpisode?.id, "Failed to extract segment from temp file")
-                    tempFileDS.delete()
-                } else LogeFor(TAG, curEpisode?.id, "Failed saving clip: No temp file available after stopping recording")
+                        Logd(TAG, "Saved full MP4 file to: ${outputFile.absPath} (re-muxing needed for partial clip)")
+                        return@runOnIOScope
+                    }
+
+                    if (tempFileDS != null) {
+                        Logd(TAG, "Segment not available in cache or full file extraction. Trying with player extract")
+                        val bytesPerSecond = bitrate / 8.0
+                        val startByte = (startPositionMs * bytesPerSecond / 1000).toLong()
+                        val endByte = (endPositionMs * bytesPerSecond / 1000).toLong()
+                        val bytesToRead = endByte - startByte
+                        val tempOutput = outputFile.parent()!! / "temp_segment.${outputFile.extension}"
+                        try {
+                            tempFileDS.source().buffer().use { input ->
+                                val segmentData = input.readByteArray(bytesToRead)
+                                val totalRead = segmentData.size
+                                tempOutput.writeBytes(segmentData)
+                                Logd(TAG, "Total written: $totalRead bytes")
+                            }
+                        } catch (e: Exception) {
+                            LogsFor(TAG, curEpisode?.id, e, "Failed to extract from cache span")
+                        }
+                        val segment = tempOutput.readBytes()
+                        tempOutput.delete()
+                        if (segment.isNotEmpty()) {
+                            val adjustedSegment = when (audioFormat.sampleMimeType) {
+                                "audio/mp3" -> adjustMp3Clip(segment)
+                                "audio/aac" -> adjustRawAacClip(segment)
+                                "audio/ogg" -> adjustOggClip(segment, cache, key, startByte, endByte)
+                                "audio/mp4" -> adjustMp4Clip(segment, cache, key, startByte, endByte)
+                                else -> segment
+                            }
+                            outputFile.writeBytes(adjustedSegment)
+                            upsert(curEpisode!!) { it.clips.add(clipname) }
+                            Logd(TAG, "Saved clip to: ${outputFile.absPath}")
+                        } else LogeFor(TAG, curEpisode?.id, "Failed to extract segment from temp file")
+                        tempFileDS.delete()
+                    } else LogeFor(TAG, curEpisode?.id, "Failed saving clip: No temp file available after stopping recording")
+                }
             }
         }
     }
@@ -1197,7 +1358,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private fun getFullFileFromCache(cache: SimpleCache, key: String): ByteArray? {
         val spans = cache.getCachedSpans(key).sortedBy { it.position }
         if (spans.isEmpty()) return null
-        val outputStream = java.io.ByteArrayOutputStream()
+        val outputStream = ByteArrayOutputStream()
         spans.forEach { span -> span.file?.inputStream()?.use { it.copyTo(outputStream) } }
         return outputStream.toByteArray().takeIf { it.isNotEmpty() }
     }
@@ -1208,7 +1369,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         return when (mimeType) {
             "audio/mp3", "audio/mpeg" -> "mp3"
             "audio/aac" -> "aac"
-            "audio/mp4", "audio/mp4a-latm" -> "m4a"
+            "audio/mp4" -> "m4a"
             "audio/ogg" -> "ogg"
             else -> null
         }
