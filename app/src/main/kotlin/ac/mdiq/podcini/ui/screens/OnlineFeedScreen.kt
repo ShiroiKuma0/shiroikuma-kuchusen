@@ -471,7 +471,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
 
     var showSortDialog by remember { mutableStateOf(false) }
-    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismiss = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
+    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, feed = vm.feed, onDismiss = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
 
     @Composable
     fun ShowTabsDialog(onDismiss: () -> Unit) {

@@ -39,8 +39,14 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
 
     EPISODE_FILENAME_ASC(7, R.string.filename),
     EPISODE_FILENAME_DESC(8, R.string.filename),
-    FEED_TITLE_ASC(101, R.string.feed_title),
-    FEED_TITLE_DESC(102, R.string.feed_title),
+
+    FEED_TITLE_ASC(101, R.string.feed_title, true),
+    FEED_TITLE_DESC(102, R.string.feed_title, true),
+    FEED_SCORE_ASC(111, R.string.feed_score, true),
+    FEED_SCORE_DESC(112, R.string.feed_score, true),
+
+    FEED_SCORE_COUNT_ASC(113, R.string.feed_score_count, true),
+    FEED_SCORE_COUNT_DESC(114, R.string.feed_score_count, true),
 
     SIZE_ASC(9, R.string.size),
     SIZE_DESC(10, R.string.size),
@@ -120,6 +126,10 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     TRACK_NUMBER_DESC -> trackNumber(f2).compareTo(trackNumber(f1))
                     FEED_TITLE_ASC -> feedTitle(f1).compareToNatural(feedTitle(f2))
                     FEED_TITLE_DESC -> feedTitle(f2).compareToNatural(feedTitle(f1))
+                    FEED_SCORE_ASC -> feedScore(f1).compareTo(feedScore(f2))
+                    FEED_SCORE_DESC -> feedScore(f2).compareTo(feedScore(f1))
+                    FEED_SCORE_COUNT_ASC -> feedScoreCount(f1).compareTo(feedScoreCount(f2))
+                    FEED_SCORE_COUNT_DESC -> feedScoreCount(f2).compareTo(feedScoreCount(f1))
                     SIZE_ASC -> size(f1).compareTo(size(f2))
                     SIZE_DESC -> size(f2).compareTo(size(f1))
                 }
@@ -149,8 +159,11 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 LIKES_DESC -> Pair("likeCount", Sort.DESCENDING)
                 COMMENT_DATE_ASC -> Pair("commentTime", Sort.ASCENDING)
                 COMMENT_DATE_DESC -> Pair("commentTime", Sort.DESCENDING)
-                FEED_TITLE_ASC -> Pair("feed.title", Sort.ASCENDING)
-                FEED_TITLE_DESC -> Pair("feed.title", Sort.DESCENDING)
+                // TODO
+//                FEED_TITLE_ASC -> Pair("feed.title", Sort.ASCENDING)
+//                FEED_TITLE_DESC -> Pair("feed.title", Sort.DESCENDING)
+//                FEED_SCORE_ASC -> Pair("feed.score", Sort.ASCENDING)
+//                FEED_SCORE_DESC -> Pair("feed.score", Sort.DESCENDING)
                 SIZE_ASC -> Pair("size", Sort.ASCENDING)
                 SIZE_DESC -> Pair("size", Sort.DESCENDING)
                 else -> Pair("pubDate", Sort.DESCENDING)
@@ -196,6 +209,10 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
         private fun itemLink(item: Episode?): String = (item?.link ?: "").lowercase()
 
         private fun feedTitle(item: Episode?): String = (item?.feed?.title ?: "").lowercase()
+
+        private fun feedScore(item: Episode?): Int = (item?.feed?.score ?: -1000)
+
+        private fun feedScoreCount(item: Episode?): Int = (item?.feed?.scoreCount ?: 0)
 
         private fun viewCount(item: Episode?): Int = item?.viewCount ?: 0
 

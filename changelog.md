@@ -1,3 +1,14 @@
+# 12.5.11
+
+* in Facets screen, fixed filter and sort, and disabled the buttons in modes not relevant
+* Feed title sorting for episodes is only available in Queues screen
+* added "Feed score" and "Feed score count" sortings for episodes in Queues screen
+* disabled sorts of View counts, views per day, Like count in FeedDetails and OnlineFeed screens for feed not supporting them
+* in FeedSettings, volumes are sorted by name in parent volume popup
+* in History mode of FeedDetails and Bin mode of Queues, Play/Stream buttons are set to Single
+* in FeedUpdate, avoid changing feed title that can remove tab appendix on a YT feed
+* minor dependencies update
+
 # 12.5.10
 
 * in MediaPlayer, when checking duplicates, episodes with same title are always added as Related regardless of duration

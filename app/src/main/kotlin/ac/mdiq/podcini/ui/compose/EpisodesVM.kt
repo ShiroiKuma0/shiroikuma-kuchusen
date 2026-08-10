@@ -156,7 +156,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                       statusRowMode: StatusRowMode = StatusRowMode.Normal,
                       swipeActions: SwipeActions? = null,
                       refreshCB: (()->Unit)? = null, selectModeCB: ((Boolean)->Unit)? = null,
-                      showActionButtons: Boolean = true,
+                      showActionButtons: Boolean = true, preferSingleAction: Boolean = false,
                       actionButtonType: ButtonTypes? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
 
     var selectMode by remember { mutableStateOf(false) }
@@ -304,7 +304,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
-                var actionButton by remember(episode.id) { mutableStateOf(if (actionButtonType != null) ActionButton(episode, actionButtonType) else ActionButton(episode)) }
+                val actionButton by remember(episode.id, preferSingleAction) { mutableStateOf(when {
+                    preferSingleAction -> ActionButton(episode, feed = feed, preferSingle = preferSingleAction)
+                    actionButtonType != null -> ActionButton(episode, feed = feed, typeInit = actionButtonType)
+                    else -> ActionButton(episode)
+                }) }
                 var showAltActionsDialog by remember(episode.id) { mutableStateOf(false) }
                 var isSelected by remember(episode.id, selectMode, selectedSize) { mutableStateOf( selectMode && episode in selected ) }
 

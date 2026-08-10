@@ -430,7 +430,7 @@ class Feed : RealmObject {
     constructor(url: String?, lastUpdate: String?, title: String? = null, username: String? = null, password: String? = null) {
         this.lastUpdate = lastUpdate
         this.downloadUrl = url
-        this.eigenTitle = title
+        if (title != null) this.eigenTitle = title
         fillPreferences(false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, username, password)
     }
 
@@ -453,7 +453,7 @@ class Feed : RealmObject {
         // don't update feed's download_url, we do that manually if redirected
         // see PodciniHttpClient
         if (other.imageUrl != null) this.imageUrl = other.imageUrl
-        if (other.eigenTitle != null) eigenTitle = other.eigenTitle
+        if (eigenTitle == null && other.eigenTitle != null) eigenTitle = other.eigenTitle
         if (other.identifier != null) identifier = other.identifier
         if (other.link != null) link = other.link
         if (other.description != null) description = other.description

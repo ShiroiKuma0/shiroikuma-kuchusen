@@ -272,11 +272,12 @@ fun FeedsSettingsScreen() {
                             if (selected == custom) {
                                 Logd(TAG, "volumes: ${allVolumes.size}")
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    for (i in allVolumes.indices) {
-                                        if (allVolumes[i].isLocal) continue
-                                        FilterChip(label = { Text(allVolumes[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
+                                    val sortedVols = remember { allVolumes.sortedBy { it.name } }
+                                    for (i in sortedVols.indices) {
+                                        if (sortedVols[i].isLocal) continue
+                                        FilterChip(label = { Text(sortedVols[i].name) }, selected = false, border = BorderStroke(1.dp, borderColor),
                                             onClick = {
-                                                val v = allVolumes[i]
+                                                val v = sortedVols[i]
                                                 runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.volumeId = v.id } } }
                                                 curVolumeName = v.name
                                                 onDismiss()

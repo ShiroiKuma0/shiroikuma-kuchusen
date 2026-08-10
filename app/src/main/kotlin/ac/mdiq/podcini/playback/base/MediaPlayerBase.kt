@@ -841,11 +841,10 @@ abstract class MediaPlayerBase {
             upsertBlk(playable) { upsertDB(it, position) }
             prevPosition = position
         }
-
-        val cache = getCache()
-        Logd(TAG, "persistCurrentPosition cache keys=${cache.keys}")
-        Logd(TAG, "persistCurrentPosition cache space=${cache.cacheSpace}")
-        for (key in cache.keys) Logd(TAG, "persistCurrentPosition key=$key spans=${cache.getCachedSpans(key)}")
+//        val cache = getCache()
+//        Logd(TAG, "persistCurrentPosition cache keys=${cache.keys}")
+//        Logd(TAG, "persistCurrentPosition cache space=${cache.cacheSpace}")
+//        for (key in cache.keys) Logd(TAG, "persistCurrentPosition key=$key spans=${cache.getCachedSpans(key)}")
     }
 
     private fun upsertDB(it: Episode, position: Int) {

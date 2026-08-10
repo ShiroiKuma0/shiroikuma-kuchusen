@@ -422,7 +422,7 @@ fun QueuesScreen(id: Long = -1L) {
         swipeActions.ActionOptionsDialog()
 
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.curQueue.sortOrder, onDismiss = { showSortDialog = false },
-            includeConditionals = listOf(EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1, EpisodeSortOrder.SMART_SHUFFLE_ASC, EpisodeSortOrder.SMART_SHUFFLE_DESC )) { order ->
+            includeConditionals = listOf(EpisodeSortOrder.FEED_TITLE_ASC, EpisodeSortOrder.FEED_TITLE_DESC, EpisodeSortOrder.FEED_SCORE_ASC, EpisodeSortOrder.FEED_SCORE_DESC, EpisodeSortOrder.FEED_SCORE_COUNT_ASC, EpisodeSortOrder.FEED_SCORE_COUNT_DESC, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1, EpisodeSortOrder.SMART_SHUFFLE_ASC, EpisodeSortOrder.SMART_SHUFFLE_DESC )) { order ->
             upsertBlk(vm.curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
             runOnIOScope {
                 val episodes_ = episodes.toMutableList()
@@ -695,9 +695,8 @@ fun QueuesScreen(id: Long = -1L) {
                         withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
                     }
                     if (vm.queuesMode == QueuesScreenMode.Bin) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        EpisodeLazyColumn(episodes, swipeActions = swipeActions, lazyListState = lazyListStateBin)
-                    }
-                    else {
+                        EpisodeLazyColumn(episodes, swipeActions = swipeActions, lazyListState = lazyListStateBin, preferSingleAction = true)
+                    } else {
                         val dragDropEnabled = remember(vm.curQueue.id, vm.curQueue.isLocked) { !vm.curQueue.isLocked }
                         if (dragDropEnabled) {
                             val episodes_ = remember(episodes) { episodes.toMutableStateList() }

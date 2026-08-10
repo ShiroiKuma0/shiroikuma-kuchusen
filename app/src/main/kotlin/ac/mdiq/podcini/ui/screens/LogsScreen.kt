@@ -406,7 +406,7 @@ fun LogsScreen() {
                     if (!status.isSuccessful) Text(stringResource(R.string.retry), color = textColor, modifier = Modifier.clickable {
                         if (feed != null) runOnIOScope { FeedUpdater(listOf(feed!!)).start() }
                         else if (media != null) {
-                            ActionButton(media!!, ButtonTypes.DOWNLOAD).onClick()
+                            ActionButton(media!!, typeInit = ButtonTypes.DOWNLOAD).onClick()
                             Logt(TAG, context.getString(R.string.status_downloading_label))
                         }
                         onDismiss()

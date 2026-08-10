@@ -167,16 +167,20 @@ class FacetsVM(modeName_: String): ViewModel() {
 
     var progressing by mutableStateOf(false)
 
+    private var _sortOrder = mutableStateOf(EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code))
     internal var sortOrder: EpisodeSortOrder
-        get() = EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code)
+        get() = _sortOrder.value
         set(s) {
+            _sortOrder.value = s
             upsertBlk(facetsPrefs) { it.sortCodesMap[facetsMode.name] = s.code }
         }
 
+    private var _filter = mutableStateOf(EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: ""))
     var filter: EpisodeFilter
-        get() = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
-        set(value) {
-            upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = value.propertySet.joinToString() }
+        get() = _filter.value
+        set(f) {
+            _filter.value = f
+            upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = f.propertySet.joinToString() }
         }
 
     suspend fun updateToolbar(episodes: List<Episode>) {
@@ -197,7 +201,7 @@ class FacetsVM(modeName_: String): ViewModel() {
     }
 
     private fun buildFlow(): Flow<RealmResults<Episode>> {
-        Logd(TAG, "loadItems() called")
+        Logd(TAG, "buildFlow() called")
         listIdentity = "Facets.${facetsMode.name}"
         val realmFlow = when (facetsMode) {
             QuickAccess.New -> {
@@ -512,8 +516,8 @@ fun FacetsScreen(modeName: String = "") {
             Spacer(Modifier.weight(1f))
             val feedsIconRes = remember(vm.showFeeds) { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 }
             IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-            IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-            if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
+            if (facetsMode != QuickAccess.History) IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+            if (facetsMode !in listOf(QuickAccess.Recorded, QuickAccess.Due, QuickAccess.Timers, QuickAccess.Recorded, QuickAccess.Archived, QuickAccess.Frozen)) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
             if (vm.showFeeds) IconButton(onClick = {
                 feedIdsToUse = feedsAssociated.map { it.id }
                 navTo(Library)
@@ -565,6 +569,7 @@ fun FacetsScreen(modeName: String = "") {
             resetSwipes()
         }
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismiss = { showSortDialog = false }) { order ->
+            Logd(TAG, "EpisodeSortDialog order: $order")
             if (order != null) {
                 vm.sortOrder = order
                 resetSwipes()

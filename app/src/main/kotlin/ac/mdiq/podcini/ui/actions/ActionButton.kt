@@ -31,6 +31,7 @@ import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -71,7 +72,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.runBlocking
 
-class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
+class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: Boolean = false, typeInit: ButtonTypes = ButtonTypes.NULL) {
     private val TAG = this::class.simpleName ?: "ItemActionButton"
 
     private var _type = mutableStateOf(typeInit)
@@ -95,9 +96,10 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
 
     init {
         if (type == ButtonTypes.NULL) {
-            if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! !in playActions.map { it.name })
-                try { type = ButtonTypes.valueOf(item.feed!!.prefActionType!!) } catch (e: Throwable) { Loge(TAG, "error in getting feed prefActionType: ${item.feed?.prefActionType}") }
-            else update(item)
+//            if (feed?.prefActionType !in playActions.map { it.name })
+//                try { type = ButtonTypes.valueOf(feed!!.prefActionType!!) } catch (e: Throwable) { Loge(TAG, "error in getting feed prefActionType: ${feed?.prefActionType}") }
+//            else update(item)
+            update(item)
         }
     }
 
@@ -334,9 +336,18 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             }
             return when {
                 item.downloadUrl.isNullOrBlank() -> ButtonTypes.TTS
-                item.feed == null || item.feedId == null || !isMediaDownloadable(item) || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
+                item.feed == null || item.feedId == null || !isMediaDownloadable(item) || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> {
+                    if (preferSingle) ButtonTypes.STREAM_ONE else ButtonTypes.STREAM
+                }
                 isDownloadingMedia() -> ButtonTypes.CANCEL
                 else -> ButtonTypes.DOWNLOAD
+            }
+        }
+        fun typeOfDownloaded(): ButtonTypes {
+            return when {
+                preferSingle -> ButtonTypes.PLAY_ONE
+                feed?.prefActionType in playActions.map { it.name } -> ButtonTypes.valueOf(feed!!.prefActionType!!)
+                else -> ButtonTypes.PLAY
             }
         }
         when (type) {
@@ -349,12 +360,9 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
             ButtonTypes.STREAM, ButtonTypes.STREAM_ONE, ButtonTypes.STREAM_REPEAT -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             ButtonTypes.PAUSE -> {
                 type = when {
-                    item.feed?.prefActionType != null -> ButtonTypes.valueOf(item.feed!!.prefActionType!!)
                     item.feed?.isLocal == true -> ButtonTypes.PLAY_LOCAL
-                    item.downloaded -> {
-                        if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! in playActions.map { it.name }) ButtonTypes.valueOf(item.feed!!.prefActionType!!)
-                        else ButtonTypes.PLAY
-                    }
+                    item.downloaded -> typeOfDownloaded()
+                    feed?.prefActionType != null -> ButtonTypes.valueOf(feed.prefActionType!!)
                     item.feed == null || item.feedId == null || !isMediaDownloadable(item) || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                     else -> ButtonTypes.DOWNLOAD
                 }
@@ -366,7 +374,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 type = when {
                     isCurrentlyPlaying(item) -> ButtonTypes.PAUSE
                     item.feed?.isLocal == true -> ButtonTypes.PLAY_LOCAL
-                    item.downloaded -> ButtonTypes.PLAY
+                    item.downloaded -> typeOfDownloaded()
                     else -> undownloadedType()
                 }
             }
@@ -402,7 +410,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type != ButtonTypes.WEBSITE) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.WEBSITE)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.WEBSITE)
                         btn.onClick()
                         onDismiss()
                     }) {
@@ -414,7 +422,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                     val client = clientByEpisode(item)
                     if (client?.attributes?.supportDownload != false) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                            val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
+                            val btn = ActionButton(item, typeInit = ButtonTypes.DOWNLOAD)
                             btn.onClick()
                             type = btn.type
                             onDismiss()
@@ -426,7 +434,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.DELETE)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.DELETE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -437,7 +445,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.PLAY_REPEAT)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.PLAY_REPEAT)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -448,7 +456,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.PLAY)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.PLAY)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -459,7 +467,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.PLAY_ONE)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.PLAY_ONE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -470,7 +478,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.STREAM_REPEAT)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.STREAM_REPEAT)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -481,7 +489,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.STREAM)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.STREAM)
                         btn.onClick()
                         type = btn.type
                         onDismiss()
@@ -492,7 +500,7 @@ class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) 
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        val btn = ActionButton(item, ButtonTypes.STREAM_ONE)
+                        val btn = ActionButton(item, typeInit = ButtonTypes.STREAM_ONE)
                         btn.onClick()
                         type = btn.type
                         onDismiss()

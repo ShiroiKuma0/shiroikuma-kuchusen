@@ -17,6 +17,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sources.clientByEpisode
+import ac.mdiq.podcini.sources.clientByFeed
 import ac.mdiq.podcini.sources.clientshaveLikeCounts
 import ac.mdiq.podcini.sources.clientshaveViewCounts
 import ac.mdiq.podcini.storage.database.addToAssQueue
@@ -1219,17 +1220,19 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 }
 
 @Composable
-fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismiss: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
+fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), feed: Feed? = null, onDismiss: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val viewCounts = remember { listOf(EpisodeSortOrder.VIEWS_ASC, EpisodeSortOrder.VIEWS_DESC, EpisodeSortOrder.VIEWS_SPEED_ASC, EpisodeSortOrder.VIEWS_SPEED_DESC) }
     val likeCounts = remember { listOf(EpisodeSortOrder.LIKES_ASC, EpisodeSortOrder.LIKES_DESC) }
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ((if (clientshaveViewCounts()) viewCounts else listOf()) + (if (clientshaveLikeCounts()) likeCounts else listOf()) ) ) } }
+    val client = remember { if (feed != null) clientByFeed(feed) else null }
+    val ordersOnFeed: List<EpisodeSortOrder> = remember { if (feed != null && client != null) { if (client.attributes?.hasViewCount == true) viewCounts else listOf<EpisodeSortOrder>() + if (client.attributes?.hasLikeCount == true) likeCounts else listOf() } else listOf() }
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ordersOnFeed || (feed == null && order in ((if (clientshaveViewCounts()) viewCounts else listOf()) + (if (clientshaveLikeCounts()) likeCounts else listOf())) ) ) } }
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             var order by remember { mutableStateOf(initOrder) }
-            var sortIndex by remember { mutableIntStateOf(orderList.indexOfFirst { it.code == order.code || it.code == order.code+1 }) }
+            var sortIndex by remember { mutableIntStateOf(orderList.indexOfFirst { it.code == order.code || it.code == order.code+1 }.takeIf { it >= 0 } ?: 0) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState())) {
                 ScrollRowGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(order.code != orderList[sortIndex].code) }

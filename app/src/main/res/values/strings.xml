@@ -486,6 +486,8 @@
     <string name="daily_average">Daily average</string>
     <string name="episode_title">Episode title</string>
     <string name="feed_title">Podcast title</string>
+    <string name="feed_score">Feed score</string>
+    <string name="feed_score_count">Feed score count</string>
     <string name="show_criteria">Show criteria</string>
     <string name="title">Title</string>
     <string name="author">Author</string>

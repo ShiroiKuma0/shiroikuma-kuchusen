@@ -445,7 +445,7 @@ class Download() : EpisodeAction() {
 
     override fun performAction(e: Episode) {
         super.performAction(e)
-        if (!e.downloaded && e.feed != null && !e.feed!!.isLocal) ActionButton(e, ButtonTypes.DOWNLOAD).onClick()
+        if (!e.downloaded && e.feed != null && !e.feed!!.isLocal) ActionButton(e, typeInit = ButtonTypes.DOWNLOAD).onClick()
     }
 }
 

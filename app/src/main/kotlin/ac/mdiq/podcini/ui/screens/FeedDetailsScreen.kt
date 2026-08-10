@@ -360,7 +360,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (feed != null && showSortDialog) {
             vm.showHeader = false
-            EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismiss = {
+            EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, feed = feed, onDismiss = {
                 vm.showHeader = true
                 showSortDialog = false
             }) { order ->
@@ -720,7 +720,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             }
                         },
                         selectModeCB = { vm.showHeader = !it },
-                        actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName) else null,
+                        preferSingleAction = screenMode == FeedScreenMode.History,
+                        actionButtonType = if (screenMode == FeedScreenMode.List && actionButtonName != null) ButtonTypes.valueOf(actionButtonName) else null,
                         actionButtonCB = { e, type ->
                             Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
                             if (e.feed?.id == feed?.id) {
