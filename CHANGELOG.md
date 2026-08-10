@@ -2,6 +2,77 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.5.11+001 (versionCode 990001)
+
+Rebased onto upstream **v12.5.11** (versionCode 99), folding in **v12.5.10** (98) as well — upstream
+cut two releases a day apart. A pure tracking release — **no new fork features**; the whole custom
+layer replayed onto the new base and the build counter reset to `+001`.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`99` / `"12.5.11"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  Every other commit in the custom layer applied without conflict.
+- **Version base moved to 12.5.11 / 99**, so this line's codes (`990001`, `990002`, …) all exceed the
+  12.5.9 line's (`970001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.5.10
+
+- **Duplicate handling rebalanced.** The *related* links between duplicates are now built from the
+  full title-or-URL candidate set rather than the subset whose durations matched within 5 %, and an
+  episode no longer links to itself — so two same-titled episodes of different lengths show up as
+  related again, which 12.5.9's duration test had quietly severed. The ignore decision was pulled
+  out of the loop: duplicates at or below **Again** are marked **Ignored** as before, and the
+  incoming episode is marked Ignored only when one of its duplicates already was.
+- **Clip recording rebuilt.** The recording flag moved out of the data source into app-wide Compose
+  state, so the record button in the player turns red from the recording that is actually running
+  instead of from a local timestamp. The data source now closes an already-open handle before
+  reopening rather than stacking them, and closing the source no longer tears down the clip sink
+  underneath a recording in progress; the fragile `forceCommitCurrentSink()` reopen is gone and the
+  factory publishes its live data source. `saveClipInOriginalFormat` became the non-suspending
+  `recordClip`, called straight from the player UI instead of through a coroutine, and its failure
+  paths — no media item, no URI, no audio track, unsupported container — now surface as errors you
+  can see, with temp files cleaned up in a `finally`.
+- **A dead feed URL says so.** Building a podcast from an HTML page logs how many RSS `<link>`
+  elements it found and raises a visible error when there are none — or when the fetch throws —
+  instead of failing silently into the log.
+- **Date parsing rewritten.** The hand-rolled RSS `pubDate` splitter and the long list of
+  `SimpleDateFormat` patterns are replaced by explicit `kotlinx-datetime` format builders: optional
+  seconds, four-digit or ISO offsets, English abbreviated / full / `Sept` month names, and a lookup
+  table of the legacy zone abbreviations feed generators still emit (EDT/EST, CDT/CST, MDT/MST,
+  PDT/PST, CEST/CET/BST, UT/UTC/GMT/Z).
+- **"Search all sources" sticks.** Searching with no explicit source now resets the provider to the
+  Combined searcher rather than leaving whichever single source was selected last.
+
+### Inherited from upstream 12.5.11
+
+- **Facets sort and filter actually apply.** Both were read straight back from preferences on every
+  access, so the screen never recomposed when you changed them; they are now backed by observable
+  state that is written through to preferences. The sort button is hidden in **History**, and the
+  filter button in **Recorded**, **Due**, **Timers**, **Archived** and **Frozen** — the modes where
+  neither meant anything.
+- **Sort episodes by feed, in Queues.** Podcast-title sorting became conditional and is offered only
+  on the Queues screen, which also gains **Feed score** and **Feed score count** sortings. All three
+  sort in memory (the database-side ordering for them is parked as a TODO upstream).
+- **Per-feed sorts follow the source.** The sort dialog now takes the feed it is sorting and asks
+  that feed's source client whether it has view counts and like counts, so FeedDetails and OnlineFeed
+  stop offering View count, Views per day and Like count on feeds that cannot supply them. A sort
+  order missing from the offered list no longer leaves the dialog on an invalid selection.
+- **Volumes are sorted by name** in the parent-volume popup in Feeds settings.
+- **Single-shot playback where a list is a record, not a queue.** Episode lists can now prefer the
+  one-off action buttons, and **FeedDetails History** and **Queues Bin** do: Play and Stream become
+  **Play once** and **Stream once**, so replaying something out of history or the bin does not drag
+  the rest of the list along behind it. The per-feed preferred action is consulted through the feed
+  passed to the button rather than dug out of each episode.
+- **Feed titles survive an update.** A refresh only fills in the title when the feed has none, and
+  the constructor no longer blanks it with a null — so an update can no longer strip the tab suffix
+  from a YouTube feed's name.
+- **xmlutil 1.0.1 → 1.0.2.**
+
 ## 12.5.9+001 (versionCode 970001)
 
 Rebased onto upstream **v12.5.9** (versionCode 97). A pure tracking release — **no new fork
