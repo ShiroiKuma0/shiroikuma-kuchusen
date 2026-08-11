@@ -175,12 +175,11 @@ class FacetsVM(modeName_: String): ViewModel() {
             upsertBlk(facetsPrefs) { it.sortCodesMap[facetsMode.name] = s.code }
         }
 
-    private var _filter = mutableStateOf(EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: ""))
+    var filterChanged by mutableIntStateOf(0)
     var filter: EpisodeFilter
-        get() = _filter.value
+        get() = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
         set(f) {
-            _filter.value = f
-            upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = f.propertySet.joinToString() }
+            facetsPrefs = upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = f.propertySet.joinToString() }
         }
 
     suspend fun updateToolbar(episodes: List<Episode>) {
@@ -296,7 +295,7 @@ class FacetsVM(modeName_: String): ViewModel() {
         return realmFlow.map { it.list }
     }
 
-    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(facetsMode, filter, sortOrder) }.distinctUntilChanged().flatMapLatest { buildFlow() }
+    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(facetsMode, filterChanged, sortOrder) }.distinctUntilChanged().flatMapLatest { buildFlow() }
         .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     val feedsAssFlow: StateFlow<List<Feed>> = combine(episodesFlow, snapshotFlow { showFeeds }) { episodes, showFeeds -> Pair(episodes, showFeeds) }.distinctUntilChanged().flatMapLatest { (episodes, showFeeds) ->
@@ -564,8 +563,9 @@ fun FacetsScreen(modeName: String = "") {
             else mutableSetOf()
         }
         if (showFilterDialog) EpisodesFilterDialog(filter_ = vm.filter, disabledSet = filtersDisabled(), showAndOr = facetsMode in listOf(QuickAccess.All, QuickAccess.Custom), onDismiss = { showFilterDialog = false }) { filter ->
+            Logd(TAG, "EpisodesFilterDialog cb: filter: ${filter.propertySet}")
             vm.filter = filter
-            upsertBlk(vm.facetsPrefs) { it.filtersMap[facetsMode.name] = vm.filter.propertySet.joinToString(",") }
+            vm.filterChanged++
             resetSwipes()
         }
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismiss = { showSortDialog = false }) { order ->

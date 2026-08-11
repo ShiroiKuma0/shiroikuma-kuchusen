@@ -231,7 +231,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
         }
-        if (showPlayStateDialog) PlayStateDialog(selected, onDismiss = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
+        if (showPlayStateDialog) PlayStateDialog(selected, onDismiss = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
         if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
         if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
         if (showMulticastDialog) MulticastDialog(selected) { showMulticastDialog = false }

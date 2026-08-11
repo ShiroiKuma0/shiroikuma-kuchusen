@@ -1,3 +1,10 @@
+# 12.5.12
+
+* fixed filter again in Facets screen,
+* when manually setting episodes to Skipped, Passed, Ignroed, they are auto removed from queues
+* in MediaPlayer, when checking duplicates, not set curEpisode to Ignored when duplicates were set to ignored
+* integrated simplified Chinese translation (someone did for Podcini.X - thank you, and please identify yourself)
+
 # 12.5.11
 
 * in Facets screen, fixed filter and sort, and disabled the buttons in modes not relevant

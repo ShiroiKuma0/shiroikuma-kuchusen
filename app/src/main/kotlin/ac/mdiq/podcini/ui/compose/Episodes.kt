@@ -5,7 +5,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.playEpisodeAtTime
 import ac.mdiq.podcini.net.download.RequestType
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
-import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.sync.transceive.DiscoveredReceiver
@@ -680,19 +679,28 @@ fun PlayStateDialog(selected: List<Episode>, onDismiss: () -> Unit, futureCB: (E
                                         }
                                         EpisodeState.PLAYED -> {
                                             if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionTime = nowInMillis() }
-                                            val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
+                                            val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!)
                                             if (hasAlmostEnded && shouldAutoDelete) {
                                                 item_ = deleteMedia(item_)
                                                 if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item_))
                                             } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(item_))
-                                            if (item_.feed?.isLocal != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
-                                                if (isProviderConnected) {
-                                                    val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
-                                                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionPlay)
-                                                }
+                                            if (item_.feed?.isLocal != true && isProviderConnected) { // not all items have media, Gpodder only cares about those that do
+                                                val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
+                                                SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionPlay)
                                             }
                                         }
                                         EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToAssQueue(listOf(e))
+                                        EpisodeState.PASSED, EpisodeState.SKIPPED -> {
+                                            val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!)
+                                            if (shouldAutoDelete) {
+                                                item_ = deleteMedia(item_)
+                                                if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(item_))
+                                            } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(item_))
+                                            if (item_.feed?.isLocal != true && isProviderConnected) { // not all items have media, Gpodder only cares about those that do
+                                                val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
+                                                SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionPlay)
+                                            }
+                                        }
                                         else -> {}
                                     }
                                 }
@@ -917,6 +925,13 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismiss: () -> Unit) {
                                 }
                             }
                         }
+                        for (e in selected) {
+                            val shouldAutoDelete = if (e.feed == null) false else allowForAutoDelete(e.feed!!)
+                            if (shouldAutoDelete) {
+                                val e_ = deleteMedia(e)
+                                if (appPrefs.deleteRemovesFromQueue) removeFromAllQueues(listOf(e_))
+                            } else if (appPrefs.removeFromQueueMarkPlayed) removeFromAllQueues(listOf(e))
+                        }
                     } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }
                 }
                 onDismiss()
@@ -973,7 +988,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                var filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
+                val filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
                 var andOr by remember { mutableStateOf(filter.andOr.ifBlank { "AND" }) }
                 if (showAndOr) {
                     Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
@@ -1091,7 +1106,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                         selectedIndex = -1
                                         filter.remove(item.properties[0].filterId)
                                     }
-                                    Logd("EpisodeFilterDialog", "filterValues = [${filter.propertySet}]")
+                                    Logd("EpisodesFilterDialog", "filterValues = [${filter.propertySet}]")
                                     onFilterChanged(filter)
                                 },
                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }

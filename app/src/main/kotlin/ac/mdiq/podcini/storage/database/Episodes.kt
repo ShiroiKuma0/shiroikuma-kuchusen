@@ -69,7 +69,7 @@ fun getEpisodesAsFlow(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feed
     var queryString = filter?.queryString()
     if (queryString.isNullOrBlank()) queryString = "id > 0"
     if (feedId >= 0) queryString += " AND feedId == $feedId "
-    Logd(TAG, "getEpisodesAsFlow called with: queryString: $queryString sortOrder: $sortOrder")
+    Logd(TAG, "getEpisodesAsFlow queryString: $queryString sortOrder: $sortOrder")
     return realm.query(Episode::class).query(queryString).sort(sortPairOf(sortOrder)).asFlow()
 }
 
@@ -252,7 +252,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                 if (e.id == episode.id) continue
                 if (e.duration > 0L && episode.duration > 0L && abs(e.duration - episode.duration) < 0.05 * (e.duration + episode.duration)) duplicates.add(e)
             }
-            val ignoredDups = duplicates.filter { it.playState == EpisodeState.IGNORED.code }
+//            val ignoredDups = duplicates.filter { it.playState == EpisodeState.IGNORED.code }
             val comment = "duplicate"
             for (e in duplicates) {
                 if (e.playState <= EpisodeState.AGAIN.code) {
@@ -260,20 +260,21 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                     e.addComment(comment)
                 }
             }
-            if (ignoredDups.isNotEmpty()) {
-                val m = findLatest(episode)?.let {
-                    it.setPlayState(EpisodeState.IGNORED)
-                    it.addComment(comment)
-                    it
-                }
-                m?.let { updated = true }
-//                LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
-            }
+//            if (ignoredDups.isNotEmpty()) {
+//                val m = findLatest(episode)?.let {
+//                    it.setPlayState(EpisodeState.IGNORED)
+//                    it.addComment(comment)
+//                    it
+//                }
+//                m?.let { updated = true }
+////                LogtFor(TAG, e.id,"Duplicate item was previously set to ${fromCode(e.playState).name} ${e.downloadUrl}")
+//            }
             for (e in candidates) {
                 for (e1 in candidates) {
                     if (e.id != e1.id) e.related.add(e1)
                 }
             }
+            updated = true
         }
     }
     return if (updated) realm.query(Episode::class, "id == ${episode.id}").first().find() ?: episode else episode
