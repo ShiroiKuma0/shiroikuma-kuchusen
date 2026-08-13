@@ -1160,7 +1160,7 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.pref_enable_second_algorithm_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
 
-                ConfigAutoDLEQ(0)
+                if (feedToSet.autoDLEQs.isNotEmpty()) ConfigAutoDLEQ(0)
                 if (enabledSecond && feedToSet.autoDLEQs.size > 1) ConfigAutoDLEQ(1)
             }
 
