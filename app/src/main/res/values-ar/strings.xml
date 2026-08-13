@@ -300,7 +300,7 @@
     <string name="synchronization_sum">زامن مع أجهرة أخرى</string>
     <string name="pref_backup_on_google_title">النسخ الاحتياطي التلقائي لـ OPML</string>
     <string name="pref_backup_on_google_sum">النسخ الاحتياطي التلقائي لملفات OPML إلى جوجل. بمجرد التمكين، بعد إلغاء تثبيت Podcini وإعادة تثبيته، يمكن استعادة الاشتراكات. تبديل هذا الإعداد سيعيد تشغيل Podcini.</string>
-    <string name="automation">التشغيل الآلي</string>
+
     <string name="download_pref_details">تفاصيل</string>
     <string name="import_export_pref">استيراد/تصدير</string>
     <string name="pref_auto_backup_title">النسخ الاحتياطي التلقائي</string>

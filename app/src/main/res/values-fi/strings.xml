@@ -291,7 +291,7 @@
     <string name="synchronization_sum">Synkronoi muiden laitteiden kanssa</string>
     <string name="pref_backup_on_google_title">Automaattinen OPML:n varmuuskopiointi</string>
     <string name="pref_backup_on_google_sum">Automaattinen OPML-tiedostojen varmuuskopiointi Googleen. Kun se on käytössä, kun Podcini on poistettu käytöstä ja asennettu uudelleen, tilaukset voidaan palauttaa. Vaihda tämä asetus käynnistyy uudelleen Podcini.</string>
-    <string name="automation">Automaatio</string>
+
     <string name="download_pref_details">Tietoja</string>
     <string name="import_export_pref">Tuo/Vie</string>
     <string name="pref_auto_backup_title">Automaattinen varmuuskopiointi</string>

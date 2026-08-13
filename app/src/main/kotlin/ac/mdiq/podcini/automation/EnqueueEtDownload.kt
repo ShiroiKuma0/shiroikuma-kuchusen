@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
+import ac.mdiq.podcini.storage.specs.AutoDLEQPolicy
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.reorderWith
@@ -26,6 +27,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.Logt
+import kotlin.random.Random
 
 private const val TAG = "AutoDownloads"
 
@@ -102,7 +104,7 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
     val NM = 3
     val feeds = (feeds_ ?: allFeeds).filter { it.inNormalVolume }
     val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
-    feeds.forEach { f ->
+    for (f in feeds) {
         Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocal} ${f.title}")
         if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocal) {
             val dlFilter = if (dl) {
@@ -120,7 +122,6 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
             }
             var allowedDLCount = if (f.autoDLMaxEpisodes == EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
             Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
-            Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
             val episodes = mutableListOf<Episode>()
             run {
                 val cTime = nowInMillis()
@@ -141,70 +142,80 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
                     allowedDLCount -= es.size
                 }
             }
-            var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND fileUrl == nil"
-            if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
-                f.autoDownloadFilter?.queryString()?.let { if (it.isNotBlank()) queryString += " AND $it " }
-                when (f.autoDLPolicy) {
-                    Feed.AutoDownloadPolicy.DISCRETION -> {}
-                    Feed.AutoDownloadPolicy.ONLY_NEW -> {
-                        if (!noRefreshing) {
-                            if (f.autoDLPolicy.replace) {
-                                allowedDLCount = if (f.autoDLMaxEpisodes == EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
-                                queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${allowedDLCount})"
-                                val es = realm.query(Episode::class).query(queryString).find()
-                                Logd(TAG, "assembleFeedsCandidates Replace queryString: [${es.size}] $queryString")
-                                if (es.isNotEmpty()) {
-                                    val numToDelete = es.size + downloadedCount - allowedDLCount
-                                    Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
-                                    if (numToDelete > 0) {
-                                        val toDelete_ = getEpisodes(dlFilter, EpisodeSortOrder.DATE_ASC, feedId=f.id, limit=numToDelete)
-                                        if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
-                                        Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
-                                    }
-                                    episodes.addAll(es)
-                                    Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
-                                } else Logd(TAG, "No New episodes found for feed: ${f.title}")
-//                                else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
-                            } else {
-                                queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
-                                val es = realm.query(Episode::class).query(queryString).find()
-                                Logd(TAG, "assembleFeedsCandidates Non-Replace queryString: [${es.size}] $queryString")
-                                if (es.isNotEmpty()) episodes.addAll(es)
-                                else Logd(TAG, "No New episodes found for feed: ${f.title}")
-//                                else LogFor(TAG, f, true, "No New episodes found", toastAnyway = true)
+            var episodes0 = listOf<Episode>()
+            for (dleq in f.autoDLEQs) {
+                var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND fileUrl == nil"
+                Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${dleq.autoDLPolicy.name}")
+                val policy = dleq.autoDLPolicy
+                if (allowedDLCount > 0 || policy.replace) {
+                    val episodes1 = mutableListOf<Episode>()
+                    dleq.autoDownloadFilter?.queryString()?.let { if (it.isNotBlank()) queryString += " AND $it " }
+                    when (policy) {
+                        AutoDLEQPolicy.DISCRETION -> {}
+                        AutoDLEQPolicy.ONLY_NEW -> {
+                            if (!noRefreshing) {
+                                if (policy.replace) {
+                                    allowedDLCount = if (f.autoDLMaxEpisodes == EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
+                                    queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${allowedDLCount})"
+                                    val es = realm.query(Episode::class).query(queryString).find()
+                                    Logd(TAG, "assembleFeedsCandidates Replace queryString: [${es.size}] $queryString")
+                                    if (es.isNotEmpty()) {
+                                        val numToDelete = es.size + downloadedCount - allowedDLCount
+                                        Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
+                                        if (numToDelete > 0) {
+                                            val toDelete_ = getEpisodes(dlFilter, EpisodeSortOrder.DATE_ASC, feedId = f.id, limit = numToDelete)
+                                            if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
+                                            Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
+                                        }
+                                        episodes1.addAll(es)
+                                        Logd(TAG, "assembleFeedsCandidates episodes: ${episodes1.size}")
+                                    } else Logd(TAG, "No New episodes found for feed: ${f.title}")
+                                } else {
+                                    queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
+                                    val es = realm.query(Episode::class).query(queryString).find()
+                                    Logd(TAG, "assembleFeedsCandidates Non-Replace queryString: [${es.size}] $queryString")
+                                    if (es.isNotEmpty()) episodes1.addAll(es)
+                                    else Logd(TAG, "No New episodes found for feed: ${f.title}")
+                                }
+                            }
+                        }
+                        AutoDLEQPolicy.NEWER -> {
+                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
+                            val es = realm.query(Episode::class).query(queryString).find()
+                            Logd(TAG, "assembleFeedsCandidates Newer queryString: [${es.size}] $queryString")
+                            if (es.isNotEmpty()) episodes1.addAll(es)
+                        }
+                        AutoDLEQPolicy.OLDER -> {
+                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate ASC) LIMIT(${NM * allowedDLCount})"
+                            val es = realm.query(Episode::class).query(queryString).find()
+                            Logd(TAG, "assembleFeedsCandidates Older queryString: [${es.size}] $queryString")
+                            if (es.isNotEmpty()) episodes1.addAll(es)
+                        }
+                        AutoDLEQPolicy.FILTER_SORT -> {
+                            Logd(TAG, "FILTER_SORT queryString: $queryString")
+                            val q = realm.query(Episode::class).query(queryString)
+                            val filterADL = dleq.episodeFilterADL.queryString()
+                            Logd(TAG, "FILTER_SORT filterADL: $filterADL")
+                            if (filterADL.isNotBlank()) q.query(filterADL)
+                            val es = q.find().toMutableList()
+                            Logd(TAG, "assembleFeedsCandidates Filter-sort queryString: [${es.size}] $queryString")
+                            if (es.isNotEmpty()) {
+                                val sortOrder = dleq.episodesSortOrderADL ?: EpisodeSortOrder.DATE_DESC
+                                Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
+                                es.reorderWith(sortOrder)
+                                episodes1.addAll(if (es.size > allowedDLCount) es.subList(0, allowedDLCount) else es)
+                                Logd(TAG, "FILTER_SORT episodes: ${episodes1.size}")
                             }
                         }
                     }
-                    Feed.AutoDownloadPolicy.NEWER -> {
-                        queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
-                        val es = realm.query(Episode::class).query(queryString).find()
-                        Logd(TAG, "assembleFeedsCandidates Newer queryString: [${es.size}] $queryString")
-                        if (es.isNotEmpty()) episodes.addAll(es)
-                    }
-                    Feed.AutoDownloadPolicy.OLDER -> {
-                        queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate ASC) LIMIT(${NM * allowedDLCount})"
-                        val es = realm.query(Episode::class).query(queryString).find()
-                        Logd(TAG, "assembleFeedsCandidates Older queryString: [${es.size}] $queryString")
-                        if (es.isNotEmpty()) episodes.addAll(es)
-                    }
-                    Feed.AutoDownloadPolicy.FILTER_SORT -> {
-                        Logd(TAG, "FILTER_SORT queryString: $queryString")
-                        val q = realm.query(Episode::class).query(queryString)
-                        val filterADL = f.episodeFilterADL.queryString()
-                        Logd(TAG, "FILTER_SORT filterADL: $filterADL")
-                        if (filterADL.isNotBlank()) q.query(filterADL)
-                        val es = q.find().toMutableList()
-                        Logd(TAG, "assembleFeedsCandidates Filter-sort queryString: [${es.size}] $queryString")
-                        if (es.isNotEmpty()) {
-                            val sortOrder = f.episodesSortOrderADL ?: EpisodeSortOrder.DATE_DESC
-                            Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
-                            es.reorderWith(sortOrder)
-                            episodes.addAll(if (es.size > allowedDLCount) es.subList(0, allowedDLCount) else es)
-                            Logd(TAG, "FILTER_SORT episodes: ${episodes.size}")
-                        }
+                    val maxIndices = 0 until maxOf(episodes0.size, episodes1.size)
+                    episodes0 = maxIndices.flatMap { i ->
+                        val pair = listOfNotNull(episodes0.getOrNull(i), episodes1.getOrNull(i))
+                        if (Random.nextBoolean()) pair else pair.reversed()
                     }
                 }
             }
+            if (episodes0.isNotEmpty()) episodes.addAll(episodes0)
             if (episodes.isNotEmpty()) {
                 var count = 0
                 for (e in episodes) {
@@ -232,13 +243,15 @@ private suspend fun assembleCandidates(feeds_: List<Feed>?, candidates: MutableS
 
             realm.write {
                 if (!noRefreshing) {
-                    if (f.autoDownloadFilter?.markExcludedPlayed == true) {
-                        val qStr = f.autoDownloadFilter!!.queryExcludeString()
-                        if (qStr.isNotBlank()) {
-                            while (true) {
-                                val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find().toList()
-                                if (eExc.isEmpty()) break
-                                eExc.forEach { it.setPlayState(EpisodeState.PLAYED) }
+                    for (dleq in f.autoDLEQs) {
+                        if (dleq.autoDownloadFilter?.markExcludedPlayed == true) {
+                            val qStr = dleq.autoDownloadFilter!!.queryExcludeString()
+                            if (qStr.isNotBlank()) {
+                                while (true) {
+                                    val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find().toList()
+                                    if (eExc.isEmpty()) break
+                                    eExc.forEach { it.setPlayState(EpisodeState.PLAYED) }
+                                }
                             }
                         }
                     }

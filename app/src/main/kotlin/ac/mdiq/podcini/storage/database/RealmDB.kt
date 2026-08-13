@@ -3,13 +3,13 @@ package ac.mdiq.podcini.storage.database
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.AppPrefs
+import ac.mdiq.podcini.storage.model.AutoDLEQ
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.model.SyncPrefs
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.Volume
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.util.Log
@@ -29,7 +30,9 @@ import io.github.xilinjia.krdb.Realm
 import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
 import io.github.xilinjia.krdb.dynamic.getNullableValue
+import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.ext.isManaged
+import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
@@ -54,6 +57,7 @@ val config: RealmConfiguration by lazy {
     RealmConfiguration.Builder(schema = setOf(
         Volume::class,
         Feed::class,
+        AutoDLEQ::class,
         Episode::class,
         CurrentState::class,
         PlayQueue::class,
@@ -71,7 +75,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(156)
+    )).name("Podcini.realm").schemaVersion(157)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -81,6 +85,44 @@ val config: RealmConfiguration by lazy {
                 for (f in feeds) {
                     val type = f.getNullableValue<String>("type")
                     if (type in listOf(FeedType.RSS.name, FeedType.ATOM.name)) f.set("episodesDownloadable", true)
+                }
+            }
+            if (oldRealm.schemaVersion() < 157) {
+                Log.d(TAG, "migrating DB from below 157")
+                var feeds = oldRealm.query("Feed").find().toList()
+                for (f in feeds) {
+                    val id = f.getValue<Long>("id")
+                    Log.d(TAG, "migrating feed: $id")
+                    val fNew = newRealm.query("Feed", "id == $id").first().find()
+                    if (fNew != null) {
+                        val dleq = AutoDLEQ()
+                        if (dleq != null) {
+                            val filterStringADL = f.getValue<String>("filterStringADL")
+                            dleq.filterStringADL = filterStringADL
+                            val durationFloorADL = f.getValue<Long>("durationFloorADL")
+                            dleq.durationFloorADL = durationFloorADL.toInt()
+                            val durationCeilingADL = f.getValue<Long>("durationCeilingADL")
+                            dleq.durationCeilingADL = durationCeilingADL.toInt()
+                            val sortOrderCodeADL = f.getValue<Long>("sortOrderCodeADL")
+                            dleq.sortOrderCodeADL = sortOrderCodeADL.toInt()
+                            val autoDLInclude = f.getNullableValue<String>("autoDLInclude")
+                            dleq.autoDLInclude = autoDLInclude
+                            val autoDLExclude = f.getNullableValue<String>("autoDLExclude")
+                            dleq.autoDLExclude = autoDLExclude
+                            val autoDLMinDuration = f.getValue<Long>("autoDLMinDuration")
+                            dleq.autoDLMinDuration = autoDLMinDuration.toInt()
+                            val autoDLMaxDuration = f.getValue<Long>("autoDLMinDuration")
+                            dleq.autoDLMaxDuration = autoDLMaxDuration.toInt()
+                            val markExcludedPlayed = f.getValue<Boolean>("markExcludedPlayed")
+                            dleq.markExcludedPlayed = markExcludedPlayed
+                            val autoDLPolicyCode = f.getValue<Long>("autoDLPolicyCode")
+                            dleq.autoDLPolicyCode = autoDLPolicyCode.toInt()
+                            val autoDLPolicyReplace = f.getValue<Boolean>("autoDLPolicyReplace")
+                            dleq.autoDLPolicyReplace = autoDLPolicyReplace
+                            val dleqs = realmListOf(dleq)
+                            fNew.set("autoDLEQs", dleqs)
+                        } else Log.d(TAG, "dleq is null")
+                    } else Log.d(TAG, "fNew is null")
                 }
             }
         }).build()

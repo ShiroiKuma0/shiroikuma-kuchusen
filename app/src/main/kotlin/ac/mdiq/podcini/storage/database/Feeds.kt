@@ -40,8 +40,6 @@ private const val TAG: String = "Feeds"
 
 var feedOperationText by mutableStateOf("")
 
-val feedsFlow = realm.query(Feed::class).asFlow()
-
 var allFeeds = realm.query(Feed::class).find()
 var feedsMap: Map<Long, Feed> = allFeeds.associateBy { it.id }
 
@@ -80,7 +78,7 @@ fun monitorFeeds() {
     if (feedMonitorJob != null) return
 
     feedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
-        feedsFlow.collect { changes: ResultsChange<Feed> ->
+        realm.query(Feed::class).asFlow().collect { changes: ResultsChange<Feed> ->
             allFeeds = changes.list
             feedsMap = allFeeds.associateBy { it.id }
             Logd(TAG, "monitorFeedList feeds updated size: ${allFeeds.size}")

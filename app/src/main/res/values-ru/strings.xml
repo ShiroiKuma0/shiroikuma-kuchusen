@@ -295,7 +295,7 @@
     <string name="synchronization_sum">Синхронизация с другими устройствами</string>
     <string name="pref_backup_on_google_title">Автоматическое резервное копирование OPML</string>
     <string name="pref_backup_on_google_sum">Автоматическое резервное копирование OPML файлов в Google. После того, как Podcini деинсталлируется и переинсталлируется, подписки могут быть восстановлены. Включите эту настройку, чтобы перезапустить Podcini.</string>
-    <string name="automation">Автоматизация</string>
+
     <string name="download_pref_details">Подробнее</string>
     <string name="import_export_pref">Импорт/экспорт</string>
     <string name="pref_auto_backup_title">Автоматическое резервное копирование</string>

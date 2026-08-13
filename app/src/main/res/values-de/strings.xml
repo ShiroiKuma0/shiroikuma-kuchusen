@@ -294,7 +294,7 @@
     <string name="synchronization_sum">Mit anderen Geräten synchronisieren</string>
     <string name="pref_backup_on_google_title">Automatische Sicherung von OPML</string>
     <string name="pref_backup_on_google_sum">OPML-Dateien automatisch in Google sichern. Einmal aktiviert, nachdem Podcini deinstalliert und neu installiert wurde, können die Abonnements wiederhergestellt werden. Aktivieren Sie diese Einstellung um Podcini neu zu starten.</string>
-    <string name="automation">Automatisierung</string>
+
     <string name="download_pref_details">Details</string>
     <string name="import_export_pref">Import/Export</string>
     <string name="pref_auto_backup_title">Auto-Sicherung</string>

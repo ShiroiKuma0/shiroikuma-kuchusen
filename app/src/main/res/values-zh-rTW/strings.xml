@@ -143,7 +143,7 @@
   <!--Preferences-->
   <string name="project_pref">專案</string>
   <string name="synchronization_pref">同步</string>
-  <string name="automation">自動化</string>
+
   <string name="download_pref_details">細節</string>
   <string name="import_export_pref">匯入/匯出</string>
     <string name="appearance">外觀</string>

@@ -12,14 +12,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
-import io.github.xilinjia.krdb.types.annotations.Index
 
 private const val TAG = "Timer"
 
 class Timer: EmbeddedRealmObject {
-    @Index
-    var id: Long = 0L
-
     var episodeId: Long = 0L
 
     var alarmId: Int = 0
@@ -63,7 +59,6 @@ class Timer: EmbeddedRealmObject {
 
         other as Timer
 
-        if (id != other.id) return false
         if (episodeId != other.episodeId) return false
         if (alarmId != other.alarmId) return false
         if (triggerTime != other.triggerTime) return false
@@ -72,8 +67,7 @@ class Timer: EmbeddedRealmObject {
     }
 
     override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + episodeId.hashCode()
+        var result = episodeId.hashCode()
         result = 31 * result + alarmId
         result = 31 * result + triggerTime.hashCode()
         return result

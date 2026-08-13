@@ -6,13 +6,8 @@ import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sources.clientsHaveMultiQ
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
-import ac.mdiq.podcini.storage.database.fallbackSpeed
-import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
-import ac.mdiq.podcini.storage.database.rewindSecs
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.skipforwardSpeed
-import ac.mdiq.podcini.storage.database.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -21,12 +16,10 @@ import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.SetAVQuality
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
-
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.Logd
@@ -74,7 +67,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
-import kotlin.math.round
 
 enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
     FF(R.string.button_action_fast_forward, R.string.keycode_media_fast_forward),
@@ -232,63 +224,6 @@ fun PlaybackScreen() {
             }
         }
         TitleSummaryActionColumn(R.string.pref_playback_video_mode, R.string.pref_playback_video_mode_sum) { showVideoModeDialog = true }
-
-        HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-        Text(stringResource(R.string.playback_speeds_sum), color = textColor, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.pref_rewind), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
-            }
-            Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-        }
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.pref_fast_forward), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
-            }
-            Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-        }
-        var showSpeedDialog by remember { mutableStateOf(false) }
-        if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = appPrefs.playbackSpeed, maxSpeed = 3f, isGlobal = true, onDismiss = { showSpeedDialog = false }) { speed -> upsertBlk(appPrefs) { it.playbackSpeed = speed } }
-        TitleSummaryActionColumn(R.string.playback_speed, R.string.pref_playback_speed_sum) { showSpeedDialog = true }
-        var showFBSpeedDialog by remember { mutableStateOf(false) }
-        if (showFBSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = fallbackSpeed, maxSpeed = 3f, isGlobal = true,
-            onDismiss = { showFBSpeedDialog = false }) { speed ->
-            Logd("PlaybackPreferencesScreen", "speed: $speed")
-            val speed_ = when {
-                speed < 0.0f -> 0.0f
-                speed > 3.0f -> 3.0f
-                else -> speed
-            }
-            fallbackSpeed = round(100 * speed_) / 100f
-        }
-        TitleSummaryActionColumn(R.string.pref_fallback_speed, R.string.pref_fallback_speed_sum) { showFBSpeedDialog = true }
-        var showFastForwardSpeedDialog by remember { mutableStateOf(false) }
-        if (showFastForwardSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = speedforwardSpeed, maxSpeed = 10f, isGlobal = true,
-            onDismiss = { showFastForwardSpeedDialog = false }) { speed ->
-            val speed_ = when {
-                speed < 0.0f -> 0.0f
-                speed > 10.0f -> 10.0f
-                else -> speed
-            }
-            speedforwardSpeed = round(10 * speed_) / 10
-        }
-        TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_forward_speed_sum) { showFastForwardSpeedDialog = true }
-        var showFastSkipSpeedDialog by remember { mutableStateOf(false) }
-        if (showFastSkipSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = skipforwardSpeed, maxSpeed = 10f, isGlobal = true,
-            onDismiss = { showFastSkipSpeedDialog = false }) { speed ->
-            val speed_ = when {
-                speed < 0.0f -> 0.0f
-                speed > 10.0f -> 10.0f
-                else -> speed
-            }
-            skipforwardSpeed = round(10 * speed_) / 10
-        }
-        TitleSummaryActionColumn(R.string.pref_speed_skip, R.string.pref_speed_forward_sum) { showFastSkipSpeedDialog = true }
-        TitleSummarySwitchRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, appPrefs.skipSilence) {
-            upsertBlk(appPrefs) { p-> p.skipSilence = it }
-        }
 
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.reassign_hardware_buttons), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))

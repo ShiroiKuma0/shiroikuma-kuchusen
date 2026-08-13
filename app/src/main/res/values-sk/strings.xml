@@ -295,7 +295,7 @@
     <string name="synchronization_sum">Synchronizovať s ostatnými zariadeniami</string>
     <string name="pref_backup_on_google_title">Auto backup of OPML</string>
     <string name="pref_backup_on_google_sum">Auto backup OPML files to Google. Once enabled, after Podcini is uninstalled and re-installed, the subscriptions can be restored. Toggle this setting will restart Podcini.</string>
-    <string name="automation">Automatizácia</string>
+
     <string name="download_pref_details">Podrobnosti</string>
     <string name="import_export_pref">Import/Export</string>
     <string name="pref_auto_backup_title">Auto backup</string>

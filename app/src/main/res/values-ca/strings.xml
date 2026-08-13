@@ -239,7 +239,7 @@
   <string name="project_pref">Projecte</string>
   <string name="synchronization_pref">Sincronització</string>
   <string name="synchronization_sum">Sincronitza amb altres dispositius</string>
-  <string name="automation">Automatització</string>
+
   <string name="download_pref_details">Detalls</string>
   <string name="import_export_pref">Importa/Exporta</string>
     <string name="appearance">Aparença</string>

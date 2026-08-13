@@ -14,23 +14,23 @@
 | Breton | |
 | Bulgarian |  |
 | Catalan |  |
-| Chinese (zh_CN) |  |
+| Chinese (zh_CN) | unknown |
 | Chinese (zh_TW) | |
 | Czech (cs_CZ) |  |
 | Danish |  |
 | Dutch |  |
 | Estonian |  |
 | Finnish |  |
-| French |  |
+| French | auto |
 | Galician |  |
-| German |  |
+| German | auto |
 | Hebrew (he_IL) |  |
 | Hindi (hi_IN) |  |
 | Hu |  |
 | Icelandic |  |
 | Indonesian |  |
-| Italian (it_IT) |  |
-| Japanese |  |
+| Italian (it_IT) | auto |
+| Japanese | auto |
 | Kannada (kn_IN) |  |
 | Ko |  |
 | Latin |  |
@@ -41,18 +41,18 @@
 | Norwegian Bokmål (nb_NO) |  |
 | Persian |  |
 | Polish (pl_PL) |  |
-| Portuguese |  |
+| Portuguese | auto |
 | Portuguese (pt_BR) |  |
 | Romanian (ro_RO) |  |
-| Russian (ru_RU) |  |
+| Russian (ru_RU) | auto |
 | Slovak |  |
 | Slovenian (sl_SI) |  |
-| Spanish |  |
+| Spanish | auto |
 | Swahili (macrolanguage) |  |
 | Swedish (sv_SE) |  |
 | Tatar |  |
 | Telugu |  |
-| Turkish |  |
+| Turkish | @mikropsoft |
 | Ukrainian (uk_UA) |  |
 | Uzbek |  |
 | Vietnamese |  |

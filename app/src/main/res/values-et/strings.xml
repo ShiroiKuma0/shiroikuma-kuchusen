@@ -198,7 +198,7 @@
   <!--Preferences-->
   <string name="project_pref">Projekt</string>
   <string name="synchronization_pref">Sünkroonimine</string>
-  <string name="automation">Automaatika</string>
+
   <string name="download_pref_details">Üksikasjad</string>
   <string name="import_export_pref">Import/eksport</string>
     <string name="appearance">Välimus</string>

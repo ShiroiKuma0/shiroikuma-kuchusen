@@ -243,7 +243,7 @@
   <string name="project_pref">Projeto</string>
   <string name="synchronization_pref">Sincronização</string>
   <string name="synchronization_sum">Sincronizar com outros dispositivos</string>
-  <string name="automation">Automação</string>
+
   <string name="download_pref_details">Detalhes</string>
   <string name="import_export_pref">Importar/Exportar</string>
     <string name="appearance">Aparência</string>

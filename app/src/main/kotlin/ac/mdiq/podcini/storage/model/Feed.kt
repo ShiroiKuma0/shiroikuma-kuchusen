@@ -14,7 +14,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VideoMode
@@ -28,6 +27,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
+import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.ext.toRealmSet
@@ -327,76 +327,21 @@ class Feed : RealmObject {
 
     // ============= Queue ==============
 
+    // TODO: not used?
     var episodesDownloadable: Boolean = false
 
     // ============ auto-download/enqueue ==============
     var autoDownload: Boolean = false
     var autoEnqueue: Boolean = false
 
-    @Ignore
-    var episodeFilterADL: EpisodeFilter = EpisodeFilter()
-        set(value) {
-            field = value
-            filterStringADL = value.propertySet.joinToString()
-            durationFloorADL = value.durationFloor
-            durationCeilingADL = value.durationCeiling
-        }
-        get() {
-            val f = EpisodeFilter(filterStringADL)
-            f.durationFloor = durationFloorADL
-            f.durationCeiling = durationCeilingADL
-            return f
-        }
-    var filterStringADL: String = ""
-    var durationFloorADL: Int = 0
-    var durationCeilingADL: Int = Int.MAX_VALUE
-
-    @Ignore
-    var episodesSortOrderADL: EpisodeSortOrder? = null
-        get() = fromCode(sortOrderCodeADL)
-        set(value) {
-            if (value == null) return
-            field = value
-            sortOrderCodeADL = value.code
-        }
-    var sortOrderCodeADL: Int = 2     // in EpisodeSortOrder
-
-    @Ignore
-    var autoDownloadFilter: FeedAutoDownloadFilter? = null
-        get() = field ?: FeedAutoDownloadFilter(autoDLInclude, autoDLExclude, autoDLMinDuration, autoDLMaxDuration, markExcludedPlayed)
-        set(value) {
-            field = value
-            autoDLInclude = value?.includeFilterRaw ?: ""
-            autoDLExclude = value?.excludeFilterRaw ?: ""
-            autoDLMinDuration = value?.minDurationFilter ?: 0
-            autoDLMaxDuration = value?.maxDurationFilter ?: 0
-            markExcludedPlayed = value?.markExcludedPlayed == true
-        }
-    var autoDLInclude: String? = ""
-    var autoDLExclude: String? = ""
-    var autoDLMinDuration: Int = 0
-    var autoDLMaxDuration: Int = 0
-    var markExcludedPlayed: Boolean = false
-
     var autoDLSoon: Boolean = false
-
     var autoDLMaxEpisodes: Int = 3
     var countingPlayed: Boolean = true      // relates to autoDLMaxEpisodes
 
-    @Ignore
-    var autoDLPolicy: AutoDownloadPolicy = AutoDownloadPolicy.ONLY_NEW
-        get() {
-            val value = AutoDownloadPolicy.fromCode(autoDLPolicyCode)
-            value.replace = autoDLPolicyReplace
-            return value
-        }
-        set(value) {
-            field = value
-            autoDLPolicyCode = value.code
-            autoDLPolicyReplace = value.replace
-        }
-    var autoDLPolicyCode: Int = AutoDownloadPolicy.ONLY_NEW.code
-    var autoDLPolicyReplace: Boolean = false
+    var enabledSecondDLEQ: Boolean = false
+
+    var autoDLEQs: RealmList<AutoDLEQ> = realmListOf()
+
     // ============ auto-download/enqueue ==============
 
 
@@ -571,20 +516,14 @@ class Feed : RealmObject {
         if (videoQuality != other.videoQuality) return false
         if (prefStreamOverDownload != other.prefStreamOverDownload) return false
         if (episodesDownloadable != other.episodesDownloadable) return false
-        if (autoDownload != other.autoDownload) return false
-        if (autoEnqueue != other.autoEnqueue) return false
-        if (queueId != other.queueId) return false
-        if (durationFloorADL != other.durationFloorADL) return false
-        if (durationCeilingADL != other.durationCeilingADL) return false
-        if (sortOrderCodeADL != other.sortOrderCodeADL) return false
-        if (autoDLMinDuration != other.autoDLMinDuration) return false
-        if (autoDLMaxDuration != other.autoDLMaxDuration) return false
-        if (markExcludedPlayed != other.markExcludedPlayed) return false
+        if (enabledSecondDLEQ != other.enabledSecondDLEQ) return false
         if (autoDLSoon != other.autoDLSoon) return false
         if (autoDLMaxEpisodes != other.autoDLMaxEpisodes) return false
         if (countingPlayed != other.countingPlayed) return false
-        if (autoDLPolicyCode != other.autoDLPolicyCode) return false
-        if (autoDLPolicyReplace != other.autoDLPolicyReplace) return false
+        if (autoDLEQs != other.autoDLEQs) return false
+        if (autoDownload != other.autoDownload) return false
+        if (autoEnqueue != other.autoEnqueue) return false
+        if (queueId != other.queueId) return false
         if (identifier != other.identifier) return false
         if (eigenTitle != other.eigenTitle) return false
         if (customTitle != other.customTitle) return false
@@ -605,9 +544,6 @@ class Feed : RealmObject {
         if (password != other.password) return false
         if (tags.size != other.tags.size) return false
         if (repeatIntervals.size != other.repeatIntervals.size) return false
-        if (filterStringADL != other.filterStringADL) return false
-        if (autoDLInclude != other.autoDLInclude) return false
-        if (autoDLExclude != other.autoDLExclude) return false
         if (preferredLnaguages.size != other.preferredLnaguages.size) return false
         if (isBuilding != other.isBuilding) return false
 
@@ -653,20 +589,14 @@ class Feed : RealmObject {
         result = 31 * result + videoQuality
         result = 31 * result + prefStreamOverDownload.hashCode()
         result = 31 * result + episodesDownloadable.hashCode()
-        result = 31 * result + autoDownload.hashCode()
-        result = 31 * result + autoEnqueue.hashCode()
-        result = 31 * result + queueId.hashCode()
-        result = 31 * result + durationFloorADL
-        result = 31 * result + durationCeilingADL
-        result = 31 * result + sortOrderCodeADL
-        result = 31 * result + autoDLMinDuration
-        result = 31 * result + autoDLMaxDuration
-        result = 31 * result + markExcludedPlayed.hashCode()
+        result = 31 * result + enabledSecondDLEQ.hashCode()
         result = 31 * result + autoDLSoon.hashCode()
         result = 31 * result + autoDLMaxEpisodes
         result = 31 * result + countingPlayed.hashCode()
-        result = 31 * result + autoDLPolicyCode
-        result = 31 * result + autoDLPolicyReplace.hashCode()
+        result = 31 * result + autoDLEQs.hashCode()
+        result = 31 * result + autoDownload.hashCode()
+        result = 31 * result + autoEnqueue.hashCode()
+        result = 31 * result + queueId.hashCode()
         result = 31 * result + (identifier?.hashCode() ?: 0)
         result = 31 * result + (eigenTitle?.hashCode() ?: 0)
         result = 31 * result + (customTitle?.hashCode() ?: 0)
@@ -687,24 +617,9 @@ class Feed : RealmObject {
         result = 31 * result + (password?.hashCode() ?: 0)
         result = 31 * result + tags.size
         result = 31 * result + repeatIntervals.size
-        result = 31 * result + filterStringADL.hashCode()
-        result = 31 * result + (autoDLInclude?.hashCode() ?: 0)
-        result = 31 * result + (autoDLExclude?.hashCode() ?: 0)
         result = 31 * result + preferredLnaguages.size
         result = 31 * result + isBuilding.hashCode()
         return result
-    }
-
-    enum class AutoDownloadPolicy(val code: Int, val resId: Int, var replace: Boolean) {
-        DISCRETION(-1, R.string.feed_auto_dleq_discretion, false),
-        ONLY_NEW(0, R.string.feed_auto_dleq_new, false),
-        NEWER(1, R.string.feed_auto_dleq_newer, false),
-        OLDER(2, R.string.feed_auto_dleq_older, false),
-        FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
-
-        companion object {
-            fun fromCode(code: Int): AutoDownloadPolicy = AutoDownloadPolicy.entries.firstOrNull { it.code == code } ?: ONLY_NEW
-        }
     }
 
     enum class AutoDeleteAction(val code: Int, val tag: String) {

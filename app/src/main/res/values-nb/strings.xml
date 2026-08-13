@@ -236,7 +236,7 @@
   <string name="project_pref">Prosjekt</string>
   <string name="synchronization_pref">Synkronisering</string>
   <string name="synchronization_sum">Synkroniser med andre enheter</string>
-  <string name="automation">Automasjon</string>
+
   <string name="download_pref_details">Detaljer</string>
   <string name="import_export_pref">Importer/Eksporter</string>
     <string name="appearance">Utseende</string>

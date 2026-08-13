@@ -119,7 +119,7 @@
     <string name="close_label">Kapat</string>
     <string name="retry_label">Tekrar dene</string>
 
-    <string name="auto_colon">Otomatik: </string>
+    <string name="auto">Otomatik</string>
 
     <string name="enqueue">Kuyruğa ekle</string>
     <string name="download">İndir</string>

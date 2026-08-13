@@ -116,7 +116,7 @@
     <string name="episodes_suffix">\u0020剧集</string>
     <string name="close_label">关闭</string>
     <string name="retry_label">重试</string>
-    <string name="auto_colon">自动： </string>
+    <string name="auto">自动</string>
     <string name="enqueue">加入队列</string>
     <string name="download">下载</string>
     <string name="auto_enqueue_sum">启用自动排队后，将限定的剧集添加到相关队列(自动)刷新)。</string>
@@ -398,7 +398,6 @@
     <string name="add_to_feed">添加到订阅</string>
     <string name="interruptions">中断</string>
     <string name="playback_control">播放控制</string>
-    <string name="playback_speeds_sum">这些可以更方便地从播放器界面上的速度计设置。</string>
     <string name="reassign_hardware_buttons">重新分配硬件按钮</string>
     <string name="pref_episode_cleanup_title">清理集</string>
     <string name="pref_episode_cleanup_summary">如果自动下载需要新剧集的空间，则应被删除的剧集</string>

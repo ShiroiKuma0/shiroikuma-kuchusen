@@ -273,7 +273,7 @@ fun LogsScreen() {
                             else hasError = true
                         }
                         "Podcast", ShareLog.ShareType.Feed.name -> {
-                            val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title ?: "", log.author ?: "").first().find()
+                            val feed = realm.query(Feed::class, "eigenTitle == $0 AND author == $1", log.title ?: "", log.author ?: "").first().find()
                             if (feed != null) navTo(FeedDetails(feedId = feed.id, modeName = FeedScreenMode.Info.name))
                             else hasError = true
                         }

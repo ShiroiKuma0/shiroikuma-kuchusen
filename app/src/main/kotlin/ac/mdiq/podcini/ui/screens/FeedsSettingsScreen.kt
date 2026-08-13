@@ -14,30 +14,32 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.AutoDLEQ
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
-import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.allVolumes
+import ac.mdiq.podcini.storage.specs.AutoDLEQPolicy
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
+import ac.mdiq.podcini.storage.specs.FeedAutoDLEQFilter
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
+import ac.mdiq.podcini.ui.compose.AmendSyntheticFeed
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
-import ac.mdiq.podcini.ui.compose.AmendSyntheticFeed
 import ac.mdiq.podcini.ui.compose.SetAVQuality
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
@@ -62,6 +64,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -88,6 +91,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -316,6 +322,22 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.feed_tags_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            //                    max episodes
+            if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        NumberEditor(feedToSet.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
+                            runOnIOScope { realm.write { for (f in feedsToSet) if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.limitEpisodesCount = it } }
+                        }
+                    }
+                    Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+            }
+
             //                    associated queue
             Column {
                 curPrefQueue = feedToSet.queueTextExt
@@ -600,70 +622,6 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
-            //                    prefer streaming
-            var autoDownloadChecked by remember { mutableStateOf(feedToSet.autoDownload) }
-            var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
-            if (extClient?.attributes?.supportDownload != false || !preferStreaming || feedsToSet.size > 1) {
-                TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
-                    preferStreaming = it
-                    if (preferStreaming) {
-                        prefStreamOverDownload = true
-                        autoDownloadChecked = false
-                    }
-                    runOnIOScope {
-                        realm.write { for (f in feedsToSet) {
-                            val client = clientByFeed(f)
-                            if (client?.attributes?.supportDownload == true || preferStreaming) findLatest(f)?.let { f ->
-                                f.prefStreamOverDownload = preferStreaming
-                                if (preferStreaming) f.autoDownload = false
-                            }
-                        } }
-                    }
-                }
-            }
-            //                    preferred action
-            val actions = remember { listOf("Auto") + (if (extClient?.attributes?.supportDownload != false) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
-            val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
-            var showChooseAction by remember { mutableStateOf(false) }
-            if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                        for (action in actions) {
-                            FilterChip(label = { Text(action) }, selected = curAction == action, border = filterChipBorder(curAction == action),
-                                onClick = {
-                                    if (action == "Auto") runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { it.prefActionType = null } } } }
-                                    else {
-                                        if (action in streamActions.map { it.name }) preferStreaming = true else if (action in playActions.map { it.name }) preferStreaming = false
-                                        if (preferStreaming) {
-                                            prefStreamOverDownload = true
-                                            autoDownloadChecked = false
-                                        }
-                                        runOnIOScope {
-                                            realm.write {
-                                                for (f in feedsToSet) {
-                                                    findLatest(f)?.let {
-                                                        it.prefActionType = action
-                                                        it.prefStreamOverDownload = preferStreaming
-                                                        if (preferStreaming) it.autoDownload = false
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    showChooseAction = false
-                                })
-                        }
-                    }
-                }
-            }
-            Column {
-                Row(Modifier.fillMaxWidth()) {
-                    Icon(ImageVector.vectorResource(id = R.drawable.play_stream_svgrepo_com), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.preferred_action), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showChooseAction = true })
-                }
-                Text(text = stringResource(R.string.preferred_action_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-            }
             //              skip silence
             Column {
                 Row(Modifier.fillMaxWidth()) {
@@ -671,32 +629,24 @@ fun FeedsSettingsScreen() {
                     Spacer(modifier = Modifier.width(20.dp))
                     Text(text = stringResource(R.string.pref_skip_silence_title), style = CustomTextStyles.titleCustom, color = textColor)
                 }
-                Row(Modifier.fillMaxWidth()) {
-                    var glChecked by remember { mutableStateOf(feedToSet.skipSilence == null) }
-                    Checkbox(checked = glChecked, modifier = Modifier.height(24.dp), onCheckedChange = {
-                        glChecked = it
-                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
-                            if (glChecked) f.skipSilence = null
-                            else f.skipSilence = f.skipSilence ?: false
-                        } } } }
-                    })
-                    Text(text = stringResource(R.string.global), style = CustomTextStyles.titleCustom, color = textColor)
-                    if (!glChecked) {
-                        Spacer(modifier = Modifier.width(20.dp))
-                        var checked by remember { mutableStateOf(feedToSet.skipSilence ?: false) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
-                            checked = it
-                            runOnIOScope {
-                                realm.write {
-                                    for (f in feedsToSet) {
-                                        findLatest(f)?.let { f -> f.skipSilence = checked }
-                                    }
-                                }
-                            }
-                        })
+                var selectedIndex by remember { mutableIntStateOf(0) }
+                val options = listOf(stringResource(R.string.global), stringResource(R.string.off), stringResource(R.string.on))
+                SingleChoiceSegmentedButtonRow {
+                    options.forEachIndexed { index, label ->
+                        SegmentedButton(
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                            onClick = {
+                                selectedIndex = index
+                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
+                                    if (selectedIndex == 0) f.skipSilence = null
+                                    else f.skipSilence = selectedIndex == 3
+                                } } } }
+                            },
+                            selected = index == selectedIndex
+                        ) { Text(label) }
                     }
                 }
-                Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                Text(text = stringResource(R.string.pref_skip_silence_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             //                    auto skip
             Column {
@@ -764,34 +714,6 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.feed_volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
-            //                    max episodes
-            if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        NumberEditor(feedToSet.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
-                            runOnIOScope { realm.write { for (f in feedsToSet) if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.limitEpisodesCount = it } }
-                        }
-                    }
-                    Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-            }
-            //                    refresh
-            if ((feedToSet.inNormalVolume && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
-                var autoUpdate by remember { mutableStateOf(feedToSet.keepUpdated) }
-                TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
-                    autoUpdate = it
-                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.keepUpdated = autoUpdate } } }
-                }
-                var acceptTiny by remember { mutableStateOf(feedToSet.acceptTinyEpisodes) }
-                TitleSummarySwitch(R.string.accept_tiny_episodes, R.string.accept_tiny_episodes_sum, R.drawable.ic_refresh, acceptTiny) {
-                    acceptTiny = it
-                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.acceptTinyEpisodes = acceptTiny } } }
-                }
-            }
             // sorting
             var showSortDialog by remember { mutableStateOf(false) }
             if (showSortDialog) {
@@ -823,136 +745,158 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.filter_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
-            var autoEnqueueChecked by remember { mutableStateOf(feedToSet.autoEnqueue) }
-            Row(Modifier.fillMaxWidth().padding(top=5.dp)) {
-                Text(text = stringResource(R.string.auto_colon), style = CustomTextStyles.titleCustom, color = textColor)
-                Spacer(modifier = Modifier.weight(1f))
-                Text(text = stringResource(R.string.enqueue), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.inNormalVolume && curPrefQueue != "None") || feedsToSet.size > 1) {
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Switch(checked = autoEnqueueChecked, modifier = Modifier.height(24.dp),
-                        onCheckedChange = {
-                            autoEnqueueChecked = it
-                            if (autoEnqueueChecked) autoDownloadChecked = false
-                            runOnIOScope {
-                                realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
-                                    f.autoEnqueue = autoEnqueueChecked
-                                    f.autoDownload = autoDownloadChecked
-                                } } }
-                            }
-                        })
+            //                    refresh
+            if ((feedToSet.inNormalVolume && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
+                var autoUpdate by remember { mutableStateOf(feedToSet.keepUpdated) }
+                TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
+                    autoUpdate = it
+                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.keepUpdated = autoUpdate } } }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.inNormalVolume && extClient?.attributes?.supportDownload != false) || feedsToSet.size > 1) {
-                    if (appPrefs.enableAutoDl && !preferStreaming) {
-                        //                    auto download
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Switch(checked = autoDownloadChecked, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                autoDownloadChecked = it
-                                if (autoDownloadChecked) autoEnqueueChecked = false
-                                runOnIOScope {
-                                    realm.write { for (f in feedsToSet) {
-                                        val client = clientByFeed(f)
-                                        if (client?.attributes?.supportDownload != false) findLatest(f)?.let { f ->
-                                            f.autoDownload = autoDownloadChecked
-                                            f.autoEnqueue = autoEnqueueChecked
-                                        }
-                                    } }
-                                }
-                            })
+                var acceptTiny by remember { mutableStateOf(feedToSet.acceptTinyEpisodes) }
+                TitleSummarySwitch(R.string.accept_tiny_episodes, R.string.accept_tiny_episodes_sum, R.drawable.ic_refresh, acceptTiny) {
+                    acceptTiny = it
+                    runOnIOScope { realm.write { for (f in feedsToSet) { if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.acceptTinyEpisodes = acceptTiny } } }
+                }
+            }
+
+            val dleqOptions = listOf(stringResource(R.string.enqueue), stringResource(R.string.off), stringResource(R.string.download))
+            var autoDLEQIndex by remember { mutableIntStateOf(when {
+                feedToSet.autoEnqueue -> 0
+                feedToSet.autoDownload -> 2
+                else -> 1
+            }) }
+
+            //                    prefer streaming
+            var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
+            if (extClient?.attributes?.supportDownload != false || !preferStreaming || feedsToSet.size > 1) {
+                TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
+                    preferStreaming = it
+                    if (preferStreaming) {
+                        prefStreamOverDownload = true
+                        if (autoDLEQIndex == 2) autoDLEQIndex = 0
+                    }
+                    runOnIOScope {
+                        realm.write { for (f in feedsToSet) {
+                            val client = clientByFeed(f)
+                            if (client?.attributes?.supportDownload == true || preferStreaming) findLatest(f)?.let { f ->
+                                f.prefStreamOverDownload = preferStreaming
+                                if (preferStreaming) f.autoDownload = false
+                            }
+                        } }
                     }
                 }
             }
-            if (!autoEnqueueChecked && !autoDownloadChecked && (feedToSet.inNormalVolume || feedsToSet.size > 1)) {
+            //                    preferred action
+            val actions = remember { listOf("Auto") + (if (extClient?.attributes?.supportDownload != false) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
+            val curAction = remember(feedToSet.prefActionType) { feedToSet.prefActionType ?: "Auto" }
+            var showChooseAction by remember { mutableStateOf(false) }
+            if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                        for (action in actions) {
+                            FilterChip(label = { Text(action) }, selected = curAction == action, border = filterChipBorder(curAction == action),
+                                onClick = {
+                                    if (action == "Auto") runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { it.prefActionType = null } } } }
+                                    else {
+                                        if (action in streamActions.map { it.name }) preferStreaming = true else if (action in playActions.map { it.name }) preferStreaming = false
+                                        if (preferStreaming) {
+                                            prefStreamOverDownload = true
+                                            if (autoDLEQIndex == 2) autoDLEQIndex = 0
+                                        }
+                                        runOnIOScope {
+                                            realm.write {
+                                                for (f in feedsToSet) {
+                                                    findLatest(f)?.let {
+                                                        it.prefActionType = action
+                                                        it.prefStreamOverDownload = preferStreaming
+                                                        if (preferStreaming) it.autoDownload = false
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    showChooseAction = false
+                                })
+                        }
+                    }
+                }
+            }
+            Column {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.play_stream_svgrepo_com), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.preferred_action), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showChooseAction = true })
+                }
+                Text(text = stringResource(R.string.preferred_action_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(ImageVector.vectorResource(id = R.drawable.outline_automation_24), "", tint = textColor)
+                Spacer(modifier = Modifier.width(20.dp))
+                Text(text = stringResource(R.string.automation), style = CustomTextStyles.titleCustom, color = textColor)
+            }
+
+            SingleChoiceSegmentedButtonRow {
+                dleqOptions.forEachIndexed { index, label ->
+                    val isOptionEnabled = when (index) {
+                        0 -> (feedToSet.inNormalVolume && curPrefQueue != "None") || feedsToSet.size > 1
+                        2 -> ((feedToSet.inNormalVolume && extClient?.attributes?.supportDownload != false) || feedsToSet.size > 1) && appPrefs.enableAutoDl && !preferStreaming
+                        else -> true
+                    }
+                    SegmentedButton(shape = SegmentedButtonDefaults.itemShape(index = index, count = dleqOptions.size), enabled = isOptionEnabled,  selected = index == autoDLEQIndex,
+                        onClick = {
+                            autoDLEQIndex = index
+                            runOnIOScope {
+                                realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
+                                    f.autoEnqueue = autoDLEQIndex == 0
+                                    f.autoDownload = false
+                                    if (autoDLEQIndex == 2 && clientByFeed(f)?.attributes?.supportDownload != false) f.autoDownload = true
+                                    if (f.autoDLEQs.isEmpty()) f.autoDLEQs.add(AutoDLEQ())
+                                    else f.autoDLEQs[0] = AutoDLEQ()
+                                } } }
+                            }
+                        }
+                    ) { Text(label, maxLines = 1) }
+                }
+            }
+
+            if (autoDLEQIndex == 1 && (feedToSet.inNormalVolume || feedsToSet.size > 1)) {
                 Text(text = stringResource(R.string.auto_enqueue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 if (curPrefQueue == "None") Text(text = stringResource(R.string.auto_enqueue_sum1), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 Text(text = stringResource(R.string.auto_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 if (!appPrefs.enableAutoDl) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
-            if (autoDownloadChecked || autoEnqueueChecked) {
-                var newCache by remember { mutableIntStateOf((feedToSet.autoDLMaxEpisodes)) }
-                @Composable
-                fun SetAutoDLEQCacheDialog(onDismiss: () -> Unit) {
-                    CommonPopupCard(onDismiss = onDismiss) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            NumberEditor(newCache, label = stringResource(R.string.max_episodes_cache), nz = false, instant = true, modifier = Modifier) { newCache = it }
-                            //                    counting played
-                            var countingPlayed by remember { mutableStateOf(feedToSet.countingPlayed) }
-                            if (autoDownloadChecked) Column {
-                                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                                Row(Modifier.fillMaxWidth()) {
-                                    Checkbox(checked = countingPlayed, modifier = Modifier.height(24.dp), onCheckedChange = { countingPlayed = it })
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(text = stringResource(R.string.pref_auto_download_counting_played_title), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                                }
-                                Text(text = stringResource(R.string.pref_auto_download_counting_played_summary), style = MaterialTheme.typography.bodySmall, color = textColor)
-                                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                            }
-                            Button(onClick = {
-                                if (newCache > 0) {
-                                    runOnIOScope {
-                                        realm.write { for (f in feedsToSet) { findLatest(f)?.let {
-                                            it.autoDLMaxEpisodes = newCache
-                                            if (autoDownloadChecked) it.countingPlayed = countingPlayed
-                                        } } }
-                                    }
-                                    onDismiss()
-                                }
-                            }) { Text(stringResource(R.string.confirm_label)) }
-                        }
-                    }
-                }
-                //                    episode cache
-                Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Row(Modifier.fillMaxWidth()) {
-                        val showDialog = remember { mutableStateOf(false) }
-                        if (showDialog.value) SetAutoDLEQCacheDialog(onDismiss = { showDialog.value = false })
-                        Text(text = stringResource(R.string.pref_episode_cache_title), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
-                        Spacer(modifier = Modifier.width(30.dp))
-                        Text(newCache.toString(), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                    }
-                    Text(text = stringResource(R.string.pref_episode_cache_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-                //                    include Soon
-                Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(text = stringResource(R.string.pref_auto_download_include_soon_title), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        var checked by remember { mutableStateOf(feedToSet.autoDLSoon) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                checked = it
-                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDLSoon = checked } } }
-                            }
-                        )
-                    }
-                    Text(text = stringResource(R.string.pref_auto_download_include_soon_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-                val (selectedPolicy, onPolicySelected) = remember { mutableStateOf(feedToSet.autoDLPolicy) }
+
+            @Composable
+            fun ConfigAutoDLEQ(index: Int) {
+                Text(text = stringResource(R.string.algorithm) + " ${index+1}: ", style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.padding(start = 20.dp))
+
+                val (selectedPolicy, onPolicySelected) = remember(index) { mutableStateOf(feedToSet.autoDLEQs[index].autoDLPolicy) }
+                var episodesSortOrder by remember { mutableStateOf(feedToSet.autoDLEQs[index].episodesSortOrderADL) }
+                var episodeFilter by remember { mutableStateOf(feedToSet.autoDLEQs[index].episodeFilterADL) }
                 @Composable
                 fun AutoDLEQPolicyDialog(onDismiss: () -> Unit) {
                     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
                         title = { Text(stringResource(R.string.feed_automation_policy), style = CustomTextStyles.titleCustom) },
                         text = {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                AutoDownloadPolicy.entries.forEach { item ->
+                                AutoDLEQPolicy.entries.forEach { policy ->
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = (item == selectedPolicy), onCheckedChange = { onPolicySelected(item) })
-                                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
+                                        Checkbox(checked = (policy == selectedPolicy), onCheckedChange = { onPolicySelected(policy) })
+                                        Text(text = stringResource(policy.resId), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 8.dp))
                                     }
-                                    if (selectedPolicy == AutoDownloadPolicy.ONLY_NEW && item == selectedPolicy)
+                                    if (selectedPolicy == AutoDLEQPolicy.ONLY_NEW && policy == selectedPolicy)
                                         Row(Modifier.fillMaxWidth().padding(start = 30.dp), verticalAlignment = Alignment.CenterVertically) {
                                             var replaceChecked by remember { mutableStateOf(selectedPolicy.replace) }
                                             Checkbox(checked = replaceChecked, onCheckedChange = {
                                                 replaceChecked = it
                                                 selectedPolicy.replace = it
-                                                item.replace = it
+                                                policy.replace = it
                                             })
                                             Text(text = stringResource(R.string.replace), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 8.dp))
                                         }
                                 }
+                                if (selectedPolicy == AutoDLEQPolicy.FILTER_SORT) Text(stringResource(R.string.feed_auto_dleq_filter_sort_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
                             }
                         },
                         confirmButton = {
@@ -960,10 +904,13 @@ fun FeedsSettingsScreen() {
                                 Logd(TAG, "autoDLPolicy: ${selectedPolicy.name} ${selectedPolicy.replace}")
                                 runOnIOScope {
                                     realm.write { for (f in feedsToSet) { findLatest(f)?.let {
-                                        it.autoDLPolicy = selectedPolicy
-                                        if (selectedPolicy == AutoDownloadPolicy.FILTER_SORT) {
-                                            it.episodeFilterADL = it.episodeFilter
-                                            it.episodesSortOrderADL = it.episodeSortOrder
+                                        Logd(TAG, "feed episodeFilter: ${it.episodeFilter} episodeSortOrder: ${it.episodeSortOrder}")
+                                        it.autoDLEQs[index].autoDLPolicy = selectedPolicy
+                                        if (selectedPolicy == AutoDLEQPolicy.FILTER_SORT) {
+                                            it.autoDLEQs[index].episodeFilterADL = it.episodeFilter
+                                            it.autoDLEQs[index].episodesSortOrderADL = it.episodeSortOrder
+                                            episodesSortOrder = it.episodeSortOrder
+                                            episodeFilter = it.episodeFilter
                                         }
                                     } } }
                                 }
@@ -982,10 +929,10 @@ fun FeedsSettingsScreen() {
                         Text(stringResource(selectedPolicy.resId), modifier = Modifier.padding(start = 20.dp))
                     }
                 }
-                if (selectedPolicy != AutoDownloadPolicy.FILTER_SORT) {
+                if (selectedPolicy != AutoDLEQPolicy.FILTER_SORT) {
                     @OptIn(ExperimentalLayoutApi::class)
                     @Composable
-                    fun AutoDownloadFilterDialog(filter: FeedAutoDownloadFilter, inexcl: ADLIncExc, onDismiss: () -> Unit, onConfirmed: (FeedAutoDownloadFilter) -> Unit) {
+                    fun AutoDownloadFilterDialog(filter: FeedAutoDLEQFilter, inexcl: ADLIncExc, onDismiss: () -> Unit, onConfirmed: (FeedAutoDLEQFilter) -> Unit) {
                         fun toFilterString(words: List<String>): String {
                             val result = StringBuilder()
                             for (word in words) result.append("\"").append(word).append("\" ")
@@ -1080,13 +1027,13 @@ fun FeedsSettingsScreen() {
                                                     val minDuration = if (filterMinDuration) filterMinDurationMinutes * 60 else -1
                                                     val maxDuration = if (filterMaxDuration) filterMaxDurationMinutes * 60 else -1
                                                     val excludeFilter = toFilterString(termList)
-                                                    onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
-                                                } else onConfirmed(FeedAutoDownloadFilter())
+                                                    onConfirmed(FeedAutoDLEQFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
+                                                } else onConfirmed(FeedAutoDLEQFilter())
                                             } else {
                                                 if (filtermodifier) {
                                                     val includeFilter = toFilterString(termList)
-                                                    onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
-                                                } else onConfirmed(FeedAutoDownloadFilter())
+                                                    onConfirmed(FeedAutoDLEQFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
+                                                } else onConfirmed(FeedAutoDLEQFilter())
                                             }
                                             onDismiss()
                                         }) { Text(stringResource(R.string.confirm_label)) }
@@ -1101,7 +1048,7 @@ fun FeedsSettingsScreen() {
                     Column(modifier = Modifier.padding(start = 20.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             val showDialog = remember { mutableStateOf(false) }
-                            if (showDialog.value) AutoDownloadFilterDialog(feedToSet.autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDownloadFilter = filter } } } }
+                            if (showDialog.value) AutoDownloadFilterDialog(feedToSet.autoDLEQs[index].autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDLEQs[index]?.autoDownloadFilter = filter } } } }
                             Text(text = stringResource(R.string.episode_inclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
                         }
                         Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
@@ -1110,46 +1057,111 @@ fun FeedsSettingsScreen() {
                     Column(modifier = Modifier.padding(start = 20.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             val showDialog = remember { mutableStateOf(false) }
-                            if (showDialog.value) AutoDownloadFilterDialog(feedToSet.autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDownloadFilter = filter } } } }
+                            if (showDialog.value) AutoDownloadFilterDialog(feedToSet.autoDLEQs[index].autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDLEQs[index]?.autoDownloadFilter = filter } } } }
                             Text(text = stringResource(R.string.episode_exclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
                         }
                         Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                 } else {
                     Column(modifier = Modifier.padding(start = 20.dp, bottom = 5.dp)) {
-                        Text("Sorted by: " + stringResource(feedToSet.episodesSortOrderADL?.res ?: 0), modifier = Modifier.padding(start = 10.dp))
+                        Text("Sorted by: " + stringResource(episodesSortOrder?.res ?: 0), modifier = Modifier.padding(start = 10.dp))
                         Text("Filtered by: ", modifier = Modifier.padding(start = 10.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(start = 20.dp)) {
-                            feedToSet.episodeFilterADL.propertySet.forEach { FilterChip(onClick = { }, label = { Text(it) }, selected = false) }
+                            episodeFilter.propertySet.forEach { FilterChip(onClick = { }, label = { Text(it) }, selected = false) }
                         }
                     }
                 }
-                //                    repeat intervals
-                Column(modifier = Modifier.padding(start = 20.dp, bottom = 5.dp)) {
+            }
+
+            if (autoDLEQIndex in listOf(0, 2)) {
+                var newCache by remember { mutableIntStateOf((feedToSet.autoDLMaxEpisodes)) }
+                @Composable
+                fun SetAutoDLEQCacheDialog(onDismiss: () -> Unit) {
+                    CommonPopupCard(onDismiss = onDismiss) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            NumberEditor(newCache, label = stringResource(R.string.max_episodes_cache), nz = false, instant = true, modifier = Modifier) { newCache = it }
+                            //                    counting played
+                            var countingPlayed by remember { mutableStateOf(feedToSet.countingPlayed) }
+                            if (autoDLEQIndex == 2) Column {
+                                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                                Row(Modifier.fillMaxWidth()) {
+                                    Checkbox(checked = countingPlayed, modifier = Modifier.height(24.dp), onCheckedChange = { countingPlayed = it })
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text(text = stringResource(R.string.pref_auto_download_counting_played_title), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                                }
+                                Text(text = stringResource(R.string.pref_auto_download_counting_played_summary), style = MaterialTheme.typography.bodySmall, color = textColor)
+                                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                            }
+                            Button(onClick = {
+                                if (newCache > 0) {
+                                    runOnIOScope {
+                                        realm.write { for (f in feedsToSet) { findLatest(f)?.let {
+                                            it.autoDLMaxEpisodes = newCache
+                                            if (autoDLEQIndex == 2) it.countingPlayed = countingPlayed
+                                        } } }
+                                    }
+                                    onDismiss()
+                                }
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
+                    }
+                }
+                //                    episode cache
+                Column(modifier = Modifier.padding(start = 20.dp)) {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
-                        @Composable
-                        fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
-                            CommonPopupCard(onDismiss = onDismiss) {
-                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    var intervals = remember { feedToSet.repeatIntervals.toMutableList() }
-                                    if (intervals.isEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
-                                    val units = INTERVAL_UNITS.map { stringResource(it) }
-                                    for (i in intervals.indices) {
-                                        NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
-                                    }
-                                    Button(onClick = {
-                                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.repeatIntervals = intervals.toRealmList() } } }
-                                        onDismiss()
-                                    }) { Text(stringResource(R.string.confirm_label)) }
+                        if (showDialog.value) SetAutoDLEQCacheDialog(onDismiss = { showDialog.value = false })
+                        Text(text = stringResource(R.string.pref_episode_cache_title), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+                        Spacer(modifier = Modifier.width(30.dp))
+                        Text(newCache.toString(), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    }
+                    Text(text = stringResource(R.string.pref_episode_cache_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+
+                //                    include Soon
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(text = stringResource(R.string.pref_auto_download_include_soon_title), style = CustomTextStyles.titleCustom, color = textColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        var checked by remember { mutableStateOf(feedToSet.autoDLSoon) }
+                        Switch(checked = checked, modifier = Modifier.height(24.dp),
+                            onCheckedChange = {
+                                checked = it
+                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoDLSoon = checked } } }
+                            }
+                        )
+                    }
+                    Text(text = stringResource(R.string.pref_auto_download_include_soon_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+
+                //                    second algorithm
+                var enabledSecond by remember { mutableStateOf(feedToSet.enabledSecondDLEQ) }
+                Column(modifier = Modifier.padding(start = 20.dp)) {
+                    Row(Modifier.fillMaxWidth()) {
+                        Text(text = stringResource(R.string.pref_enable_second_algorithm), style = CustomTextStyles.titleCustom, color = textColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Switch(checked = enabledSecond, modifier = Modifier.height(24.dp),
+                            onCheckedChange = { checked->
+                                runOnIOScope {
+                                    realm.write { for (f in feedsToSet) {
+                                        findLatest(f)?.let { f->
+                                            if (checked) {
+                                                if (f.autoDLEQs.size < 2) f.autoDLEQs.add(AutoDLEQ())
+                                                else f.autoDLEQs[1] = AutoDLEQ()
+                                            } else if (f.autoDLEQs.size == 2) f.autoDLEQs.removeAt(1)
+                                            f.enabledSecondDLEQ = checked
+                                        }
+                                    } }
+                                    enabledSecond = checked
                                 }
                             }
-                        }
-                        if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
-                        Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+                        )
                     }
-                    Text(text = stringResource(R.string.pref_feed_intervals_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    Text(text = stringResource(R.string.pref_enable_second_algorithm_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
+
+                ConfigAutoDLEQ(0)
+                if (enabledSecond && feedToSet.autoDLEQs.size > 1) ConfigAutoDLEQ(1)
             }
 
             //                    auto delete
@@ -1197,6 +1209,33 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.auto_delete_sum) + ": " + stringResource(autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
+
+            //                    repeat intervals
+            Row(Modifier.fillMaxWidth()) {
+                val showDialog = remember { mutableStateOf(false) }
+                @Composable
+                fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
+                    CommonPopupCard(onDismiss = onDismiss) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            var intervals = remember { feedToSet.repeatIntervals.toMutableList() }
+                            if (intervals.isEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
+                            val units = INTERVAL_UNITS.map { stringResource(it) }
+                            for (i in intervals.indices) {
+                                NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
+                            }
+                            Button(onClick = {
+                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.repeatIntervals = intervals.toRealmList() } } }
+                                onDismiss()
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
+                    }
+                }
+                if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
+                Icon(ImageVector.vectorResource(id = R.drawable.outline_repeat_24), "", tint = textColor)
+                Spacer(modifier = Modifier.width(20.dp))
+                Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
+            }
+            Text(text = stringResource(R.string.pref_feed_intervals_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
 
             //                    authentication
             if ((feedToSet.id > 0 && !feedToSet.isLocal) || feedsToSet.size > 1) {

@@ -1,22 +1,15 @@
 package ac.mdiq.podcini.storage.model
 
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
-import io.github.xilinjia.krdb.types.annotations.Index
 
 class Chapter : EmbeddedRealmObject {
-    @Index
-    var id: Long = 0
-
     /** Defines starting point in milliseconds.  */
     var start: Long = 0
     var title: String? = null
     var link: String? = null
     var imageUrl: String? = null
 
-    /**
-     * ID from the chapter source, not the database ID.
-     */
-    var chapterId: String? = null
+    var chapterId: String? = null   // ID from the chapter source, not the database ID.
 
     constructor() {}
 

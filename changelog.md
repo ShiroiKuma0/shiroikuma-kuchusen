@@ -1,3 +1,12 @@
+# 12.6.0
+
+* Feed auto download/enqueue specs are moved to a separate DB model, DB migration is performed on app update
+* rearranged FeedSettings, and added "Enable second algorithm" for auto-download/enqueue
+* Second algorithm is enabled in auto-download/enqueue routine
+* improved handling of feed flow in FeedDetails screen
+* in the popup from speedometer on the Player UI, added helper text
+* in Settings->Playback, removed those redundant settings that can be more conveniently set from the speedometer on the Player UI
+
 # 12.5.12
 
 * fixed filter again in Facets screen,

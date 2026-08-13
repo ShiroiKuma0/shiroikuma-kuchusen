@@ -256,7 +256,7 @@
   <string name="project_pref">מיזם</string>
   <string name="synchronization_pref">סנכרון</string>
   <string name="synchronization_sum">סנכרון עם מכשירים אחרים</string>
-  <string name="automation">אוטומציה</string>
+
   <string name="download_pref_details">פרטים</string>
   <string name="import_export_pref">ייבוא/ייצוא</string>
     <string name="appearance">מראה</string>

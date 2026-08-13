@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.specs
 
+import ac.mdiq.podcini.R
 import kotlinx.serialization.Serializable
 
 private val FILTER_REGEX = Regex("""([^"]\S*|".+?")\s*""")
@@ -8,7 +9,7 @@ private val FILTER_REGEX = Regex("""([^"]\S*|".+?")\s*""")
 // 1. It's easier to show the user exactly what they typed in this way (we don't have to recreate it)
 // 2. We don't know if we'll actually be asked to parse anything anyways.
 @Serializable
-class FeedAutoDownloadFilter(
+class FeedAutoDLEQFilter(
         val includeFilterRaw: String? = "",
         val excludeFilterRaw: String? = "",
         val minDurationFilter: Int = 0,    // in seconds
@@ -69,5 +70,17 @@ class FeedAutoDownloadFilter(
         }
         sb.append(" )")
         return sb.toString()
+    }
+}
+
+enum class AutoDLEQPolicy(val code: Int, val resId: Int, var replace: Boolean) {
+    DISCRETION(-1, R.string.feed_auto_dleq_discretion, false),
+    ONLY_NEW(0, R.string.feed_auto_dleq_new, false),
+    NEWER(1, R.string.feed_auto_dleq_newer, false),
+    OLDER(2, R.string.feed_auto_dleq_older, false),
+    FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
+
+    companion object {
+        fun fromCode(code: Int): AutoDLEQPolicy = AutoDLEQPolicy.entries.firstOrNull { it.code == code } ?: ONLY_NEW
     }
 }

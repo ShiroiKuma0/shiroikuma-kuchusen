@@ -13,7 +13,6 @@ import ac.mdiq.podcini.sources.typeClientMap
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.feedsFlow
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
@@ -39,8 +38,8 @@ import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
-import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
@@ -196,7 +195,9 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
 
     var enableFilter by  mutableStateOf(true)
 
-    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { f -> f.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
+//    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { f -> f.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
+    val feedFlow: StateFlow<Feed?> = realm.query(Feed::class).query("id == $0", feedId).asFlow().map { change -> change.list.firstOrNull() }
+    .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
     val episodesFlow: StateFlow<List<Episode>> = combine(feedFlow.filterNotNull(), screenModeFlow, snapshotFlow { enableFilter })
         { feed, mode, enableFilter -> Triple(feed, mode, enableFilter) }.distinctUntilChanged().flatMapLatest { (feed, mode, enableFilter) ->
