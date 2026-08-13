@@ -322,21 +322,6 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.feed_tags_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
-            //                    max episodes
-            if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
-                Column {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        NumberEditor(feedToSet.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
-                            runOnIOScope { realm.write { for (f in feedsToSet) if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.limitEpisodesCount = it } }
-                        }
-                    }
-                    Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-            }
 
             //                    associated queue
             Column {
@@ -397,6 +382,22 @@ fun FeedsSettingsScreen() {
                         })
                 }
                 Text(text = curPrefQueue + " : " + stringResource(R.string.pref_feed_associated_queue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+
+            //                    max episodes
+            if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        NumberEditor(feedToSet.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
+                            runOnIOScope { realm.write { for (f in feedsToSet) if (f.id > MAX_SYNTHETIC_ID) findLatest(f)?.limitEpisodesCount = it } }
+                        }
+                    }
+                    Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
             }
 
             var useEpisodeImage by remember { mutableStateOf(feedToSet.useEpisodeImage) }
