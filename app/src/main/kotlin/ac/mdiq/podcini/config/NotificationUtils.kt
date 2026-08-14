@@ -25,7 +25,7 @@ enum class GROUP_ID {
     group_news
 }
 
-fun createChannels() {
+fun createNotificationChannels() {
     val c = getAppContext()
     val mNotificationManager = NotificationManagerCompat.from(c)
 

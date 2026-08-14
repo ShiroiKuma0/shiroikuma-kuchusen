@@ -39,7 +39,6 @@ import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import kotlinx.serialization.Serializable
 
-
 @Stable
 class Feed : RealmObject {
     @PrimaryKey
@@ -647,6 +646,8 @@ class Feed : RealmObject {
 
     companion object {
         private val TAG: String = Feed::class.simpleName ?: "Anonymous"
+
+        const val EPISODES_LIMIT = 5000
 
         const val MAX_NATURAL_SYNTHETIC_ID: Long = 100L
         const val MAX_SYNTHETIC_ID: Long = 1000L

@@ -30,8 +30,12 @@ import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -41,6 +45,8 @@ private const val TAG = "GatewayClient"
 const val EPISODE_BATCH_SIZE = 100
 
 val sourceClients = mutableListOf<SourceGatewayClient>()
+
+val readyDeferredClients = CompletableDeferred<List<SourceGatewayClient>>()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
 
@@ -94,14 +100,12 @@ fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<R
     }
 }
 
-fun discoverSources(loadExternal: Boolean) {
-    CoroutineScope(Dispatchers.IO).launch {
-        sourceClients.forEach { it.disconnect() }
-        sourceClients.clear()
-        if (loadExternal) {
-            val cs = getSourceClients()
-            if (cs.isNotEmpty()) sourceClients.addAll(cs)
-        }
+suspend fun discoverSources(loadExternal: Boolean) {
+    sourceClients.forEach { it.disconnect() }
+    sourceClients.clear()
+    if (loadExternal) {
+        val cs = getSourceClients()
+        if (cs.isNotEmpty()) sourceClients.addAll(cs)
     }
     forcePlaybackReset = true
 }
@@ -118,18 +122,11 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
     }
 
     val clients = mutableListOf<SourceGatewayClient>()
-    for (resolveInfo in resolveInfos) {
-        val serviceInfo = resolveInfo.serviceInfo
-        Logd(TAG, "getSourceClients exported=${serviceInfo.exported}")
-        Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
-        Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
-        Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
-        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
 
+    suspend fun bindSingleClient(explicitIntent: Intent): SourceGatewayClient? = suspendCancellableCoroutine { continuation ->
         val client = SourceGatewayClient()
         val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName, service: IBinder) {
-//                Logt(TAG, "onServiceConnected")
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
                 try {
                     val remote = IPodciniGateway.Stub.asInterface(service)
                     val attr = remote.attributes
@@ -157,8 +154,10 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                     Loge(TAG, "External service unqualified or incompatible, rejected.")
                     clients.remove(client)
                 }
+                if (continuation.isActive) continuation.resumeWith(Result.success(client))
             }
-            override fun onServiceDisconnected(name: ComponentName) {
+
+            override fun onServiceDisconnected(name: ComponentName?) {
                 Logt(TAG, "Service disconnected")
                 searcherInfos.clear()
                 client.attributes?.apply { typeClientMap.remove(feedType) }
@@ -168,7 +167,7 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 clients.remove(client)
                 client.connection = null
             }
-            override fun onBindingDied(name: ComponentName) {
+            override fun onBindingDied(name: ComponentName?) {
                 Logt(TAG, "Binding died, trying to rebind service")
                 searcherInfos.clear()
                 client.attributes = null
@@ -177,11 +176,9 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 clients.remove(client)
                 context.unbindService(this)
                 client.connection = null
-
-                val success = context.bindService(explicitIntent, this, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
-                if (success) clients.add(client)
+                if (continuation.isActive) continuation.resumeWith(Result.success(null))
             }
-            override fun onNullBinding(name: ComponentName) {
+            override fun onNullBinding(name: ComponentName?) {
                 Logt(TAG, "Service not bond: null binding")
                 searcherInfos.clear()
                 client.attributes = null
@@ -189,14 +186,79 @@ suspend fun getSourceClients(): List<SourceGatewayClient> {
                 client.feedSearcher = null
                 clients.remove(client)
                 context.unbindService(this)
-                client.connection = null
+                if (continuation.isActive) continuation.resumeWith(Result.success(null))
             }
         }
-
+        Logd(TAG, "bindSingleClient before bind")
         val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
-        if (success) clients.add(client)
+        Logd(TAG, "bindSingleClient after bind")
+
+        if (!success && continuation.isActive) continuation.resumeWith(Result.success(null))
+
+        continuation.invokeOnCancellation { runCatching { context.unbindService(connection) } }
+    }
+
+    for (resolveInfo in resolveInfos) {
+        val serviceInfo = resolveInfo.serviceInfo
+        Logd(TAG, "getSourceClients exported=${serviceInfo.exported}")
+        Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
+        Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
+        Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
+        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
+
+        Logd(TAG, "getSourceClients before bindSingleClient")
+        var client = bindSingleClient(explicitIntent)
+        Logd(TAG, "getSourceClients after bindSingleClient")
+        if (client == null) client = bindSingleClient(explicitIntent)
+
+        if (client != null) clients.add(client)
     }
     return clients
+}
+
+object AppGatewayRegistry {
+    sealed interface GatewayState {
+        object Initializing : GatewayState
+        data class Ready(val clients: List<SourceGatewayClient>) : GatewayState
+        data class Failed(val error: Throwable? = null) : GatewayState
+    }
+
+    private val _state = MutableStateFlow<GatewayState>(GatewayState.Initializing)
+    val state: StateFlow<GatewayState> = _state.asStateFlow()
+
+    private val readyDeferred = CompletableDeferred<List<SourceGatewayClient>>()
+    private val mutex = Mutex()
+    private var isInitializing = false
+
+    fun initialize(scope: CoroutineScope) {
+        scope.launch(Dispatchers.IO) {
+            mutex.withLock {
+                if (isInitializing || readyDeferred.isCompleted) return@launch
+                isInitializing = true
+            }
+            discoverSources(appPrefs.loadExternalApp)
+            if (sourceClients.isNotEmpty()) {
+                _state.value = GatewayState.Ready(sourceClients)
+                readyDeferred.complete(sourceClients)
+            } else {
+                _state.value = GatewayState.Failed()
+                readyDeferred.complete(emptyList())
+            }
+        }
+    }
+
+    suspend fun awaitReadyClients(): List<SourceGatewayClient> {
+        return readyDeferred.await()
+    }
+
+    fun getClientsOrNull(): List<SourceGatewayClient>? {
+        return (state.value as? GatewayState.Ready)?.clients
+    }
+
+    private fun queryGatewayServices(context: Context): List<ResolveInfo> {
+        val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
+        return context.packageManager.queryIntentServices(intent, 0)
+    }
 }
 
 class SourceGatewayClient() {

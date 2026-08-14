@@ -1,3 +1,11 @@
+# 12.6.1
+
+* likely fixed external clients possibly not ready when updating feeds
+* in Logs screen, ensured again past superseded Shares and Downloads logs are not shown
+* in Info view of FeedDetails screen, removed languages, added parent volume and associated queue
+* when adding comment in an media, a new time stamp is added only if it's more than 30 minutes from the previous time stamp
+* upped Compose and some other dependencies
+
 # 12.6.0
 
 * Feed auto download/enqueue specs are moved to a separate DB model, DB migration is performed on app update

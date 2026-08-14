@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sources.AppGatewayRegistry
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 
 import ac.mdiq.podcini.ui.compose.commonConfirms
@@ -201,6 +202,7 @@ object FeedUpdateManager {
         override suspend fun doWork(): Result {
             setForegroundAsync(getForegroundInfo())
             ClientConfig.initialize()
+            if (appPrefs.loadExternalApp) AppGatewayRegistry.awaitReadyClients()
 
             fun rescheduleUpdateTaskOnce() {
                 val context = getAppContext()

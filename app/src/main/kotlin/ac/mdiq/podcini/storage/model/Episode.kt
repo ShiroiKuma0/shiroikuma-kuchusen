@@ -45,6 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.math.max
+import kotlin.time.Duration.Companion.minutes
 
 private const val smartMarkAsPlayedPercent: Float = 0.95f
 
@@ -342,8 +343,11 @@ class Episode : RealmObject {
     fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
         if (addition) {
             comment = if (comment.isBlank()) "" else (comment + "\n")
-            commentTime = nowInMillis()
-            comment += fullDateTimeString(commentTime) + ":\n" + text
+            val now = nowInMillis()
+            if ((now - commentTime).minutes > 30.minutes) {
+                commentTime = now
+                comment += fullDateTimeString(commentTime) + ":\n" + text
+            } else comment += "\n" + text
         } else {
             comment = text
             if (setTime > 0L) commentTime = setTime

@@ -25,6 +25,7 @@ import ac.mdiq.podcini.sources.discoverSources
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.proxyConfig
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
@@ -372,7 +373,7 @@ fun NetworkStorageScreen() {
         }
         TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
             upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
-            discoverSources(it)
+            runOnIOScope { discoverSources(it) }
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

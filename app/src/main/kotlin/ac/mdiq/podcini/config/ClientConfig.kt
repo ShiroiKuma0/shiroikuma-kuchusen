@@ -8,6 +8,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkChangedDetected
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.releaseAController
 import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
+import ac.mdiq.podcini.sources.AppGatewayRegistry
 import ac.mdiq.podcini.sources.discoverSources
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 object ClientConfig {
@@ -41,7 +43,8 @@ object ClientConfig {
 
         getRealmInstance()
         initAppPrefs()
-        discoverSources(appPrefs.loadExternalApp)
+//        CoroutineScope(Dispatchers.Default).launch { discoverSources(appPrefs.loadExternalApp) }
+        AppGatewayRegistry.initialize(CoroutineScope(Dispatchers.Default))
 
         if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch { networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) } }
 
@@ -59,7 +62,7 @@ object ClientConfig {
         EpisodeAdrDLManager.manager = EpisodeAdrDLManager()
         SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }
         configProxy(proxyConfig)
-        createChannels()
+        createNotificationChannels()
 //        defaultProvider.init()
 
         timeIt("ClientConfigurator Init ends ")

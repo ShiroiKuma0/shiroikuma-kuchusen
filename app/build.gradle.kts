@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 101
-        versionName = "12.6.0"
+        versionCode = 102
+        versionName = "12.6.1"
 
         ndkVersion = "29.0.14206865"
 
@@ -177,9 +177,8 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.06.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.08.00"))
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -192,7 +191,7 @@ dependencies {
     implementation("androidx.documentfile:documentfile:1.1.0")
     implementation("androidx.core:core-splashscreen:1.2.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
-    implementation("androidx.webkit:webkit:1.16.0")
+    implementation("androidx.webkit:webkit:1.17.0")
     implementation("androidx.work:work-runtime:2.11.2")
 
     implementation("androidx.glance:glance-appwidget:1.1.1")
@@ -219,8 +218,8 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-navigation3:2.11.0")
 
-    implementation("androidx.navigation3:navigation3-runtime:1.1.5")
-    implementation("androidx.navigation3:navigation3-ui:1.1.5")
+    implementation("androidx.navigation3:navigation3-runtime:1.1.6")
+    implementation("androidx.navigation3:navigation3-ui:1.1.6")
 
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
@@ -244,7 +243,7 @@ dependencies {
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 
-    debugImplementation("androidx.compose.ui:ui-tooling:1.11.4")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.12.0")
     //noinspection GradleDependency
     debugImplementation("androidx.compose.ui:ui-tooling-preview:1.11.1")
 
