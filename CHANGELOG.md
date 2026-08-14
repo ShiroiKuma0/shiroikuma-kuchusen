@@ -2,6 +2,63 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.6.1+001 (versionCode 1020001)
+
+Rebased onto upstream **v12.6.1** (versionCode 102) — the first *finished* 12.6 tag, where the
+previous release sat on the `v12.6.0-pre1` pre-release. A pure tracking release: **no new fork
+features**, the whole custom layer replayed onto the new base and the build counter reset to `+001`.
+
+> **No new migration here.** The one-way Realm migration to schema 157 landed in `12.6.0+001`; if
+> you are coming from a 12.5.x build it still applies, so export from the UI page first. Upgrading
+> from `12.6.0+001` needs nothing.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`102` / `"12.6.1"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  All twenty-three commits of the custom layer applied without conflict otherwise — none of the
+  files the fork touches overlap with upstream's gateway rework.
+- **Version base moved to 12.6.1 / 102**, so this line's codes (`1020001`, `1020002`, …) all exceed
+  the 12.6.0 line's (`1010001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.6.1
+
+- **The external-source gateway now waits until it is actually connected.** The loose
+  `discoverSources()` / `getSourceClients()` pair is replaced by an `AppGatewayRegistry` object that
+  holds a real state machine — `Initializing` / `Ready(clients)` / `Failed(error)` as a `StateFlow`,
+  a `CompletableDeferred` behind a mutex, and an initialization latch. Scheduled feed updates call
+  `awaitReadyClients()` before they start, so a refresh no longer runs against gateways that have
+  not finished binding. **This is the fix the release is named for**: external clients that were
+  "possibly not ready when updating feeds".
+- **Binding is no longer fire-and-forget.** Each service is bound inside a cancellable coroutine
+  that resumes on connect — or with `null` from a died binding, a null binding, or a failed
+  `bindService` — and is retried once before it is given up on. A client that is slow to come up
+  gets a second chance instead of silently dropping off the list, and cancellation unbinds cleanly.
+- **External feeds are logged and updated under the right id.** `refreshFeed` now stamps the
+  original feed's `id` and `title` onto the feed it builds from an external client's response, so
+  the update lands on the right subscription and the log line names it correctly.
+- **Superseded log entries stay out of the Logs screen.** The Shares and Downloads lists convert the
+  Realm results to a plain list before de-duplicating, which makes `distinctBy` actually drop the
+  older duplicates.
+- **The feed Info view says something useful.** The languages line is gone; **parent volume** and
+  **associated queue** take its place, the author falls back to "Anonymous" when blank as well as
+  when missing, and the block loses its ragged left indent.
+- **Episode comments group under one time stamp.** Adding a comment shortly after the previous one
+  appends to the running block instead of stamping a fresh date header. Note upstream's threshold is
+  written as a millisecond delta converted with `Duration.minutes`, so the intended 30 minutes is
+  really 30 ms and the header still appears nearly every time — their bug, left as they wrote it.
+- **Housekeeping.** `createChannels()` → `createNotificationChannels()`, `EPISODES_LIMIT` moves onto
+  `Feed`'s companion, the "use external apps" switch writes its updated prefs back instead of
+  discarding them, and `ConfigAutoDLEQ` is hoisted a level up in `FeedsSettingsScreen` (a move, not
+  a rewrite — it accounts for most of that file's churn).
+- **Dependencies.** Compose BOM `2026.06.01` → `2026.08.00` with the separately pinned material3
+  `1.4.0` dropped in its favour, webkit `1.16.0` → `1.17.0`, navigation3 runtime/ui `1.1.5` →
+  `1.1.6`, debug ui-tooling `1.11.4` → `1.12.0`.
+
 ## 12.6.0+001 (versionCode 1010001)
 
 Rebased onto upstream **v12.6.0-pre1** (versionCode 101), folding in **v12.5.12** (100) as well —
