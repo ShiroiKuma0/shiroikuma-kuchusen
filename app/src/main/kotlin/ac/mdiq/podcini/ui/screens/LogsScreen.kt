@@ -126,7 +126,7 @@ class LogsVM: ViewModel() {
             Logd(TAG, "loadShareLog() called")
             val result =  realm.query(ShareLog::class).sort("id", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                shareLogs = result.distinctBy { it.url }.toList()
+                shareLogs = result.toList().distinctBy { it.url }.toList()
                 mode = LogsModes.Shares
             } else Logt(TAG, "Share log is empty")
         }
@@ -148,7 +148,7 @@ class LogsVM: ViewModel() {
             Logd(TAG, "getDownloadLog() called")
             val result =  realm.query(DownloadResult::class).sort("completionTime",  Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
-                downloadLogs = result.distinctBy { it.feedfileId }.toList()
+                downloadLogs = result.toList().distinctBy { it.feedfileId }
                 mode = LogsModes.Downloads
             } else Logt(TAG, "Download log is empty")
         }

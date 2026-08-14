@@ -9,7 +9,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.releaseAController
 import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
 import ac.mdiq.podcini.sources.AppGatewayRegistry
-import ac.mdiq.podcini.sources.discoverSources
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
@@ -30,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 
 object ClientConfig {
@@ -43,8 +41,7 @@ object ClientConfig {
 
         getRealmInstance()
         initAppPrefs()
-//        CoroutineScope(Dispatchers.Default).launch { discoverSources(appPrefs.loadExternalApp) }
-        AppGatewayRegistry.initialize(CoroutineScope(Dispatchers.Default))
+        AppGatewayRegistry.initialize(appPrefs.loadExternalApp, CoroutineScope(Dispatchers.Default))
 
         if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch { networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) } }
 

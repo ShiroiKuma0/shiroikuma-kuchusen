@@ -284,7 +284,7 @@ class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val do
     suspend fun refreshFeed(feed: Feed) {
         if (feed.downloadUrl.isNullOrBlank()) return
 
-        val client = if (feed.type != null) typeClientMap.get(feed.type) else null
+        val client = if (feed.type != null) typeClientMap[feed.type] else null
         val feed_ = if (client != null) {
             val feedIpc = client.withProvider { it.feedToUpdate(feed.downloadUrl!!) }
             if (feedIpc != null) {
@@ -305,9 +305,13 @@ class FeedUpdater(val feeds: List<Feed>, val fullUpdate: Boolean = false, val do
                 }
                 feedIpc.episodes = eList
             }
-            feedIpc?.toFeed()
+            feedIpc?.toFeed()?.apply {
+                this.id = feed.id
+                this.title = feed.title
+            }
         } else downloadFeed(feed)
 
+        Logd(TAG, "refreshFeed feed_: ${feed_?.id} ${feed_?.title}")
         if (feed_ != null) {
             val downloadStatus = DownloadResult(feed_, DownloadError.SUCCESS, true, "")
             if (fullUpdate) updateFeedFull(feed_, removeUnlistedItems = removeUnlisted, downloadStatus = downloadStatus)

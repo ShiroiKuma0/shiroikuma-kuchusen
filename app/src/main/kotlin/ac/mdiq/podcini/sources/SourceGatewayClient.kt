@@ -46,8 +46,6 @@ const val EPISODE_BATCH_SIZE = 100
 
 val sourceClients = mutableListOf<SourceGatewayClient>()
 
-val readyDeferredClients = CompletableDeferred<List<SourceGatewayClient>>()
-
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
 
 fun clientByFeed(feed: Feed): SourceGatewayClient? {
@@ -100,122 +98,6 @@ fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<R
     }
 }
 
-suspend fun discoverSources(loadExternal: Boolean) {
-    sourceClients.forEach { it.disconnect() }
-    sourceClients.clear()
-    if (loadExternal) {
-        val cs = getSourceClients()
-        if (cs.isNotEmpty()) sourceClients.addAll(cs)
-    }
-    forcePlaybackReset = true
-}
-
-suspend fun getSourceClients(): List<SourceGatewayClient> {
-    val context = getAppContext()
-    searcherInfos.clear()
-    val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
-    val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
-    if (resolveInfos.isEmpty()) {
-        Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_apps)}' is turned off")
-        upsert(appPrefs) { p-> p.loadExternalApp = false }
-        return listOf()
-    }
-
-    val clients = mutableListOf<SourceGatewayClient>()
-
-    suspend fun bindSingleClient(explicitIntent: Intent): SourceGatewayClient? = suspendCancellableCoroutine { continuation ->
-        val client = SourceGatewayClient()
-        val connection = object : ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                try {
-                    val remote = IPodciniGateway.Stub.asInterface(service)
-                    val attr = remote.attributes
-                    Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
-                    searcherInfos.clear()
-                    val recognized = attr.feedType in FeedType.entries.map { it.name }
-                    val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
-                    if (recognized && versionMatched) {
-                        client.attributes = attr
-                        client.gateway = remote
-                        client.connection = this
-                        val aidlSearchProvider = client.gateway?.searchProvider
-                        if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
-                        val aidlMediaSearcher = client.gateway?.mediaSearcher
-                        if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
-
-                        typeClientMap[attr.feedType] = client
-                        Logt(TAG, "External service ${attr.name} connected")
-                    } else {
-                        if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
-                        else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
-                        clients.remove(client)
-                    }
-                } catch (e: Exception) {
-                    Loge(TAG, "External service unqualified or incompatible, rejected.")
-                    clients.remove(client)
-                }
-                if (continuation.isActive) continuation.resumeWith(Result.success(client))
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                Logt(TAG, "Service disconnected")
-                searcherInfos.clear()
-                client.attributes?.apply { typeClientMap.remove(feedType) }
-                client.attributes = null
-                client.gateway = null
-                client.feedSearcher = null
-                clients.remove(client)
-                client.connection = null
-            }
-            override fun onBindingDied(name: ComponentName?) {
-                Logt(TAG, "Binding died, trying to rebind service")
-                searcherInfos.clear()
-                client.attributes = null
-                client.gateway = null
-                client.feedSearcher = null
-                clients.remove(client)
-                context.unbindService(this)
-                client.connection = null
-                if (continuation.isActive) continuation.resumeWith(Result.success(null))
-            }
-            override fun onNullBinding(name: ComponentName?) {
-                Logt(TAG, "Service not bond: null binding")
-                searcherInfos.clear()
-                client.attributes = null
-                client.gateway = null
-                client.feedSearcher = null
-                clients.remove(client)
-                context.unbindService(this)
-                if (continuation.isActive) continuation.resumeWith(Result.success(null))
-            }
-        }
-        Logd(TAG, "bindSingleClient before bind")
-        val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
-        Logd(TAG, "bindSingleClient after bind")
-
-        if (!success && continuation.isActive) continuation.resumeWith(Result.success(null))
-
-        continuation.invokeOnCancellation { runCatching { context.unbindService(connection) } }
-    }
-
-    for (resolveInfo in resolveInfos) {
-        val serviceInfo = resolveInfo.serviceInfo
-        Logd(TAG, "getSourceClients exported=${serviceInfo.exported}")
-        Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
-        Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
-        Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
-        val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
-
-        Logd(TAG, "getSourceClients before bindSingleClient")
-        var client = bindSingleClient(explicitIntent)
-        Logd(TAG, "getSourceClients after bindSingleClient")
-        if (client == null) client = bindSingleClient(explicitIntent)
-
-        if (client != null) clients.add(client)
-    }
-    return clients
-}
-
 object AppGatewayRegistry {
     sealed interface GatewayState {
         object Initializing : GatewayState
@@ -226,25 +108,150 @@ object AppGatewayRegistry {
     private val _state = MutableStateFlow<GatewayState>(GatewayState.Initializing)
     val state: StateFlow<GatewayState> = _state.asStateFlow()
 
-    private val readyDeferred = CompletableDeferred<List<SourceGatewayClient>>()
+    @Volatile
+    private var readyDeferred = CompletableDeferred<List<SourceGatewayClient>>()
     private val mutex = Mutex()
     private var isInitializing = false
 
-    fun initialize(scope: CoroutineScope) {
+    fun initialize(loadExternal: Boolean, scope: CoroutineScope) {
         scope.launch(Dispatchers.IO) {
+            Logd(TAG, "initialize loadExternal: $loadExternal")
+            var currentDeferred: CompletableDeferred<List<SourceGatewayClient>>
             mutex.withLock {
-                if (isInitializing || readyDeferred.isCompleted) return@launch
+                if (readyDeferred.isCompleted) readyDeferred.complete(emptyList())
+                if (isInitializing) return@launch
                 isInitializing = true
+                _state.value = GatewayState.Initializing
+
+                if (readyDeferred.isCompleted) readyDeferred = CompletableDeferred()
+                currentDeferred = readyDeferred
             }
-            discoverSources(appPrefs.loadExternalApp)
-            if (sourceClients.isNotEmpty()) {
-                _state.value = GatewayState.Ready(sourceClients)
-                readyDeferred.complete(sourceClients)
-            } else {
-                _state.value = GatewayState.Failed()
-                readyDeferred.complete(emptyList())
-            }
+            try {
+                sourceClients.forEach { it.disconnect() }
+                sourceClients.clear()
+                if (loadExternal) {
+                    val cs = getSourceClients()
+                    if (cs.isNotEmpty()) sourceClients.addAll(cs)
+                }
+                forcePlaybackReset = true
+                if (sourceClients.isNotEmpty()) {
+                    _state.value = GatewayState.Ready(sourceClients)
+                    currentDeferred.complete(sourceClients)
+                } else {
+                    _state.value = GatewayState.Failed()
+                    currentDeferred.complete(emptyList())
+                }
+            } catch (e: Exception) {
+                _state.value = GatewayState.Failed(e)
+                currentDeferred.complete(emptyList())
+            } finally { mutex.withLock { isInitializing = false } }
         }
+    }
+
+    private suspend fun getSourceClients(): List<SourceGatewayClient> {
+        val context = getAppContext()
+        searcherInfos.clear()
+        val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
+        val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
+        if (resolveInfos.isEmpty()) {
+            Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_apps)}' is turned off")
+            upsert(appPrefs) { p-> p.loadExternalApp = false }
+            return listOf()
+        }
+
+        val clients = mutableListOf<SourceGatewayClient>()
+
+        suspend fun bindSingleClient(explicitIntent: Intent): SourceGatewayClient? = suspendCancellableCoroutine { continuation ->
+            val client = SourceGatewayClient()
+            val connection = object : ServiceConnection {
+                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                    try {
+                        val remote = IPodciniGateway.Stub.asInterface(service)
+                        val attr = remote.attributes
+                        Logd(TAG, "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION")
+                        searcherInfos.clear()
+                        val recognized = attr.feedType in FeedType.entries.map { it.name }
+                        val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
+                        if (recognized && versionMatched) {
+                            client.attributes = attr
+                            client.gateway = remote
+                            client.connection = this
+                            val aidlSearchProvider = client.gateway?.searchProvider
+                            if (aidlSearchProvider != null) client.feedSearcher = GatewaySearcherAdapter(aidlSearchProvider)
+                            val aidlMediaSearcher = client.gateway?.mediaSearcher
+                            if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
+
+                            typeClientMap[attr.feedType] = client
+                            Logt(TAG, "External service ${attr.name} connected")
+                        } else {
+                            if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
+                            else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
+                            clients.remove(client)
+                        }
+                    } catch (e: Exception) {
+                        Loge(TAG, "External service unqualified or incompatible, rejected.")
+                        clients.remove(client)
+                    }
+                    if (continuation.isActive) continuation.resumeWith(Result.success(client))
+                }
+
+                override fun onServiceDisconnected(name: ComponentName?) {
+                    Logt(TAG, "Service disconnected")
+                    searcherInfos.clear()
+                    client.attributes?.apply { typeClientMap.remove(feedType) }
+                    client.attributes = null
+                    client.gateway = null
+                    client.feedSearcher = null
+                    clients.remove(client)
+                    client.connection = null
+                }
+                override fun onBindingDied(name: ComponentName?) {
+                    Logt(TAG, "Binding died, trying to rebind service")
+                    searcherInfos.clear()
+                    client.attributes = null
+                    client.gateway = null
+                    client.feedSearcher = null
+                    clients.remove(client)
+                    context.unbindService(this)
+                    client.connection = null
+                    if (continuation.isActive) continuation.resumeWith(Result.success(null))
+                }
+                override fun onNullBinding(name: ComponentName?) {
+                    Logt(TAG, "Service not bond: null binding")
+                    searcherInfos.clear()
+                    client.attributes = null
+                    client.gateway = null
+                    client.feedSearcher = null
+                    clients.remove(client)
+                    context.unbindService(this)
+                    if (continuation.isActive) continuation.resumeWith(Result.success(null))
+                }
+            }
+            Logd(TAG, "bindSingleClient before bind")
+            val success = context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
+            Logd(TAG, "bindSingleClient after bind")
+
+            if (!success && continuation.isActive) continuation.resumeWith(Result.success(null))
+
+            continuation.invokeOnCancellation { runCatching { context.unbindService(connection) } }
+        }
+
+        for (resolveInfo in resolveInfos) {
+            val serviceInfo = resolveInfo.serviceInfo
+            Logd(TAG, "getSourceClients exported=${serviceInfo.exported}")
+            Logd(TAG, "getSourceClients permission=${serviceInfo.permission}")
+            Logd(TAG, "getSourceClients Targeting Package: ${serviceInfo.packageName}")
+            Logd(TAG, "getSourceClients Targeting Class: ${serviceInfo.name}")
+            val explicitIntent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY").apply { component = ComponentName(serviceInfo.packageName, serviceInfo.name) }
+
+            Logd(TAG, "getSourceClients before bindSingleClient")
+            var client = bindSingleClient(explicitIntent)
+            Logd(TAG, "getSourceClients after bindSingleClient")
+            if (client == null) client = bindSingleClient(explicitIntent)
+
+            if (client != null) clients.add(client)
+        }
+        return clients
     }
 
     suspend fun awaitReadyClients(): List<SourceGatewayClient> {

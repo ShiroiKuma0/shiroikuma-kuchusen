@@ -21,11 +21,10 @@ import ac.mdiq.podcini.shared.PodciniHttpClient
 import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
 import ac.mdiq.podcini.shared.ProxyConfig
-import ac.mdiq.podcini.sources.discoverSources
+import ac.mdiq.podcini.sources.AppGatewayRegistry
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.proxyConfig
-import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
@@ -35,8 +34,8 @@ import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toAndroidUri
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
-import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
@@ -372,8 +371,8 @@ fun NetworkStorageScreen() {
             Text(stringResource(R.string.network_identifier_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
-            upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
-            runOnIOScope { discoverSources(it) }
+            appPrefs = upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
+            AppGatewayRegistry.initialize(appPrefs.loadExternalApp, CoroutineScope(Dispatchers.Default))
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
