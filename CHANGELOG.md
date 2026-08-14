@@ -2,6 +2,76 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.6.0+001 (versionCode 1010001)
+
+Rebased onto upstream **v12.6.0-pre1** (versionCode 101), folding in **v12.5.12** (100) as well —
+that line was built as `12.5.12+001` but never published, so its upstream changes arrive here. A
+pure tracking release — **no new fork features**; the whole custom layer replayed onto the new base
+and the build counter reset to `+001`.
+
+> **Two things to know before installing.** Upstream has so far tagged 12.6.0 only as a
+> **pre-release** (`v12.6.0-pre`, `v12.6.0-pre1`); the last finished upstream tag is `v12.5.12`.
+> And 12.6.0 runs a **one-way Realm migration** on first launch (schema 156 → 157), moving each
+> feed's auto-download/enqueue configuration into a new embedded model. Going back to a 12.5.x
+> build afterwards would mean wiping app data — export from the UI page first.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`101` / `"12.6.0"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  Every other commit in the custom layer applied without conflict — none of the files the fork
+  touches overlap with upstream's auto-download rework.
+- **Version base moved to 12.6.0 / 101**, so this line's codes (`1010001`, `1010002`, …) all exceed
+  the 12.5.x lines' (`1000001`, `990001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.5.12
+
+- **The Facets filter is fixed once more.** `FacetsVM` stops caching the filter in a `mutableStateOf`,
+  reading it back from `facetsPrefs` on each access and reassigning `facetsPrefs` on write, with a
+  separate `filterChanged` counter driving the episodes flow — `snapshotFlow` now watches
+  `(facetsMode, filterChanged, sortOrder)` instead of the filter object, whose identity never changed
+  when its contents did. The screen's own duplicate write into `filtersMap` goes with it.
+- **Skipped and Passed behave like Played.** Setting episodes to either by hand now runs the same
+  tail — auto-delete when the feed allows it, removal from queues per `deleteRemovesFromQueue` /
+  `removeFromQueueMarkPlayed`, and a gpodder PLAY action when a provider is connected — and the
+  ignore-episodes dialog gained that same auto-delete-and-dequeue pass. The Played branch drops
+  `wifiSyncEnabledKey` from its sync condition, leaving `isProviderConnected` alone to gate the
+  enqueue.
+- **A new episode is no longer force-Ignored by an old duplicate.** That branch in
+  `checkAndMarkDuplicates` is commented out; duplicates are still cross-linked as related, and the
+  function now always reports updated.
+- **Simplified Chinese integrated** — 374 lines of `values-zh-rCN`, the bulk of that release's diff.
+
+### Inherited from upstream 12.6.0
+
+- **Auto-download/enqueue configuration moved into its own DB model.** Everything a feed used to
+  carry inline — the episode filter (`filterStringADL`, duration floor/ceiling), the sort order, the
+  include/exclude/min-duration/max-duration/mark-excluded-played group and the policy code — now
+  lives in an embedded `AutoDLEQ` object, and `Feed` holds a list of them. `Feed` keeps only
+  `autoDownload`, `autoEnqueue`, `autoDLSoon`, `autoDLMaxEpisodes` and `countingPlayed`.
+  `Feed.AutoDownloadPolicy` became a top-level `AutoDLEQPolicy`, and `FeedAutoDownloadFilter` became
+  `FeedAutoDLEQFilter`. **Schema 157 migrates existing feeds** into one `AutoDLEQ` each, so per-feed
+  setups survive the upgrade.
+- **A second algorithm, interlaced at random.** Feed settings gained an **Enable second algorithm**
+  switch that adds an independent second configuration — its own policy, filter, sort and
+  include/exclude rules. The auto-download routine runs both and **interlaces the two candidate
+  lists pairwise at random** rather than concatenating them, so neither algorithm starves the other.
+  Both share the one episode-cache limit.
+- **Feed settings rearranged**, with the automation block under its own icon, and the "current filter
+  and sort" policy now hints that the *Auto downloadable* filter avoids undesired repeats.
+- **The speedometer popup explains itself.** Playback speed, skip silence, rewind, fast forward,
+  fallback speed, forward speed and skip speed each grew their helper text in the player popup — and
+  **Settings → Playback dropped the duplicate block** that offered the same seven settings twice.
+- **Feed details watches only its own feed.** `FeedDetailsVM` queries the feed by id instead of
+  filtering the shared all-feeds flow, so an unrelated feed's change no longer wakes the screen; the
+  global `feedsFlow` is gone and the feed monitor builds its flow inline.
+- **Smaller repairs.** `Chapter` and `Timer` lose their indexed `id` field, and a `&&` that should
+  have been `AND` in a Realm query string on the Logs screen is fixed.
+
 ## 12.5.11+001 (versionCode 990001)
 
 Rebased onto upstream **v12.5.11** (versionCode 99), folding in **v12.5.10** (98) as well — upstream
