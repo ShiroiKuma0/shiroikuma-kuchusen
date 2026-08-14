@@ -10,7 +10,7 @@ A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additi
 
 Installs **side-by-side** with Podcini.A (app id `shiroikuma.kuchusen`).
 
-**📥 Latest release: [`12.5.11+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
+**📥 Latest release: [`12.6.0+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
 
 </div>
 
