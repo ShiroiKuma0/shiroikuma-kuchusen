@@ -135,7 +135,7 @@ class LogsVM: ViewModel() {
     internal fun loadDeletionLog() {
         viewModelScope.launch {
             Logd(TAG, "loadDeletionLog() called")
-            val result = realm.query(SubscriptionLog::class).sort("id", Sort.DESCENDING).find()
+            val result = realm.query(SubscriptionLog::class).sort("cancelDate", Sort.DESCENDING).find()
             if (result.isNotEmpty()) withContext(Dispatchers.Main) {
                 deletionLogs = result
                 mode = LogsModes.Deletions
@@ -338,17 +338,13 @@ fun LogsScreen() {
     @Composable
      fun DeletionLogView() {
         val lazyListState = rememberLazyListState()
-        var showDialog by remember { mutableStateOf(false) }
-        val dialogParam = remember { mutableStateOf(SubscriptionLog()) }
-        if (showDialog) DeletionDetailDialog(log = dialogParam.value, onDismiss = { showDialog = false })
+        var dialogParam by remember { mutableStateOf<SubscriptionLog?>(null) }
+        if (dialogParam != null) DeletionDetailDialog(log = dialogParam!!, onDismiss = { dialogParam = null })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(vm.deletionLogs) { log ->
-                Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable {
-                    dialogParam.value = log
-                    showDialog = true
-                }) {
+                Row (verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp).clickable { dialogParam = log }) {
                     val iconRes = remember { fromCode(log.rating).res  }
                     Icon(imageVector = ImageVector.vectorResource(iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
                         modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(40.dp).height(40.dp).padding(end = 15.dp))

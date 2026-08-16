@@ -353,7 +353,7 @@ class AddComment : EpisodeAction() {
     override fun ActionOptions() {
         if (showEditComment) {
             CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = { showEditComment = false },
-                onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, false) } } })
+                onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, addition = false) } } })
         }
     }
 }

@@ -1,3 +1,10 @@
+# 12.6.2
+
+* ensured when adding comment in an media, no new timestamp is added within 30 minutes from last edit
+* ensured deletion log id of an episode/feed is set to its id
+* in Deletions view of Logs screen, logs are sorted by deletion date descending
+* in FeedDetails screen, show past deletion logs of the feed if any
+
 # 12.6.1
 
 * likely fixed external clients possibly not ready when updating feeds

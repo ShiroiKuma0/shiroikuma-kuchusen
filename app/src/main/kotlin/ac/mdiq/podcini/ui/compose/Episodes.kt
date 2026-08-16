@@ -372,7 +372,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     if (showEditComment) {
         var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
         CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismiss = { showEditComment = false},
-            onSave = { runOnIOScope { upsert(episode) { it.addComment(commentText.text, false) } } })
+            onSave = { runOnIOScope { upsert(episode) { it.addComment(commentText.text, addition = false) } } })
     }
     if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
         runOnIOScope { upsert(episode) {

@@ -651,15 +651,15 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         if (vm.subLogs.isNotEmpty()) {
                             Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
                             for (sLog in vm.subLogs) {
-                                val cancelDate = remember { formatAbbrev(sLog.cancelDate) }
                                 Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                                if (!sLog.description.isNullOrBlank()) Text(sLog.description ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                                val ratingRes = remember { fromCode(sLog.rating).res }
+                                val ratingRes = remember(sLog.id) { fromCode(sLog.rating).res }
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)) {
                                     Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
                                     Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
                                 }
+                                if (!sLog.description.isNullOrBlank()) Text(sLog.description ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
                                 Text(sLog.url ?: "no url", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                                val cancelDate = remember(sLog.id) { formatAbbrev(sLog.cancelDate) }
                                 Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                             }
                         }

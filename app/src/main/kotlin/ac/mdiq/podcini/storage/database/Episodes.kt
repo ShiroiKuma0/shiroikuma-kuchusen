@@ -8,7 +8,6 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
-import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sources.clientByEpisode
 import ac.mdiq.podcini.storage.model.Episode
@@ -173,7 +172,6 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String = "") {
     if (msg.isNotEmpty()) realm.write {
         for (e in episodes) {
             val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-            sLog.id = getEntityId()
             sLog.let {
                 it.description = e.description?.take(100).orEmpty()
                 it.rating = e.rating

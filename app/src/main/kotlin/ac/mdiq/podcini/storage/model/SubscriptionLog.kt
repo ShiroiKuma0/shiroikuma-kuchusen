@@ -8,7 +8,7 @@ import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 // TODO: better to rename to DeletionLog
 class SubscriptionLog: RealmObject {
     @PrimaryKey
-    var id: Long = 0L   // this is the nowInMillis()
+    var id: Long = 0L   // this is the id of the deleted
 
     var url: String? = null
 
@@ -33,9 +33,7 @@ class SubscriptionLog: RealmObject {
         this.url = url
         this.link = link
         this.type = type
-
-        // itemId being either feed.id or episode.id is 100 times the creation time, TODO: ? not true any more?
-        id = itemId / 100
+        id = itemId
     }
 
     enum class Type {
@@ -53,6 +51,7 @@ class SubscriptionLog: RealmObject {
                     val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
                     val map = mutableMapOf<String, SubscriptionLog>()
                     for (l in logs) {
+                        map[l.id.toString()] = l
                         if (!l.description.isNullOrBlank()) map[l.description!!] = l
                         if (l.title.isNotBlank()) map[l.title] = l
                         if (!l.url.isNullOrBlank()) map[l.url!!] = l

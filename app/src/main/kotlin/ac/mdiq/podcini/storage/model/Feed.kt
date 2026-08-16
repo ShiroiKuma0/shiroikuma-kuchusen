@@ -42,7 +42,7 @@ import kotlinx.serialization.Serializable
 @Stable
 class Feed : RealmObject {
     @PrimaryKey
-    var id: Long = 0L  // increments from nowInMillis() * 100 at time of creation
+    var id: Long = 0L  // increments from nowInMillis()
 
     @Index
     var volumeId: Long = -1L

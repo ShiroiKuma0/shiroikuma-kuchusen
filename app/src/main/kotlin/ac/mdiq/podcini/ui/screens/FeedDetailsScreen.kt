@@ -25,12 +25,15 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.allVolumes
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.compareToNatural
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.persistedTrees
 import ac.mdiq.podcini.storage.utils.toSafeUri
@@ -61,6 +64,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatAbbrev
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.isCallable
@@ -115,6 +119,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -165,6 +170,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.collections.get
 
 
 enum class FeedScreenMode {
@@ -196,7 +202,6 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
 
     var enableFilter by  mutableStateOf(true)
 
-//    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { f -> f.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
     val feedFlow: StateFlow<Feed?> = realm.query(Feed::class).query("id == $0", feedId).asFlow().map { change -> change.list.firstOrNull() }
     .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
@@ -271,6 +276,19 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val feed by vm.feedFlow.collectAsStateWithLifecycle()
     val screenMode by vm.screenModeFlow.collectAsStateWithLifecycle()
+
+    val deletionLogs = remember { mutableStateSetOf<SubscriptionLog>() }
+    LaunchedEffect(feed?.id) {
+        deletionLogs.clear()
+        if (feed != null) {
+            val results = mutableSetOf<SubscriptionLog>()
+            feedLogsMap?.get(feed!!.id.toString())?.apply { results.add(this) }
+            if (!feed?.title.isNullOrBlank()) feedLogsMap?.get(feed!!.title)?.apply { results.add(this) }
+            if (!feed?.downloadUrl.isNullOrBlank()) feedLogsMap?.get(feed!!.downloadUrl)?.apply { results.add(this) }
+            feed?.description?.take(100).takeIf { !it.isNullOrBlank() }.apply { feedLogsMap?.get(this)?.apply { results.add(this) } }
+            if (results.isNotEmpty()) deletionLogs.addAll(results)
+        }
+    }
 
     val swipeActions = remember { SwipeActions(TAG) }
 
@@ -571,6 +589,20 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Text(stringResource(R.string.episodes_label) + ": " + (vm.feedEpisodesSize).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }
                     if (feed?.inNormalVolume != true) Text(stringResource(R.string.archived_feed), color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    if (deletionLogs.isNotEmpty()) {
+                        Text(stringResource(R.string.feed_likely_removed), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 5.dp))
+                        for (sLog in deletionLogs) {
+                            Text(sLog.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                            val ratingRes = remember(sLog.id) { fromCode(sLog.rating).res }
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)) {
+                                Text(stringResource(R.string.rating_label), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(end = 5.dp))
+                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null)
+                            }
+                            if (!sLog.description.isNullOrBlank()) Text(sLog.description ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+                            val cancelDate = remember(sLog.id) { formatAbbrev(sLog.cancelDate) }
+                            Text(stringResource(R.string.removed_on) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        }
+                    }
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }

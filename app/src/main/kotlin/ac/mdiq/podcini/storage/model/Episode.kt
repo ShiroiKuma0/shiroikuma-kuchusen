@@ -45,6 +45,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.math.max
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 private const val smartMarkAsPlayedPercent: Float = 0.95f
@@ -52,7 +53,7 @@ private const val smartMarkAsPlayedPercent: Float = 0.95f
 @Stable
 class Episode : RealmObject {
     @PrimaryKey
-    var id: Long = 0L   // increments from nowInMillis() * 100 at time of creation
+    var id: Long = 0L   // increments from nowInMillis()
 
     @Index
     var feedId: Long? = null
@@ -338,19 +339,20 @@ class Episode : RealmObject {
         }
     }
 
-    fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(nowInMillis()) + ":\n"
+    fun compileCommentText(): String {
+        val now = nowInMillis()
+        return (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + (if ((now - commentTime).milliseconds > 30.minutes) fullDateTimeString(now) + ":\n" else "")
+    }
 
     fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
+        val now = nowInMillis()
         if (addition) {
             comment = if (comment.isBlank()) "" else (comment + "\n")
-            val now = nowInMillis()
-            if ((now - commentTime).minutes > 30.minutes) {
-                commentTime = now
-                comment += fullDateTimeString(commentTime) + ":\n" + text
-            } else comment += "\n" + text
+            comment += (if ((now - commentTime).milliseconds > 30.minutes) fullDateTimeString(now) + ":\n" else "") + text
+            commentTime = now
         } else {
             comment = text
-            if (setTime > 0L) commentTime = setTime
+            commentTime = if (setTime > 0L) setTime else now
         }
     }
 

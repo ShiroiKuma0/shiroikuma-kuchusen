@@ -89,15 +89,6 @@ fun clientshaveLikeCounts(): Boolean {
     return false
 }
 
-fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(flags.toLong()))
-    } else {
-        @Suppress("DEPRECATION")
-        queryIntentServices(intent, flags)
-    }
-}
-
 object AppGatewayRegistry {
     sealed interface GatewayState {
         object Initializing : GatewayState
@@ -145,6 +136,15 @@ object AppGatewayRegistry {
                 _state.value = GatewayState.Failed(e)
                 currentDeferred.complete(emptyList())
             } finally { mutex.withLock { isInitializing = false } }
+        }
+    }
+
+    private fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(flags.toLong()))
+        } else {
+            @Suppress("DEPRECATION")
+            queryIntentServices(intent, flags)
         }
     }
 
