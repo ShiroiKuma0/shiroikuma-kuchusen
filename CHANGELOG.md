@@ -2,6 +2,60 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.6.2+001 (versionCode 1030001)
+
+Rebased onto upstream **v12.6.2** (versionCode 103), a single commit on top of 12.6.1. A pure
+tracking release: **no new fork features**, the whole custom layer replayed onto the new base and
+the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema moves 157 → 158, but nothing structural changes — the
+> deletion log's *key* changes meaning, not its shape, so there is no migration step and no data
+> loss. The one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x build
+> it still applies, so export from the UI page first.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** The only collision was the recurring one in `app/build.gradle.kts`, where
+  upstream reasserts the version literals (`103` / `"12.6.2"`); the fork keeps deriving them from
+  `forkVersionName` / `forkVersionCode`, with the upstream numbers living in `gradle.properties`.
+  All twenty-five commits of the custom layer applied without conflict otherwise — none of the
+  twelve files upstream touched overlaps anything the fork patches.
+- **Version base moved to 12.6.2 / 103**, so this line's codes (`1030001`, `1030002`, …) all exceed
+  the 12.6.1 line's (`1020001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.6.2
+
+- **The 30-minute comment window finally works.** The previous release's threshold was written as a
+  millisecond delta converted with `Duration.minutes`, so the intended 30 minutes was really 30 ms
+  and a fresh date header was stamped on nearly every edit — the bug flagged when `12.6.1+001` was
+  cut. It now converts with `.milliseconds`, and the clock is actually advanced on every addition
+  instead of only when a header was written, so consecutive comments really do group under one time
+  stamp. The editing dialog uses the same rule, so what it shows you matches what gets saved.
+- **Deletion logs are keyed to what was deleted.** The log's primary key was `itemId / 100`, a
+  leftover from when feed and episode ids were minted as `nowInMillis() * 100`; ids have long since
+  been plain milliseconds, so the division produced a key that pointed at nothing. It is now the
+  deleted feed's or episode's own id, and erasing an episode no longer overwrites that key with an
+  unrelated fresh id. Logs written by earlier builds keep their old broken keys — they are still
+  listed, they just will not match a feed by id; anything deleted from this build on will.
+- **A feed's own removal history now shows on its details page.** If a feed you are looking at was
+  removed before — matched by id, title, download URL or the opening of its description — the page
+  shows a **"likely removed"** block above the description carrying each past log's comment, rating,
+  description and removal date. It is the same block the online-feed page has always shown, and that
+  one has been reordered to match it.
+- **The Deletions log is sorted by when things were deleted.** It sorted by id, which — now that the
+  id is the deleted item's creation time — would have ordered the list by when you *added* a feed.
+  It now sorts by cancellation date, newest first.
+- **Unticking "save important episodes" no longer runs the query anyway.** Removing a feed only
+  evaluates `worthyEpisodes` when the box is actually ticked.
+- **Housekeeping.** `queryIntentServicesCompat` moves inside `AppGatewayRegistry` as a private
+  extension instead of sitting at file scope, the Deletions dialog drops a placeholder empty log in
+  favour of a nullable one, both `addComment` call sites pass `addition` by name, and the `Episode`
+  / `Feed` id comments are corrected to say ids increment from `nowInMillis()` rather than
+  `nowInMillis() * 100`. No dependency changes.
+
 ## 12.6.1+001 (versionCode 1020001)
 
 Rebased onto upstream **v12.6.1** (versionCode 102) — the first *finished* 12.6 tag, where the
