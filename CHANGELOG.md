@@ -2,6 +2,57 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.6.3+001 (versionCode 1040001)
+
+Rebased onto upstream **v12.6.3** (versionCode 104), a single commit on top of 12.6.2. A pure
+tracking release: **no new fork features**, the whole custom layer replayed onto the new base and
+the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — upstream 12.6.3 touches only playback and
+> the external-source handshake, no stored shape. The one-way migration warning belongs to
+> `12.6.0+001`; if you are coming from a 12.5.x build it still applies, so export from the UI page
+> first.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **A clean replay.** Two collisions, both cosmetic: the recurring one in `app/build.gradle.kts`,
+  where upstream reasserts the version literals (`104` / `"12.6.3"`) while the fork keeps deriving
+  them from `forkVersionName` / `forkVersionCode`; and `README.md`, where upstream reworded a
+  feature-list item in the section our README replaces wholesale. All twenty-seven commits of the
+  custom layer applied without conflict otherwise — none of the six source files upstream touched
+  overlaps anything the fork patches.
+- **Version base moved to 12.6.3 / 104**, so this line's codes (`1040001`, `1040002`, …) all exceed
+  the 12.6.2 line's (`1030001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.6.3
+
+- **Media that took seconds to start should start promptly now.** MP3 index seeking is switched off,
+  so opening a variable-bitrate file no longer scans the whole thing to build an exact seek index
+  before the first sound — upstream names this the likely cause of the startup delays reported on
+  some media. The trade-off: seeking inside a VBR file now uses the constant-bitrate approximation,
+  so a jump can land a little off where an exact index would have put it.
+- **Less buffering before playback begins at high speed.** The amount buffered before starting was
+  multiplied by the playback speed; it is now a flat figure, so listening at 2× no longer waits for
+  twice the audio to arrive first. The rebuffering and maximum-buffer targets still scale with speed.
+- **Progress saving keeps up with the speed you actually listen at.** With adaptive progress updates
+  on, the position is now saved every 2% of the media's duration *divided by the playback speed*, and
+  the interval is recomputed the moment you change speed — the running saver picks the new value up
+  on its next tick instead of keeping the one it started with. The old code took 2% of duration and
+  ignored speed entirely, so at 2× it saved half as often as intended.
+- **The buffer bar starts empty on a new episode.** Switching media left the previous episode's
+  buffer fill on screen until the new one caught up; it is reset to zero now.
+- **Shared links that only an external source app can open no longer fall through.** Sharing a URL
+  now waits for the external-source providers to finish binding before asking which of them can
+  handle it — previously the search could run before they were ready, and the link was rejected.
+  Feed refreshes give a freshly bound provider an extra second before querying it.
+- **A silent source provider can no longer hang what is waiting for it.** Waiting on the provider
+  registry now gives up after ten seconds and carries on with no external clients, instead of
+  blocking indefinitely on a provider app that never reports itself ready.
+- **No schema or dependency changes.** Realm stays at 158; nothing in the dependency set moves.
+
 ## 12.6.2+001 (versionCode 1030001)
 
 Rebased onto upstream **v12.6.2** (versionCode 103), a single commit on top of 12.6.1. A pure
