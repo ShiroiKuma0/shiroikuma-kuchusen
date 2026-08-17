@@ -296,6 +296,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
         curIdJob = viewModelScope.launch { snapshotFlow { theatres[playerId].mPlayer?.curEpisode?.id }.distinctUntilChanged().collect {
             Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
             episodeFeed = theatres[playerId].mPlayer?.curEpisode?.feed
+            bufferValue = 0f
             volumeAdaption = VolumeAdaptionSetting.OFF
             curPlaybackSpeed = theatres[playerId].mPlayer?.curPBSpeed?:1f
             forceVideo = false

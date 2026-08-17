@@ -1,3 +1,11 @@
+# 12.6.3
+
+* ensure external client is available in ShareReceiverActivity
+* in media player
+	* disabled VBR indexing, likely the culprit for startup delays on some media
+	* if useAdaptiveProgressUpdate is set, position saver interval is 2% of duration adjusted with speed, and reset on speed change
+* in PlayerUI, buffer value is reset on start of new media
+	
 # 12.6.2
 
 * ensured when adding comment in an media, no new timestamp is added within 30 minutes from last edit

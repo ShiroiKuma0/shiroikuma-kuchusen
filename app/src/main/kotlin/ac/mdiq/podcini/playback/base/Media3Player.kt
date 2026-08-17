@@ -8,7 +8,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.OKHTTP.encodeCredentials
 import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer.buildCastPlayer
-import ac.mdiq.podcini.playback.isRecording
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
@@ -87,9 +86,7 @@ import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.TransferListener
-import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
-import androidx.media3.datasource.cache.CacheSpan
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -111,12 +108,10 @@ import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.exoplayer.upstream.Allocator
 import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.extractor.DefaultExtractorsFactory
-import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
@@ -590,7 +585,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
 
         val extractorsFactory = DefaultExtractorsFactory()
             .setConstantBitrateSeekingEnabled(true)
-            .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+//            .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
 //            .setMp4ExtractorFlags(Mp4Extractor.FLAG_WORKAROUND_IGNORE_EDIT_LISTS)
         val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
         baseHttpDataSourceFactory.setTransferListener(
@@ -608,9 +603,13 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         )
         val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
+//        val cacheDataSinkFactory = CacheDataSink.Factory()
+//            .setCache(getCache())
+//            .setBufferSize(128 * 1024)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory)
+//            .setCacheWriteDataSinkFactory(cacheDataSinkFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         cacheDataSourceFactory.setEventListener(
             object : CacheDataSource.EventListener {
@@ -827,12 +826,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val baseMinBufferMs = 15_000
         val baseMaxBufferMs = 50_000
 
-        val targetPlaybackMs = (basePlaybackMs * speed).toInt().coerceIn(800, 3000)
+//        val targetPlaybackMs = (basePlaybackMs * speed).toInt().coerceIn(800, 3000)
+        val targetPlaybackMs = basePlaybackMs
         val targetRebufferMs = (baseRebufferMs * speed).toInt().coerceIn(2000, 8000)
         val targetMaxBufferMs = maxOf(baseMaxBufferMs, (baseMinBufferMs * speed).toInt() + 10_000)
-
         Logd(TAG, "set player buffer: $baseMinBufferMs $targetMaxBufferMs $targetPlaybackMs $targetRebufferMs")
         loadControl?.updateBufferParameters(minBufferMs = baseMinBufferMs, maxBufferMs = targetMaxBufferMs, playbackMs = targetPlaybackMs, rebufferMs = targetRebufferMs, true)
+
+        resetPosSaverInterval(speed)
 
         playbackParameters = PlaybackParameters(if (speed <= 0) playbackParameters.speed else speed, if (pitch <= 0f) playbackParameters.pitch else pitch)
         setPlaybackParams()

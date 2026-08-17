@@ -46,8 +46,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 object FeedUpdateManager {
@@ -202,7 +204,10 @@ object FeedUpdateManager {
         override suspend fun doWork(): Result {
             setForegroundAsync(getForegroundInfo())
             ClientConfig.initialize()
-            if (appPrefs.loadExternalApp) AppGatewayRegistry.awaitReadyClients()
+            if (appPrefs.loadExternalApp) {
+                AppGatewayRegistry.awaitReadyClients()
+                delay(1000.milliseconds)
+            }
 
             fun rescheduleUpdateTaskOnce() {
                 val context = getAppContext()

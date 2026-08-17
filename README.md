@@ -29,7 +29,7 @@ Available such apps are:
 7. Enables setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every media.
 8. Boasts sophisticated sorting, filtering and searching on media and feeds.
 9. Supports sleep and auto-play timers.
-10. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed.
+10. Presents 2 independent algorithms for auto-download or auto-enqueue specifiable on every feed.
 11. Supports spaced repetition of repeat media: auto-download or auto-enqueue them at preset intervals specified in the feed.
 12. Caches streamed audio for seamless local rewind and replay.
 13. is capable of playing 2 media simultaneously (one in each ear with earphones) with independent controls.

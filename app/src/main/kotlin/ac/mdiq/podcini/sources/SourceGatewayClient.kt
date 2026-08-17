@@ -39,6 +39,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "GatewayClient"
 
@@ -255,7 +257,7 @@ object AppGatewayRegistry {
     }
 
     suspend fun awaitReadyClients(): List<SourceGatewayClient> {
-        return readyDeferred.await()
+        return withTimeoutOrNull(10000.milliseconds) { readyDeferred.await() } ?: listOf()
     }
 
     fun getClientsOrNull(): List<SourceGatewayClient>? {

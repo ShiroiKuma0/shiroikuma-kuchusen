@@ -3,9 +3,11 @@ package ac.mdiq.podcini.activity
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Extras
+import ac.mdiq.podcini.sources.AppGatewayRegistry
 import ac.mdiq.podcini.sources.SourceGatewayClient
 import ac.mdiq.podcini.sources.sourceClients
 import ac.mdiq.podcini.storage.database.addToFeed
+import ac.mdiq.podcini.storage.database.appPrefs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -136,7 +138,7 @@ class ShareReceiverActivity : ComponentActivity() {
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
 
-        fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
+        suspend fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
             Logd(TAG, "receiveShared sharedText: $sharedText")
             when {
 //            plain text
@@ -163,6 +165,7 @@ class ShareReceiverActivity : ComponentActivity() {
                         activity.startActivity(intent)
                         if (finish) activity.finish()
                     }
+                    if (appPrefs.loadExternalApp) AppGatewayRegistry.awaitReadyClients()
                     val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
                     Logd(TAG, "receiveShared canHandleUrl==1 client: ${client!= null}")
                     if (client != null) {

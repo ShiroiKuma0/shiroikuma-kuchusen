@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
-import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableFrom
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.autoEnableTo
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.lastTimerValue
@@ -399,12 +398,18 @@ abstract class MediaPlayerBase {
     private var positionSaverJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
+    var positionSaverInterval: Long = MIN_POSITION_SAVER_INTERVAL.toLong()
+
+    fun resetPosSaverInterval(speed: Float) {
+        curEpisode?.apply { positionSaverInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, (this.duration / 50 / speed).toInt()).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong() }
+    }
+
     @Synchronized
-    private fun startPositionSaver(delayInterval: Long) {
+    private fun startPositionSaver() {
         cancelPositionSaver()
         positionSaverJob = scope.launch {
             while (isActive) {
-                delay(delayInterval.milliseconds)
+                delay(positionSaverInterval.milliseconds)
                 val position = getPosition()
                 val duration = getDuration()
                 Logd(TAG, "positionSaverTick currentPosition: $position")
@@ -427,7 +432,7 @@ abstract class MediaPlayerBase {
                 invokeBufferListener()
             }
         }
-        Logd(TAG, "Started PositionSaver with interval: $delayInterval")
+        Logd(TAG, "Started PositionSaver with interval: $positionSaverInterval")
     }
 
     @Synchronized
@@ -743,9 +748,10 @@ abstract class MediaPlayerBase {
     }
 
     private fun onPlaybackStart(playable: Episode, position: Int) {
-        val delayInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, playable.duration / 50).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
+//        positionSaverInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, (playable.duration / 50 / curSpeed).toInt()).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
+        positionSaverInterval = MIN_POSITION_SAVER_INTERVAL.toLong()
         Logd(TAG, "onPlaybackStart ${playable.title}")
-        Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
+        Logd(TAG, "onPlaybackStart position: $position delayInterval: $positionSaverInterval")
         if (position != Episode.INVALID_TIME) {
             upsertBlk(playable) {
                 it.position = position
@@ -766,7 +772,7 @@ abstract class MediaPlayerBase {
             }
             upsertBlk(playable) { it.setPlaybackStart() }
         }
-        startPositionSaver(delayInterval)
+        startPositionSaver()
     }
 
     protected fun onPlaybackPause(playable: Episode?, position: Int) {
