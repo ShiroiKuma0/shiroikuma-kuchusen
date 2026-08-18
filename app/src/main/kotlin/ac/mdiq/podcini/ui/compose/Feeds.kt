@@ -225,20 +225,15 @@ fun OnlineFeedItem(result: FeedSearchResult, log: SubscriptionLog? = null) {
             }
             Column(Modifier.padding(start = 10.dp)) {
                 Text(result.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
-                val authorText = remember(result.author, result.feedUrl) {
-                    when {
-                        !result.author.isNullOrBlank() -> result.author!!.trim { it <= ' ' }
-                        result.feedUrl != null && !result.feedUrl!!.contains("itunes.apple.com") -> result.feedUrl!!
-                        else -> ""
-                    } }
-                if (authorText.isNotBlank()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
+                val authorText = remember(result.author) { result.author?.takeIf { it.isNotBlank() }?.trim { it <= ' ' }?: "Anonymous" }
+                Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (result.subscriberCount > 0) Text(formatLargeInteger(result.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
-                    if (result.count != null && result.count!! > 0) Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    Text(result.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.weight(1f))
                     if (result.update != null) Text(result.update!!, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(result.source + ": " + (result.feedUrl?:"unavailable"), color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
+                Text("${result.source}:\u00A0${result.feedUrl ?: "unavailable"}", color = textColor, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

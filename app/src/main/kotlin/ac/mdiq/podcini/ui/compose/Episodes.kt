@@ -820,6 +820,7 @@ fun EpisodeTimetableDialog(episode: Episode, onDismiss: () -> Unit, cb: (Timer)-
                     Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.clickable {
                         timer.cancel()
                         upsertBlk(appAttribs) { it.timetable.remove(timer) }
+                        onDismiss()
                     })
                 }
             }

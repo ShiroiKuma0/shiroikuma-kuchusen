@@ -62,26 +62,12 @@ object OKHTTP {
         builder.protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
         builder.connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
         builder.addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .header("Accept-Encoding", "identity")
-                .build()
+            val request = chain.request().newBuilder().header("Accept-Encoding", "identity").build()
             chain.proceed(request)
         }
         builder.addInterceptor { chain ->
             val response = chain.proceed(chain.request())
-            Logd(
-                TAG,
-                """
-                host=${chain.request().url.host}
-                protocol=${response.protocol}
-                code=${response.code}
-                contentLength=${response.body.contentLength()}
-                transferEncoding=${response.header("Transfer-Encoding")}
-                acceptRanges=${response.header("Accept-Ranges")}
-                contentEncoding=${response.header("Content-Encoding")}
-                connection=${response.header("Connection")}
-                """.trimIndent()
-            )
+            Logd(TAG, """ host=${chain.request().url.host} protocol=${response.protocol} code=${response.code} contentLength=${response.body.contentLength()} transferEncoding=${response.header("Transfer-Encoding")} acceptRanges=${response.header("Accept-Ranges")} contentEncoding=${response.header("Content-Encoding")} connection=${response.header("Connection")} """.trimIndent())
             response
         }
         builder.interceptors().add(BasicAuthorizationInterceptor())
@@ -127,9 +113,7 @@ object OKHTTP {
             val bytes = credentials.toByteArray(charset(charset!!))
             val encoded: String = ByteString.of(*bytes).base64()
             return "Basic $encoded"
-        } catch (e: UnsupportedEncodingException) {
-            throw AssertionError(e)
-        }
+        } catch (e: UnsupportedEncodingException) { throw AssertionError(e) }
     }
 
     class BasicAuthorizationInterceptor : Interceptor {
@@ -166,40 +150,25 @@ object OKHTTP {
                 if (!authorizationHeader.isNullOrEmpty()) {
                     val redirectUrl = response.request.url
                     response.close()
-                    return chain.proceed(
-                        newRequest.url(redirectUrl).header(HEADER_AUTHORIZATION, authorizationHeader).build()
-                    )
+                    return chain.proceed(newRequest.url(redirectUrl).header(HEADER_AUTHORIZATION, authorizationHeader).build())
                 }
             }
 
             val userInfo = getUserInfo(request)
-            if (userInfo.isEmpty()) {
-                Logd(TAG, "No credentials for '${request.url}'")
-                return response
-            }
+            if (userInfo.isEmpty()) return response
             val parts = userInfo.split(':', limit = 2)
-            if (parts.size != 2) {
-                Logd(TAG, "Invalid credentials for '${request.url}'")
-                return response
-            }
+            if (parts.size != 2) return response
 
             val username = parts[0]
             val password = parts[1]
             Logd(TAG, "Retrying auth with ISO-8859-1")
             response.close()
-            response = chain.proceed(
-                newRequest.header(
-                    HEADER_AUTHORIZATION,
-                    encodeCredentials(username, password, "ISO-8859-1")
-                ).build()
-            )
+            response = chain.proceed(newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "ISO-8859-1")).build())
             if (response.code != HttpURLConnection.HTTP_UNAUTHORIZED) return response
 
             Logd(TAG, "Retrying auth with UTF-8")
             response.close()
-            return chain.proceed(
-                newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8")).build()
-            )
+            return chain.proceed(newRequest.header(HEADER_AUTHORIZATION, encodeCredentials(username, password, "UTF-8")).build())
         }
 
         companion object {

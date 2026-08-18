@@ -1,5 +1,0 @@
-* in VideoMode setting of a feed, added "Use muxed video" option if use video, to use the muxed video stream
-	* regardless it's set or not, if separate audio/video is not available, muxed video stream is the last resort
-* force reset playback of current media when feed VideoMode, audio quality, or video quality changes
-* in PlayerUI, resolution is shown when playing video
-* likely fixed clients mal-functioning after toggling "Use external apps"

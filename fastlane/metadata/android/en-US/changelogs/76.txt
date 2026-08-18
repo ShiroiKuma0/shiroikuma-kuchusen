@@ -1,2 +1,0 @@
-* improved player buffer and made it dynamically set based on play speed
-* one media list in Remote tab in SearchScreen is cached, re-search is not needed when come back

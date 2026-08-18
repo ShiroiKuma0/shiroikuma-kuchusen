@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.automation.ALARM_TYPE
 import ac.mdiq.podcini.automation.AlarmTypes
 import ac.mdiq.podcini.automation.requestExactAlarmPermission
-import ac.mdiq.podcini.receiver.AlarmReceiver
+import ac.mdiq.podcini.receiver.TimerReceiver
 import ac.mdiq.podcini.utils.Logd
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -32,7 +32,7 @@ class Timer: EmbeddedRealmObject {
             }
         }
 
-        val intent = Intent(context, AlarmReceiver::class.java).apply {
+        val intent = Intent(context, TimerReceiver::class.java).apply {
             putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episodeId.toString())
         }
         val pendingIntent = PendingIntent.getBroadcast(context, alarmId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -42,7 +42,7 @@ class Timer: EmbeddedRealmObject {
     fun cancel() {
         val context = getAppContext()
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, AlarmReceiver::class.java)
+        val intent = Intent(context, TimerReceiver::class.java)
 
         val pendingIntent = PendingIntent.getBroadcast(context, alarmId, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
 

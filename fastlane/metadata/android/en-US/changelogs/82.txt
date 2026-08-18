@@ -1,2 +1,0 @@
-* show external media panel even when playing
-* in OnlineFeed, improved handling existing feed

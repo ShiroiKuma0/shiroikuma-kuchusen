@@ -142,7 +142,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     private var exoplayerListener: Listener? = null
 
     private var exoplayerOffloadListener: ExoPlayer.AudioOffloadListener? = null
-    private var bufferingUpdateListener: ((Int) -> Unit)? = null
+    private var bufferingUpdater: ((Int) -> Unit)? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
 
     private var trackSelector: DefaultTrackSelector? = null
@@ -200,9 +200,17 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                 private var hasStarted = false
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
                     Logd(TAG, "exoplayerListener onPlaybackStateChanged $playbackState")
+                    Logd(TAG, "onPlaybackStateChanged state=$playbackState " +
+                                "playWhenReady=${exoPlayer?.playWhenReady} " +
+                                "isPlaying=${exoPlayer?.isPlaying} " +
+                                "position=${exoPlayer?.currentPosition} " +
+                                "buffered=${exoPlayer?.bufferedPosition} " +
+                                "bufferedDuration=${exoPlayer?.totalBufferedDuration} " +
+                                "isLoading=${exoPlayer?.isLoading}"
+                    )
                     when (playbackState) {
-                        STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
-                        STATE_READY -> bufferingUpdateListener?.invoke(BUFFERING_ENDED)
+                        STATE_BUFFERING -> bufferingUpdater?.invoke(BUFFERING_STARTED)
+                        STATE_READY -> bufferingUpdater?.invoke(BUFFERING_ENDED)
                         STATE_ENDED -> {
                             val currentPos = exoPlayer?.currentPosition ?: 0L
                             val totalDuration = exoPlayer?.duration ?: 0L
@@ -227,6 +235,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
                             isSkipping = false
                         }
                     }
+                }
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    Logd(TAG, "onPlayWhenReadyChanged value=$playWhenReady reason=$reason state=${exoPlayer?.playbackState} isPlaying=${exoPlayer?.isPlaying}")
                 }
                 override fun onEvents(player: Player, events: Player.Events) {
                     if (isCasting) {
@@ -422,7 +433,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             withContext(Dispatchers.Main) {
                 val pct = exoPlayer!!.bufferedPercentage
                 if (bufferedPercentagePrev != pct) {
-                    bufferingUpdateListener?.invoke(pct)
+                    bufferingUpdater?.invoke(pct)
                     bufferedPercentagePrev = pct
                 }
             }
@@ -614,7 +625,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         cacheDataSourceFactory.setEventListener(
             object : CacheDataSource.EventListener {
                 override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
-                    Logd(TAG, "CacheDataSource CACHE READ cachedBytes=$cachedBytesRead cacheSize=$cacheSizeBytes")
+                    Logd(TAG, "CacheDataSource onCachedBytesRead cachedBytes=$cachedBytesRead cacheSize=$cacheSizeBytes")
                 }
                 override fun onCacheIgnored(reason: Int) {
                     Logd(TAG, "CacheDataSource onCacheIgnored ignored=$reason")
@@ -657,7 +668,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         exoPlayer?.stop()
 //        castPlayer?.seekTo(0L)
 //        castPlayer?.clearMediaItems()
-        bufferingUpdateListener = null
+        bufferingUpdater = null
     }
 
     fun mediaSourceFromClient(needVideo: Boolean, sameMedia: Boolean = false): MediaSource? {
@@ -859,7 +870,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         return retVal
     }
 
-    override fun setDuration() {
+    override fun fixDuration() {
         Logd(TAG, "prepare Setting duration of media")
         val dur = if (exoPlayer?.duration == C.TIME_UNSET) Episode.INVALID_TIME else castPlayer!!.duration.toInt()
         if (dur > 0) upsertBlk(curEpisode!!) { it.duration = dur }
@@ -918,7 +929,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     override fun shutdown() {
         Logd(TAG, "shutdown() called")
         try {
-            bufferingUpdateListener = { }
+            bufferingUpdater = { }
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { LogsFor(TAG, curEpisode?.id, e) }
         release()
@@ -961,13 +972,12 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         }
         val i = curEpisode?.feed?.audioType?: C.AUDIO_CONTENT_TYPE_SPEECH
         val a = exoPlayer!!.audioAttributes
-        val b = AudioAttributes.Builder()
-        b.setContentType(i)
-        b.setFlags(a.flags)
-        b.setUsage(a.usage)
-        exoPlayer?.setAudioAttributes(b.build(), activeTheatres <= 1)
+        val b = AudioAttributes.Builder().setContentType(i).setUsage(C.USAGE_MEDIA)
+        Logd(TAG, "activeTheatres: $activeTheatres")
+        exoPlayer?.setAudioAttributes(b.build(), activeTheatres <= 1 && handleAudioFocus)
+        Logd(TAG, "AudioAttributes: usage=${b.build().usage} contentType=${b.build().contentType} handleAudioFocus=${activeTheatres <= 1}")
 
-        bufferingUpdateListener = { percent: Int ->
+        bufferingUpdater = { percent: Int ->
             Logd(TAG, "bufferingUpdateListener percent: $percent")
             if (curEpisode != null) {
                 when (percent) {
@@ -1198,7 +1208,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         if (exoplayerOffloadListener != null) exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
         exoplayerListener = null
         exoplayerOffloadListener = null
-        bufferingUpdateListener = null
+        bufferingUpdater = null
         loudnessEnhancer = null
         httpDataSourceFactory = null
 

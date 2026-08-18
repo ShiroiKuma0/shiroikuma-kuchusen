@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 104
-        versionName = "12.6.3"
+        versionCode = 105
+        versionName = "12.7.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -237,8 +237,8 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization:1.0.2")
     implementation("io.github.pdvrieze.xmlutil:core-android:1.0.2")
 
-    implementation("com.squareup.okhttp3:okhttp:5.4.0")
-    implementation("com.squareup.okhttp3:okhttp-urlconnection:5.4.0")
+    implementation("com.squareup.okhttp3:okhttp:5.5.0")
+    implementation("com.squareup.okhttp3:okhttp-urlconnection:5.5.0")
     implementation("com.squareup.okio:okio:3.18.1")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")

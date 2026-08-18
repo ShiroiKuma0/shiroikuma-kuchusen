@@ -3,8 +3,10 @@ package ac.mdiq.podcini.playback
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
+import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.simpleCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -13,11 +15,18 @@ import ac.mdiq.podcini.storage.database.isMediaDownloadable
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.seconds
 
 var forcePlaybackReset by mutableStateOf(false)
 
@@ -50,22 +59,27 @@ class PlaybackStarter(private val media: Episode) {
     fun start(playerId: Int = 0) {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
 //        showStackTrace()
+        ensureAController()
+
         var media_ = media
-        if (forcePlaybackReset) getCache().removeResource(media.id.toString())
+        if (forcePlaybackReset && simpleCache != null) getCache().removeResource(media.id.toString())
         var sameMedia = !forcePlaybackReset
         if (theatres[playerId].mPlayer?.curEpisode?.id != media.id) {
             sameMedia = false
             media_ = checkAndMarkDuplicates(media)
 //            theatres[playerId].mPlayer?.setAsCurEpisode(media_)   // seems redundant
         }
-        theatres[playerId].mPlayer?.shouldRepeat = repeat
-        Logd(TAG, "start: status: ${theatres[playerId].mPlayer?.status} sameMedia: $sameMedia")
-        theatres[playerId].mPlayer?.isStreaming = shouldStreamThisTime
-        theatres[playerId].mPlayer?.widgetId = widgetId
 
-        Logd(TAG, "aCtrlFuture: ${aCtrlFuture != null} player status: ${theatres[playerId].mPlayer?.status}")
         fun processTask() {
-            if (theatres[playerId].mPlayer == null) return
+            if (theatres[playerId].mPlayer == null) {
+                Loge(TAG, "processTask mPlayer == null")
+                return
+            }
+            Logd(TAG, "aCtrlFuture: ${aCtrlFuture != null} player status: ${theatres[playerId].mPlayer?.status}")
+            theatres[playerId].mPlayer?.shouldRepeat = repeat
+            Logd(TAG, "start: status: ${theatres[playerId].mPlayer?.status} sameMedia: $sameMedia")
+            theatres[playerId].mPlayer?.isStreaming = shouldStreamThisTime
+            theatres[playerId].mPlayer?.widgetId = widgetId
             when {
                 theatres[playerId].mPlayer!!.isPlaying -> {
                     theatres[playerId].mPlayer?.pause(false)
@@ -84,7 +98,6 @@ class PlaybackStarter(private val media: Episode) {
                     sleepManager?.restart()
                 }
                 theatres[playerId].mPlayer!!.isStopped -> {
-                    // TODO: test
 //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
                     theatres[playerId].mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true, forceReset = forcePlaybackReset)
                     sleepManager?.restart()
@@ -109,7 +122,14 @@ class PlaybackStarter(private val media: Episode) {
                 processTask()
             } else {
                 Logd(TAG, "aCtrlFuture starting PlaybackService")
-                ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
+//                ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
+                CoroutineScope(Dispatchers.Default).launch {
+                    while (!future.isDone || aController?.isConnected != true) {
+                        Logd(TAG, "aCtrlFuture delay ${future.isDone} ${aController?.isConnected}")
+                        delay(1.seconds)
+                    }
+                    withContext(Dispatchers.Main) { processTask() }
+                }
             }
         } ?: run {
             Logd(TAG, "aCtrlFuture is null, starting service")

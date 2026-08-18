@@ -13,6 +13,7 @@ import ac.mdiq.podcini.utils.formatEpochMillisSimple
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.fleeksoft.ksoup.Ksoup
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -35,6 +36,7 @@ private const val TAG = "FeedSearcher"
 enum class FeedSearchers {
     PodcastIndex,
     Apple,
+    AppleDeep,
     Combined
 }
 
@@ -62,6 +64,7 @@ class PodcastIndexSearcher : FeedSearcher {
             val response = getKtorClient().get(formattedUrl) { applyPodcastIndexAuth() }
             if (response.status.isSuccess()) {
                 val resultString = response.bodyAsText()
+                Logd(TAG, "search resultString: $resultString")
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("feeds")
                 for (i in 0 until j.length()) {
@@ -100,30 +103,27 @@ class PodcastIndexSearcher : FeedSearcher {
     }
 }
 
-class ItunesSearcher : FeedSearcher {
+open class ItunesSearcher : FeedSearcher {
     private val TAG = "ItunesSearcher"
-    override suspend fun search(query: String): List<FeedSearchResult> {
-        Logd(TAG, "ItunesSearcher search")
-        /**
-         * Constructs a Podcast instance from a iTunes search result
-         * @param json object holding the podcast information
-         * @throws JSONException
-         */
-        fun fromItunes(json: JSONObject): FeedSearchResult {
-            val title = json.optString("collectionName", "")
-            val imageUrl: String? = json.optString("artworkUrl100").takeIf { it.isNotEmpty() }
-            val feedUrl: String? = json.optString("feedUrl").takeIf { it.isNotEmpty() }
-            val author: String? = json.optString("artistName").takeIf { it.isNotEmpty() }
-            return FeedSearchResult(title, imageUrl, feedUrl, author, null, null, -1, "Itunes")
-        }
-        val encodedQuery = query.encodeURLParameter()
-        val formattedUrl = "https://itunes.apple.com/search?media=podcast&term=$encodedQuery"
 
+    open suspend fun fromItunes(json: JSONObject): FeedSearchResult {
+        val title = json.optString("collectionName", "")
+        val imageUrl: String? = json.optString("artworkUrl100").takeIf { it.isNotEmpty() }
+        val feedUrl: String? = json.optString("feedUrl").takeIf { it.isNotEmpty() }
+        val author: String? = json.optString("artistName").takeIf { it.isNotEmpty() }
+        return FeedSearchResult(title, imageUrl, feedUrl, author, null, null, -1, "Itunes")
+    }
+
+    override suspend fun search(query: String): List<FeedSearchResult> {
+        val encodedQuery = query.encodeURLParameter()
+        val formattedUrl = "https://itunes.apple.com/search?media=podcast&entity=podcast&term=$encodedQuery"
+        Logd(TAG, "search formattedUrl: $formattedUrl")
         val podcasts: MutableList<FeedSearchResult> = mutableListOf()
         try {
             val response = getKtorClient().get(formattedUrl) { header(HttpHeaders.CacheControl, "max-stale=86400") }
             if (response.status.isSuccess()) {
                 val resultString = response.bodyAsText()
+//                Logd(TAG, "search resultString: $resultString")
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("results")
                 for (i in 0 until j.length()) {
@@ -176,6 +176,45 @@ class ItunesSearcher : FeedSearcher {
     }
 }
 
+class ItunesDeepSearcher: ItunesSearcher() {
+    private val TAG = "ItunesDeepSearcher"
+
+    override val name: String
+        get() = FeedSearchers.AppleDeep.name
+
+    override suspend fun fromItunes(json: JSONObject): FeedSearchResult {
+        val title = json.optString("collectionName", "")
+        val imageUrl: String? = json.optString("artworkUrl100").takeIf { it.isNotEmpty() }
+        var feedUrl: String? = json.optString("feedUrl").takeIf { it.isNotEmpty() }
+        if (feedUrl.isNullOrBlank()) json.optString("collectionViewUrl").takeIf { it.isNotEmpty() }?.apply { feedUrl = extractAppleFeedUrl(this) }
+        val author: String? = json.optString("artistName").takeIf { it.isNotEmpty() }
+        return FeedSearchResult(title, imageUrl, feedUrl, author, null, null, -1, "Itunes")
+    }
+
+    private val feedUrlRegex = Regex(""""feedUrl"\s*:\s*"([^"]+)"""")
+
+    private suspend fun extractAppleFeedUrl(collectionViewUrl: String): String? {
+        fun unescapeUrl(url: String): String {
+            return url.replace("\\/", "/")
+        }
+        return runCatching {
+            val html = getKtorClient().get(collectionViewUrl) {
+                header(HttpHeaders.UserAgent, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+            }.bodyAsText()
+            val directMatch = feedUrlRegex.find(html)?.groupValues?.get(1)
+            if (directMatch != null) return@runCatching unescapeUrl(directMatch)
+
+            val doc = Ksoup.parse(html)
+            val scriptElements = doc.select("script[type=application/json], script#serialized-server-data, script")
+            for (script in scriptElements) {
+                val content = script.html()
+                val match = feedUrlRegex.find(content)?.groupValues?.get(1)
+                if (match != null) return@runCatching unescapeUrl(match)
+            }
+            null
+        }.getOrNull()
+    }
+}
 class CombinedSearcher : FeedSearcher {
     override suspend fun search(query: String): List<FeedSearchResult> {
         Logd(TAG, "CombinedSearcher search")
@@ -252,6 +291,7 @@ object PodcastSearcherRegistry {
                 val extSearchers = sourceClients.mapNotNull { it.feedSearcher }
                 if (extSearchers.isNotEmpty()) field.addAll(extSearchers.map { SearcherInfo(it.name?:"Anonymous", it, 1.0f) })
                 field.add(SearcherInfo(FeedSearchers.Apple.name, ItunesSearcher(), 1.0f))
+                field.add(SearcherInfo(FeedSearchers.AppleDeep.name, ItunesDeepSearcher(), 0.0f))
                 field.add(SearcherInfo(FeedSearchers.PodcastIndex.name, PodcastIndexSearcher(), 1.0f))
             }
             return field

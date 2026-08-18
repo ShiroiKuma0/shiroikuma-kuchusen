@@ -55,6 +55,7 @@ object ClientConfig {
         monitorFeeds()
         monitorVolumes()
         initQueues()
+
         SslProviderInstaller.install()
         EpisodeAdrDLManager.manager = EpisodeAdrDLManager()
         SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }

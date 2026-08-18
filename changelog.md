@@ -1,3 +1,19 @@
+# 12.7.0
+
+* corrected position saver interval setting based on 12.6.3
+* pause player and cancel position saver after multi-rounds of same position
+* fixed possible infinite loop of open/close cache data source
+* fixed issues with playing with a timer
+* in Toast popup, added Close icon to clear currently shown
+* amended OnlineFeedItem
+* in TopChart screen, 
+	* ensure first search results are based on the selected country
+	* improved country selection popup
+* in FindFeeds screen
+	* added result counter near the top
+	* search results are cached
+	* added "Apple deep searcher" to scrap websites for hidden feedUrl's, slower, excluded from Combined searcher
+
 # 12.6.3
 
 * ensure external client is available in ShareReceiverActivity

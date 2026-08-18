@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.receiver.AlarmReceiver
+import ac.mdiq.podcini.receiver.TimerReceiver
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -38,12 +38,11 @@ fun playEpisodeAtTime(triggerTime: Long, episodeId: Long, repeat: Boolean = fals
         }
     }
 
-    val intent = Intent(context, AlarmReceiver::class.java).apply {
+    val intent = Intent(context, TimerReceiver::class.java).apply {
         putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episodeId.toString() + ":" + repeat)
     }
 
     val timer = Timer()
-//    timer.id = getEntityId()
     timer.episodeId = episodeId
     timer.triggerTime = triggerTime
     timer.alarmId = idFromTriggerTime(triggerTime)
@@ -65,7 +64,7 @@ fun setOneTimeAlarm(triggerTime: Long, message: AlarmTypes) {
         }
     }
 
-    val intent = Intent(context, AlarmReceiver::class.java).apply {
+    val intent = Intent(context, TimerReceiver::class.java).apply {
         putExtra(ALARM_TYPE, message.name)
     }
 
@@ -85,7 +84,7 @@ fun setCountdownMinutes(countdown: Int, message: AlarmTypes) {
         }
     }
 
-    val intent = Intent(context, AlarmReceiver::class.java).apply {
+    val intent = Intent(context, TimerReceiver::class.java).apply {
         putExtra(ALARM_TYPE, message.name)
     }
 

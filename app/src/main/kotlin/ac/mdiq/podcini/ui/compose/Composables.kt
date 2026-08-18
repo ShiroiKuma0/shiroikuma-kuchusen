@@ -286,9 +286,10 @@ fun CommonToast(toasts: MutableList<ToastMessage>, onDismiss: () -> Unit) {
         Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }, properties = PopupProperties(focusable = false, clippingEnabled = false)) {
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 var onHold by remember { mutableStateOf(false) }
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.End) {
-                    val color = if (onHold) Color.Red else Color.Green
-                    Icon(Icons.Filled.Lock, tint = color, contentDescription = "lock", modifier = Modifier.padding(end = 8.dp).clickable { onHold = !onHold })
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                    Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(start = 8.dp).clickable { toasts.removeAll(toasts.take(3)) })
+                    Spacer(Modifier.weight(1f))
+                    Icon(Icons.Filled.Lock, tint = if (onHold) Color.Red else Color.Green, contentDescription = "lock", modifier = Modifier.padding(end = 8.dp).clickable { onHold = !onHold })
                 }
                 for (toast in toasts.take(3)) {
                     LaunchedEffect(toast, isForeground, onHold) {

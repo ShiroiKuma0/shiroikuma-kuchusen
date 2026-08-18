@@ -87,6 +87,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private var searchText by mutableStateOf("")
+internal var searchResults by mutableStateOf<List<FeedSearchResult>>(listOf())
 
 fun searchFeedsOnline(searcherName: String = "", query: String? = null) {
     searchText = query ?: ""
@@ -97,7 +98,6 @@ fun searchFeedsOnline(searcherName: String = "", query: String? = null) {
 }
 
 class FindFeedsVM: ViewModel() {
-    internal var searchResults by mutableStateOf<List<FeedSearchResult>>(listOf())
 
     internal var readElements by mutableStateOf<List<OpmlElement>>(listOf())
 
@@ -116,7 +116,7 @@ class FindFeedsVM: ViewModel() {
             numberOPMLFeedsToRestore.intValue = appPrefs.OPMLFeedsToRestore
             showOPMLRestoreDialog.value = true
         }
-        search(searchText)
+//        search(searchText)
     }
 
     @SuppressLint("StringFormatMatches")
@@ -214,6 +214,10 @@ fun FindFeedsScreen() {
                 searchFeedsOnline(FeedSearchers.Apple.name)
                 showAdvanced = false
             })
+            Text(stringResource(R.string.deep_search_itunes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
+                searchFeedsOnline(FeedSearchers.AppleDeep.name)
+                showAdvanced = false
+            })
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable {
                 searchFeedsOnline(FeedSearchers.PodcastIndex.name)
                 showAdvanced = false
@@ -249,19 +253,21 @@ fun FindFeedsScreen() {
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {
                 Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable { navTo(TopChart) })
                 Spacer(Modifier.weight(1f))
+                Text(searchResults.size.toString(), color = textColor, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.weight(1f))
                 Text(stringResource(R.string.local_folder),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable {
                     try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
                 })
             }
 
             if (vm.showProgress) CircularProgressIndicator(strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
-            if (vm.searchResults.isNotEmpty()) LazyColumn(state = rememberLazyListState(), verticalArrangement = Arrangement.spacedBy(8.dp),
+            if (searchResults.isNotEmpty()) LazyColumn(state = rememberLazyListState(), verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).constrainAs(gridView) {
                     top.linkTo(controlRow.bottom)
                     bottom.linkTo(parent.bottom)
                     start.linkTo(parent.start)
                 }) {
-                items(vm.searchResults) { result ->
+                items(searchResults) { result ->
                     val urlPrepared = remember(result.feedUrl) { prepareUrl(result.feedUrl!!) }
                     val sLog = remember(urlPrepared, result.title, feedLogsMap) { feedLogsMap?.get(urlPrepared) ?: feedLogsMap?.get(result.title) }
                     OnlineFeedItem(result, sLog)

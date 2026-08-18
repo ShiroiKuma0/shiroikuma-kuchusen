@@ -84,7 +84,7 @@
         </receiver>
 
         <receiver
-            android:name=".receiver.AlarmReceiver"
+            android:name=".receiver.TimerReceiver"
             android:enabled="true"
             android:exported="false">
         </receiver>

@@ -55,12 +55,14 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -85,6 +87,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.io.IOException
@@ -113,7 +118,25 @@ class DiscoveryVM: ViewModel() {
     var showProgress by  mutableStateOf(true)
     var noResultText by  mutableStateOf("")
 
-    fun loadToplist() {
+    init {
+        timeIt("$TAG start of init")
+        countryCode = appAttribs.topChartCountryCode
+        Logd(TAG, "init countryCode: $countryCode")
+        for (code in Locale.getISOCountries()) {
+            val countryName = Locale.Builder().setRegion(code).build().displayCountry
+//            Logd(TAG, "code: $code countryName: $countryName")
+            countryCodeNameMap[code] = countryName
+            countryNameCodeMap[countryName] = code
+        }
+        countryNamesSort = countryCodeNameMap.values.sorted()
+        selectedCountry = countryCodeNameMap[countryCode] ?: ""
+        textInput = selectedCountry
+
+        loadToplist(countryCode)
+        timeIt("$TAG end of init")
+    }
+
+    fun loadToplist(loadCountry_: String) {
         searchResults = listOf()
         errorText = ""
         retryQerry = ""
@@ -124,10 +147,12 @@ class DiscoveryVM: ViewModel() {
             try {
                 val NUM_LOADED = 100
                 val COUNTRY_CODE_UNSET = "99"
-                var loadCountry = countryCode
+                var loadCountry = loadCountry_
+                Logd(TAG, "loadToplist0 loadCountry: $loadCountry countryCode: $countryCode")
                 if (countryCode == COUNTRY_CODE_UNSET) loadCountry = Locale.getDefault().country
+                Logd(TAG, "loadToplist loadCountry: $loadCountry countryCode: $countryCode")
                 val reqStr = if (curGenre > 0) "https://itunes.apple.com/$loadCountry/rss/toppodcasts/limit=$NUM_LOADED/genre=$curGenre/json" else "https://itunes.apple.com/$loadCountry/rss/toppodcasts/limit=$NUM_LOADED/json"
-                Logd(TAG, "getTopListFeed reqStr: $reqStr")
+                Logd(TAG, "loadToplist reqStr: $reqStr")
 
                 val feedString = try {
                     val response = getKtorClient().get(reqStr) { header(HttpHeaders.CacheControl, "max-stale=86400") }
@@ -137,7 +162,7 @@ class DiscoveryVM: ViewModel() {
                         else -> throw IOException("${getAppContext().getString(R.string.error_msg_prefix)} ${response.status}")
                     }
                 } catch (e: Exception) {
-                    Logs(TAG, e, "get feedString error")
+                    Logs(TAG, e, "loadToplist get feedString error")
                     ""
                 }
                 @Throws(JSONException::class)
@@ -197,23 +222,6 @@ class DiscoveryVM: ViewModel() {
             }
         }
     }
-
-    init {
-        timeIt("$TAG start of init")
-        countryCode = appAttribs.topChartCountryCode
-        for (code in Locale.getISOCountries()) {
-            val countryName = Locale.Builder().setRegion(code).build().displayCountry
-//            Logd(TAG, "code: $code countryName: $countryName")
-            countryCodeNameMap[code] = countryName
-            countryNameCodeMap[countryName] = code
-        }
-        countryNamesSort = countryCodeNameMap.values.sorted()
-        selectedCountry = countryCodeNameMap[countryCode] ?: ""
-        textInput = selectedCountry
-
-        loadToplist()
-        timeIt("$TAG end of init")
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -247,21 +255,27 @@ fun TopChartScreen() {
         fun CountrySelection() {
             var filteredCountries by remember { mutableStateOf(vm.countryNamesSort) }
             var expanded by remember { mutableStateOf(false) }
+            var debouncedText by remember { mutableStateOf("") }
+
+            LaunchedEffect(key1 = vm.textInput) {
+                snapshotFlow { vm.textInput }.debounce(500L).distinctUntilChanged().collectLatest { query ->
+                    if (query.length > 1 && debouncedText != query) {
+                        debouncedText = query
+                        filteredCountries = vm.countryNamesSort.filter { it.contains(query, ignoreCase = true) }.take(5)
+                        Logd(TAG, "input: $query filteredCountries: ${filteredCountries.size}")
+                        expanded = filteredCountries.isNotEmpty()
+                    }
+                }
+            }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                 TextField(value = vm.textInput, modifier = Modifier.fillMaxWidth().padding(20.dp).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, false), readOnly = false,
-                    onValueChange = { input ->
-                        vm.textInput = input
-                        if (vm.textInput.length > 1) {
-                            filteredCountries = vm.countryNamesSort.filter { it.contains(input, ignoreCase = true) }.take(5)
-                            Logd(TAG, "input: $input filteredCountries: ${filteredCountries.size}")
-                            expanded = filteredCountries.isNotEmpty()
-                        }
-                    },
+                    onValueChange = { input -> vm.textInput = input },
                     label = { Text(stringResource(id = R.string.select_country)) })
                 ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     filteredCountries.forEach { country ->
                         DropdownMenuItem(text = { Text(text = country) }, onClick = {
                             vm.selectedCountry = country
+                            debouncedText = country
                             vm.textInput = country
                             expanded = false
                         })
@@ -277,7 +291,7 @@ fun TopChartScreen() {
                     if (vm.countryNameCodeMap.containsKey(vm.selectedCountry)) vm.countryCode = vm.countryNameCodeMap[vm.selectedCountry]!!
                     upsertBlk(appAttribs) { it.topChartCountryCode = vm.countryCode }
 //                    EventFlow.postEvent(FlowEvent.DiscoveryDefaultUpdateEvent())
-                    vm.loadToplist()
+                    vm.loadToplist(vm.countryCode)
                     onDismiss()
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
@@ -300,7 +314,7 @@ fun TopChartScreen() {
                                 vm.curIndex = index
                                 vm.curGenre = genres[genres.keys.toList()[index]] ?: 0
                                 Logd(TAG, "SpinnerExternalSet ${vm.curIndex} curGenre: ${vm.curGenre}")
-                                vm.loadToplist()
+                                vm.loadToplist(vm.countryCode)
                                 showChooseGenre = false
                             })
                     }
@@ -341,7 +355,7 @@ fun TopChartScreen() {
             }
             if (vm.searchResults.isEmpty()) Text(vm.noResultText, color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
             if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
-            if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.loadToplist() } ) { Text(vm.retryQerry) }
+            if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.loadToplist(vm.countryCode) } ) { Text(vm.retryQerry) }
             Text(context.getString(R.string.search_powered_by, "Apple"), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
                 .constrainAs(powered) {
                     bottom.linkTo(parent.bottom)

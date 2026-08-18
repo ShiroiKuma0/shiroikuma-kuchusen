@@ -41,7 +41,6 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
 //        val existingSpans = getCache().getCachedSpans(mediaId)
 //        Logd(TAG, "open Before listener: mediaId=[$mediaId] spans=${existingSpans.size}, totalBytes=${existingSpans.sumOf { it.length }}")
 
-        if (isOpen) try { cacheDataSource.close() } catch (_: Exception) { } finally { isOpen = false }
         val bytesToRead = cacheDataSource.open(dataSpec)
         Logd(TAG, "Open: position=${dataSpec.position}, length=$bytesToRead")
         isOpen = true

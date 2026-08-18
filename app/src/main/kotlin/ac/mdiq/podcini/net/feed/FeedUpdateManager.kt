@@ -60,6 +60,7 @@ object FeedUpdateManager {
     private const val WORK_ID_FEED_UPDATE_MANUAL = "feedUpdateManual"
     internal const val EXTRA_FEED_IDS: String = "feedIds"
 
+    // TODO: not used
     const val EXTRA_NEXT_PAGE: String = "next_page"
     const val EXTRA_FULL_UPDATE: String = "full_update"
     const val EXTRA_UPDATE_ANYWAY: String = "update_anyway"

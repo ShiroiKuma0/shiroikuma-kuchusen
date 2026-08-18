@@ -153,6 +153,7 @@ abstract class MediaPlayerBase {
     var muxedSpecs: List<VideoSpec> = listOf()
 
     private var prevPosition: Int = -1
+    private var samePositionCount: Int = 0
 
     var curSpeed by mutableFloatStateOf(SPEED_USE_GLOBAL)
     var curPBSpeed by mutableFloatStateOf(1f)
@@ -398,10 +399,13 @@ abstract class MediaPlayerBase {
     private var positionSaverJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    var positionSaverInterval: Long = MIN_POSITION_SAVER_INTERVAL.toLong()
+    private var positionSaverInterval: Long = MIN_POSITION_SAVER_INTERVAL.toLong()
 
-    fun resetPosSaverInterval(speed: Float) {
-        curEpisode?.apply { positionSaverInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, (this.duration / 50 / speed).toInt()).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong() }
+    protected fun resetPosSaverInterval(speed: Float) {
+        curEpisode?.apply {
+            Logd(TAG, "resetPosSaverInterval speed: $speed duration: ${this.duration} ${(0.02 * this.duration / speed).toInt()}")
+            positionSaverInterval = (if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, (0.02 * this.duration / speed).toInt()) else MIN_POSITION_SAVER_INTERVAL).toLong()
+        }
     }
 
     @Synchronized
@@ -411,10 +415,10 @@ abstract class MediaPlayerBase {
             while (isActive) {
                 delay(positionSaverInterval.milliseconds)
                 val position = getPosition()
-                val duration = getDuration()
-                Logd(TAG, "positionSaverTick currentPosition: $position")
+                Logd(TAG, "positionSaverTick positionSaverInterval: $positionSaverInterval currentPosition: $position $prevPosition")
                 if (position != prevPosition) {
                     // skip ending
+                    val duration = getDuration()
                     val remainingTime = duration - position
                     val item = curEpisode ?: continue
                     val skipEnd = item.feed?.endingSkip ?: 0
@@ -428,6 +432,10 @@ abstract class MediaPlayerBase {
                     }
                     persistCurrentPosition(false, curEpisode, position)
                     prevPosition = position
+                    samePositionCount = 0
+                } else {
+                    samePositionCount++
+                    if (samePositionCount > 10) pause(false)
                 }
                 invokeBufferListener()
             }
@@ -444,7 +452,7 @@ abstract class MediaPlayerBase {
 
     abstract fun getPlaybackSpeed(): Float
 
-    abstract fun setDuration()
+    abstract fun fixDuration()
 
     fun getDuration(): Int = curEpisode?.duration ?: Episode.INVALID_TIME
 
@@ -601,7 +609,7 @@ abstract class MediaPlayerBase {
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
             setSource()
 //            if (mediaType == MediaType.VIDEO) videoSize = Pair(videoWidth, videoHeight)
-            if (curEpisode != null && curEpisode!!.duration <= 0) setDuration()
+            if (curEpisode != null && curEpisode!!.duration <= 0) fixDuration()
             setPlayerStatus(PlayerStatus.PREPARED, curEpisode)
             if (isStartWhenPrepared) play()
         } else Logt(TAG, "prepare() call ignored with status: $status")
@@ -748,8 +756,6 @@ abstract class MediaPlayerBase {
     }
 
     private fun onPlaybackStart(playable: Episode, position: Int) {
-//        positionSaverInterval = if (appPrefs.useAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, (playable.duration / 50 / curSpeed).toInt()).toLong() else MIN_POSITION_SAVER_INTERVAL.toLong()
-        positionSaverInterval = MIN_POSITION_SAVER_INTERVAL.toLong()
         Logd(TAG, "onPlaybackStart ${playable.title}")
         Logd(TAG, "onPlaybackStart position: $position delayInterval: $positionSaverInterval")
         if (position != Episode.INVALID_TIME) {
@@ -1076,6 +1082,8 @@ abstract class MediaPlayerBase {
         private val TAG: String = MediaPlayerBase::class.simpleName ?: "Anonymous"
 
         private const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
+
+        var handleAudioFocus: Boolean = false
 
         val hardwareVp9 by lazy { supportsHardwareVp9() }
         val hardwareAv1 by lazy { supportsHardwareAv1() }

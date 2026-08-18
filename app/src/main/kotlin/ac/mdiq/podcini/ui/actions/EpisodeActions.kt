@@ -112,7 +112,7 @@ val episodeActions: List<EpisodeAction> = listOf(
     RemoveFromHistory(),
     Erase(),
 
-    Alarm())
+    Timer())
 
 class NoAction : EpisodeAction() {
     override val id: String
@@ -559,9 +559,9 @@ class Erase : EpisodeAction() {
     }
 }
 
-class Alarm : EpisodeAction() {
+class Timer : EpisodeAction() {
     override val id: String
-        get() = "ALARM"
+        get() = "Timer"
     private var showTimerDialog by mutableStateOf(false)
     override val title: String
         get() = getAppContext().getString(R.string.alarm_episodes_label)

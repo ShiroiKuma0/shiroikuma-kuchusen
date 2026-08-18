@@ -15,6 +15,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.activeTheatres
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.theatres
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.handleAudioFocus
 import ac.mdiq.podcini.playback.base.TTSEngine
 import ac.mdiq.podcini.playback.base.TTSEngine.doTTS
 import ac.mdiq.podcini.playback.base.TTSEngine.doTTSNow
@@ -105,6 +106,7 @@ class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: 
 
     fun onClick() {
         val context = getAppContext()
+        handleAudioFocus = true
         fun fileNotExist(): Boolean {
             if (!item.isDownloaded()) {
                 Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")

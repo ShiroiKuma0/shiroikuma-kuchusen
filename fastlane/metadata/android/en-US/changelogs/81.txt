@@ -1,7 +1,0 @@
-* in PlayerDetailed
-	* added media url
-	* external media panel is shown only when not playing
-	* when changing audio stream in the panel, clears the media from cache first
-* both url in EpisodeInfo and PlayerDetailed are long-clickable for sharing
-* in PlayerUI, fast rewind icon is changed to skipback and rewind icon (long-click rewinds to beginning)
-* adjusted Feed scoring algorithm a bit: partially played media does not penalize if the media is given a higher rating than OK
