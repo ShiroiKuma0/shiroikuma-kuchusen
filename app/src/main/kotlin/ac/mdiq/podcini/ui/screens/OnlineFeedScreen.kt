@@ -366,7 +366,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         showProgress = false
         showFeedDisplay = true
         if (isFeedFoundBySearch) Loge(TAG, getAppContext().getString(R.string.no_feed_url_podcast_found_by_search))
-        handleUpdatedFeedStatus()
+        handleSubscribeStatus()
     }
 
     internal fun showEpisodes() {
@@ -389,12 +389,11 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         showEpisodes = true
     }
 
-    internal fun handleUpdatedFeedStatus() {
-        val dli = EpisodeAdrDLManager.manager
-        if (dli == null || preparedUrl.isBlank()) return
+    internal fun handleSubscribeStatus() {
+        if (preparedUrl.isBlank()) return
 
         when {
-            dli.isDownloading(preparedUrl) -> {
+            EpisodeAdrDLManager.manager.isDownloading(preparedUrl) -> {
                 Logd(TAG, "handleUpdatedFeedStatus isDownloading")
                 enableSubscribe = false
                 subButTextRes = R.string.subscribe_label
@@ -405,14 +404,16 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                 subButTextRes = R.string.open
                 if (subscribePress) {
                     subscribePress = false
-                    val feedExisting = getFeed(feedId, true)?: return
-                    Logd(TAG, "handleUpdatedFeedStatus ${feedExisting.title} ${feedExisting.author}")
-                    if (appPrefs.enableAutoDl && !isExtFeed(feedExisting)) feedExisting.autoDownload = autoDownloadChecked
-                    if (!username.isNullOrBlank()) {
-                        feedExisting.username = username
-                        feedExisting.password = password
+                    runOnIOScope {
+                        val feedExisting = getFeed(feedId, true)?: return@runOnIOScope
+                        Logd(TAG, "handleUpdatedFeedStatus ${feedExisting.title} ${feedExisting.author}")
+                        if (appPrefs.enableAutoDl && !isExtFeed(feedExisting)) feedExisting.autoDownload = autoDownloadChecked
+                        if (!username.isNullOrBlank()) {
+                            feedExisting.username = username
+                            feedExisting.password = password
+                        }
+                        upsert(feedExisting) {}
                     }
-                    runOnIOScope { upsert(feedExisting) {} }
                 }
             }
             else -> {
@@ -613,11 +614,13 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                                         if (log != null) upsertBlk(log) { it.status = ShareLog.Status.SUCCESS.code }
                                     }
                                     withContext(Dispatchers.Main) {
-                                        vm.feedId = vm.feed?.id ?: 0L
-                                        vm.enableSubscribe = true
-                                        vm.subButTextRes = R.string.open
-                                        vm.subscribePress = true
-                                        vm.handleUpdatedFeedStatus()
+                                        runCatching {
+                                            vm.subscribePress = true
+                                            vm.feedId = vm.feed?.id ?: 0L
+                                            vm.enableSubscribe = true
+                                            vm.subButTextRes = R.string.open
+                                            vm.handleSubscribeStatus()
+                                        }
                                     }
                                 }
                             }

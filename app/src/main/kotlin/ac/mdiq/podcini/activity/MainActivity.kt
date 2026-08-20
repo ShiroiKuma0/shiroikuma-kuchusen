@@ -7,6 +7,7 @@ import ac.mdiq.podcini.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
+import ac.mdiq.podcini.net.sync.SyncService
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
@@ -152,8 +153,8 @@ class MainActivity : BaseActivity() {
         timeIt("$TAG after handleNavIntent")
         intentState = intent
 
-        if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
-        if (!hasInitialized.value) hasInitialized.value = true
+//        if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
+//        if (!hasInitialized.value) hasInitialized.value = true
 
         title = "Podcini.MainActivity"
 
@@ -166,17 +167,20 @@ class MainActivity : BaseActivity() {
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postForNotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
-        timeIt("$TAG after checking permission")
 
-        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
-        val lastScheduledVersion = appPrefs.lastVersion
-        if (currentVersion != lastScheduledVersion) {
-            upsertBlk(appPrefs) { it.lastVersion = currentVersion }
+        if (savedInstanceState == null) {
+            timeIt("$TAG after checking permission")
+            val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
+            val lastScheduledVersion = appPrefs.lastVersion
+            if (currentVersion != lastScheduledVersion) {
+                upsertBlk(appPrefs) { it.lastVersion = currentVersion }
+            }
+
+            SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }
+            scheduleUpdateTaskOnce(replace = false)
         }
 
-        runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
-
-        scheduleUpdateTaskOnce(replace = false)
+        runOnIOScope { SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
         WorkManager.getInstance(this).getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
             .observe(this) { workInfos: List<WorkInfo> ->

@@ -177,8 +177,6 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { showHomeScreen = false }
 
-    Logd(TAG, "mimeType: ${episode.mimeType}")
-
     var showShareDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showAddTimerDialog by remember { mutableStateOf(false) }

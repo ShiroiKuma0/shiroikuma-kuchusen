@@ -148,7 +148,7 @@ abstract class EpisodeCleanupAlgorithm {
         val toDelete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
         for (episode in toDelete) {
             if (episode.feed != null && !episode.feed!!.isLocal) {
-                EpisodeAdrDLManager.manager?.cancel(episode)
+                EpisodeAdrDLManager.manager.cancel(episode)
                 if (episode.downloaded) deleteMedia(episode)
             }
         }

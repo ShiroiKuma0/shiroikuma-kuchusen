@@ -1,3 +1,13 @@
+# 12.7.1
+
+* tuned app initialization
+* timers are only allowed to be set to the future
+* in Timers view of Facets screen, fixed crash when auto clearing old timers
+* added Episode action "Add Todo" to restore adding todos to episodes
+* amended Todos display and editing
+* in OnlineFeed screen, fixed error on Subscribe and exit
+* some code refactoring
+
 # 12.7.0
 
 * corrected position saver interval setting based on 12.6.3

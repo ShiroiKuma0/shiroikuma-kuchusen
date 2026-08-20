@@ -111,7 +111,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     suspend fun deleteItems(items_: List<Episode>) {
         for (episode in items_) {
             if (episode.feed != null && !episode.feed!!.isLocal) {
-                EpisodeAdrDLManager.manager?.cancel(episode)
+                EpisodeAdrDLManager.manager.cancel(episode)
                 if (episode.downloaded) deleteMedia(episode)
             }
         }

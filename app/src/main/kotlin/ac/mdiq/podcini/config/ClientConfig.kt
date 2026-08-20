@@ -1,9 +1,6 @@
 package ac.mdiq.podcini.config
 
-import ac.mdiq.podcini.net.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.net.ssl.SslProviderInstaller
-import ac.mdiq.podcini.net.sync.SyncService
-import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkChangedDetected
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.InTheatre.releaseAController
@@ -20,8 +17,7 @@ import ac.mdiq.podcini.storage.database.monitorFeeds
 import ac.mdiq.podcini.storage.database.proxyConfig
 import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
 import ac.mdiq.podcini.storage.model.monitorVolumes
-import ac.mdiq.podcini.storage.utils.createCacheDir
-import ac.mdiq.podcini.storage.utils.createNoMediaFile
+import ac.mdiq.podcini.storage.utils.initStorage
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.timeIt
 import kotlinx.coroutines.CoroutineScope
@@ -45,23 +41,18 @@ object ClientConfig {
 
         if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch { networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) } }
 
-        CoroutineScope(Dispatchers.IO).launch { createCacheDir() }
+        initStorage()
 
         Logd("ClientConfigurator", "initialize")
         timeIt("ClientConfigurator Init started ")
-
-        createNoMediaFile()
 
         monitorFeeds()
         monitorVolumes()
         initQueues()
 
         SslProviderInstaller.install()
-        EpisodeAdrDLManager.manager = EpisodeAdrDLManager()
-        SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }
         configProxy(proxyConfig)
         createNotificationChannels()
-//        defaultProvider.init()
 
         timeIt("ClientConfigurator Init ends ")
         initialized = true

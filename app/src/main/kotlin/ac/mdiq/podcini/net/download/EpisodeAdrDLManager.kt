@@ -56,6 +56,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 class EpisodeAdrDLManager: EpisodeDLManager() {
     private val constraints: Constraints
@@ -130,8 +131,7 @@ class EpisodeAdrDLManager: EpisodeDLManager() {
         const val WORK_DATA_PROGRESS: String = "progress"
         const val WORK_DATA_WAS_QUEUED: String = "was_queued"
 
-        var manager: EpisodeAdrDLManager? = null
-
+        val manager: EpisodeAdrDLManager by lazy { EpisodeAdrDLManager() }
     }
 }
 
@@ -160,11 +160,11 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
                 while (isActive) {
                     try {
                         synchronized(notificationProgress) { notificationProgress.put(media.getEpisodeTitle(), request.progressPercent) }
-                        withTimeoutOrNull(5000) {
+                        withTimeoutOrNull(5000.milliseconds) {
                             setProgressAsync(Data.Builder().putInt(WORK_DATA_PROGRESS, request.progressPercent).build()).get()
                             nm.notify(R.id.notification_downloading, generateProgressNotification())
                         }
-                        delay(1000)
+                        delay(1000.milliseconds)
                     } catch (e: CancellationException) { return@launch
                     } catch (e: Exception) {
                         Loge(TAG, e, "Episode download progressUpdaterJob exception")

@@ -23,7 +23,6 @@ object SynchronizationQueueSink {
         if (nowInMillis() - lastSyncAttempt > 1000 * 60 * 10) syncNow()
     }
 
-    
     fun clearQueue() {
         LockingAsyncExecutor.executeLockedAsync { SynchronizationQueueStorage().clearQueue() }
     }

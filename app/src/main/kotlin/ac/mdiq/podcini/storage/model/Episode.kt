@@ -561,7 +561,7 @@ class Episode : RealmObject {
         if (marks.size != other.marks.size) return false
         if (chapters.size != other.chapters.size) return false
         if (comment != other.comment) return false
-        if (todos.size != other.todos.size) return false
+        if (todos != other.todos) return false
         if (fileUrl != other.fileUrl) return false
         if (mimeType != other.mimeType) return false
         if (origFeedTitle != other.origFeedTitle) return false
@@ -606,7 +606,7 @@ class Episode : RealmObject {
         result = 31 * result + marks.size
         result = 31 * result + chapters.size
         result = 31 * result + comment.hashCode()
-        result = 31 * result + todos.size
+        result = 31 * result + todos.hashCode()
         result = 31 * result + (fileUrl?.hashCode() ?: 0)
         result = 31 * result + (mimeType?.hashCode() ?: 0)
         result = 31 * result + (origFeedTitle?.hashCode() ?: 0)

@@ -238,12 +238,7 @@ class FacetsVM(modeName_: String): ViewModel() {
                 val time = nowInMillis()
                 val ids = appAttribs.timetable.filter { it.triggerTime > time }.map { it.episodeId }
                 val sortPair = sortPairOf(sortOrder)
-                runOnIOScope {
-                    upsert(appAttribs) {
-                        val oldTimers = it.timetable.filter { t -> t.triggerTime < time }
-                        it.timetable.removeAll(oldTimers)
-                    }
-                }
+                runOnIOScope { upsert(appAttribs) { it.timetable.removeAll { timer -> timer.triggerTime < time } } }
                 realm.query(Episode::class).query("id IN $0", ids).sort(sortPair).asFlow()
             }
             QuickAccess.Todos -> {

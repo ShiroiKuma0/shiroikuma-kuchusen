@@ -54,46 +54,6 @@ fun playEpisodeAtTime(triggerTime: Long, episodeId: Long, repeat: Boolean = fals
     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
 }
 
-fun setOneTimeAlarm(triggerTime: Long, message: AlarmTypes) {
-    val context = getAppContext()
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (!alarmManager.canScheduleExactAlarms()) {
-            requestExactAlarmPermission()
-            return
-        }
-    }
-
-    val intent = Intent(context, TimerReceiver::class.java).apply {
-        putExtra(ALARM_TYPE, message.name)
-    }
-
-    val id = idFromTriggerTime(triggerTime)
-    val pendingIntent = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-
-    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-}
-
-fun setCountdownMinutes(countdown: Int, message: AlarmTypes) {
-    val context = getAppContext()
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (!alarmManager.canScheduleExactAlarms()) {
-            requestExactAlarmPermission()
-            return
-        }
-    }
-
-    val intent = Intent(context, TimerReceiver::class.java).apply {
-        putExtra(ALARM_TYPE, message.name)
-    }
-
-    val triggerAt = SystemClock.elapsedRealtime() + countdown * 60 * 1000
-    val id = idFromTriggerTime(triggerAt)
-    val pendingIntent = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_IMMUTABLE)
-    alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
-}
-
 fun requestExactAlarmPermission() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val context = getAppContext()

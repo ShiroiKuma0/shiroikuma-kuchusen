@@ -303,6 +303,7 @@
 
     <string name="comments">Comments</string>
     <string name="add_comments">Add comments</string>
+    <string name="add_todo">Add Todo</string>
 
     <string name="no_action_label">No action</string>
 
@@ -752,6 +753,9 @@
     <string name="restore_on_start">Restore on start</string>
 
     <string name="repeat_current_media">Repeat current media</string>
+
+    <string name="warn_time_past">Timer can only be set to the future</string>
+    <string name="edit_timee_error">Editing timer error</string>
 
 
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>

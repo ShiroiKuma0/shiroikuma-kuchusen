@@ -54,7 +54,7 @@ class AutoDownloadAlgorithm {
             if (toReplace.isNotEmpty()) {
                 for (episode in toReplace) {
                     if (episode.feed != null && !episode.feed!!.isLocal) {
-                        EpisodeAdrDLManager.manager?.cancel(episode)
+                        EpisodeAdrDLManager.manager.cancel(episode)
                         if (episode.downloaded) deleteMedia(episode)
                     }
                 }
@@ -73,7 +73,7 @@ class AutoDownloadAlgorithm {
                 var itemsToDownload = candidates.toMutableList()
                 if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
                 Logt(TAG, "Auto download requesting episodes: ${itemsToDownload.size}")
-                EpisodeAdrDLManager.manager?.download(itemsToDownload)
+                EpisodeAdrDLManager.manager.download(itemsToDownload)
                 itemsToDownload.clear()
             } else Logt(TAG, "Auto download not performed, allowed count exceeded: candidates: ${candidates.size} allowedCount: $allowedCount")
             candidates.clear()

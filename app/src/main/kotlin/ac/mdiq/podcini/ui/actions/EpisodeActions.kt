@@ -29,6 +29,7 @@ import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
+import ac.mdiq.podcini.ui.compose.TodoDialog
 
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.screens.Search
@@ -101,6 +102,7 @@ val episodeActions: List<EpisodeAction> = listOf(
 
     SetRating(),
     AddComment(),
+    AddTodo(),
     AddTag(),
 
     SearchSelected(),
@@ -355,6 +357,26 @@ class AddComment : EpisodeAction() {
             CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = { showEditComment = false },
                 onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, addition = false) } } })
         }
+    }
+}
+
+class AddTodo : EpisodeAction() {
+    override val id: String
+        get() = "TODO"
+    private var showEditTodo by mutableStateOf(false)
+    override val title: String
+        get() = getAppContext().getString(R.string.add_todo)
+
+    override val iconRes:  Int = R.drawable.outline_add_task_24
+    override val color: Color = Color(0xFFAACC00)
+
+    override fun performAction(e: Episode) {
+        onEpisode = e
+        showEditTodo = true
+    }
+    @Composable
+    override fun ActionOptions() {
+        if (showEditTodo && onEpisode != null) TodoDialog(onEpisode!!, onDismiss = { showEditTodo = false })
     }
 }
 

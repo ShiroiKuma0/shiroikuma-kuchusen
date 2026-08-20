@@ -70,6 +70,7 @@ import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sessionLogs
 import ac.mdiq.podcini.utils.shareLink
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -81,6 +82,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -137,6 +139,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -272,34 +275,27 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
 fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
     CommonDialogSurface(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            
             var title by remember { mutableStateOf(TextFieldValue(todo?.title ?: "")) }
-            BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
-            var addNote by remember { mutableStateOf(false) }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = addNote, onCheckedChange = { addNote = it })
-                Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
-            }
+            BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
+                decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart) { innerTextField() } })
             var note by remember { mutableStateOf(TextFieldValue(todo?.note ?: "")) }
-            if (addNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 12.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            var showNote by remember { mutableStateOf(note.text.isNotBlank()) }
+            Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp).clickable(onClick = { showNote = !showNote}))
+            if (showNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 14.sp, color = textColor), minLines = 1, maxLines = 8, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             val sysTime = remember { nowInMillis() }
             var dueTime by remember { mutableLongStateOf(0) }
-            var addDueTime by remember { mutableStateOf((todo?.dueTime ?: 0) > 0) }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = addDueTime, onCheckedChange = {
-                    addDueTime = it
-                    if (todo != null) {
-                        dueTime = if (addDueTime) todo.dueTime
-                        else 0
-                    }
-                })
-                Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp))
-            }
-            val zdt = remember(addDueTime) {
+            var showDueTime by remember { mutableStateOf((todo?.dueTime ?: 0) > 0) }
+            Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp).clickable(onClick = {
+                showDueTime = !showDueTime
+                if (todo != null) dueTime = if (showDueTime) todo.dueTime else 0
+            }))
+            val zdt = remember(showDueTime) {
                 val epochMillis = if (todo != null) {
-                    if (todo.dueTime > 0) todo.dueTime
-                    else if (addDueTime) sysTime
-                    else 0
+                    when {
+                        todo.dueTime > 0 -> todo.dueTime
+                        showDueTime -> sysTime
+                        else -> 0
+                    }
                 } else sysTime
                 Instant.fromEpochMilliseconds(epochMillis).toLocalDateTime(TimeZone.currentSystemDefault())
             }
@@ -308,7 +304,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
             var date by remember(zdt) { mutableIntStateOf(zdt.day) }
             var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
             var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
-            if (addDueTime) {
+            if (showDueTime) {
                 Text(stringResource(R.string.year) + " " + stringResource(R.string.month) + " " + stringResource(R.string.date))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     NumberEditor(year, "", nz = true, instant = true, modifier = Modifier.weight(0.5f)) { year = it }
@@ -324,7 +320,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
             Button(onClick = {
                 runOnIOScope {
                     try {
-                        if (addDueTime) dueTime = LocalDateTime(year = year, month = month, day = date, hour = hour, minute = minute, second = 0, nanosecond = 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                        if (showDueTime) dueTime = LocalDateTime(year = year, month = month, day = date, hour = hour, minute = minute, second = 0, nanosecond = 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
                         if (todo == null) {
                             val todo_ = todo ?: Todo()
                             todo_.id = getEntityId()
@@ -333,6 +329,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
                             todo_.dueTime = dueTime
                             upsert(episode) { it.todos.add(todo_) }
                         } else upsertBlkEmb(todo) { todo_ ->
+                            Logd(TAG, "editing todo title: $title note: $note")
                             todo_.title = title.text
                             todo_.note = note.text
                             todo_.dueTime = dueTime
@@ -429,27 +426,26 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             val playTimeText = remember(episode.lastPlayedTime) { formatDateTimeFlex(episode.lastPlayedTime) }
             Text(stringResource(R.string.last_played_date) + ": " + playTimeText, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         }
-        val todos = remember(episode.id) { episode.todos }
-        if (todos.isNotEmpty()) {
-            var show by remember { mutableStateOf(false) }
+        if (episode.todos.isNotEmpty()) {
+            var showTodos by remember { mutableStateOf(false) }
             var showDone by remember { mutableStateOf(false) }
             Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
                     onTodo = null
                     showTodoDialog = true
                 })
-                Spacer(Modifier.width(50.dp))
-                Checkbox(checked = show, onCheckedChange = { show = it })
-                Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge)
-                if (show) {
-                    Spacer(Modifier.width(50.dp))
+                Spacer(Modifier.width(20.dp))
+                Checkbox(checked = showTodos, onCheckedChange = { showTodos = it })
+                Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyMedium)
+                if (showTodos) {
+                    Spacer(Modifier.width(20.dp))
                     Checkbox(checked = showDone, onCheckedChange = { showDone = it })
-                    Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge)
+                    Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            if (show) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
+            if (showTodos) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
                 val localTime = remember { nowInMillis() }
-                for (todo in todos) {
+                for (todo in episode.todos) {
                     var done by remember(todo) { mutableStateOf(todo.completed) }
                     if (!done || showDone) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -464,10 +460,13 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                             Spacer(Modifier.weight(1f))
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable { upsertBlk(episode) { it.todos.remove(todo) } })
                         }
-                        if (todo.dueTime > 0) {
-                            val dueText = remember(todo.dueTime) { "D:" + formatDateTimeFlex(todo.dueTime) }
-                            val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
-                            Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
+                        Row {
+                            if (todo.dueTime > 0) {
+                                val dueText = remember(todo.dueTime) { "D:" + formatDateTimeFlex(todo.dueTime) }
+                                val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
+                                Text(dueText, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.background(bgColor).alignBy(FirstBaseline))
+                            }
+                            if (todo.note.isNotBlank()) Text(text = todo.note, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp).alignBy(FirstBaseline))
                         }
                     }
                 }
@@ -828,8 +827,10 @@ fun EpisodeTimetableDialog(episode: Episode, onDismiss: () -> Unit, cb: (Timer)-
     }
 }
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun EditTimerDialog(timer: Timer, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     CommonPopupCard(onDismiss = onDismiss) {
         val zdt = remember(timer.triggerTime) { Instant.fromEpochMilliseconds(timer.triggerTime).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
@@ -849,24 +850,27 @@ fun EditTimerDialog(timer: Timer, onDismiss: () -> Unit) {
                 NumberEditor(hour, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { hour = it }
                 NumberEditor(minute, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { minute = it }
             }
+            var wantText by remember { mutableStateOf("") }
+            if (wantText.isNotBlank()) Text(wantText, color = Color.Red)
             Button(onClick = {
-                runOnIOScope {
-                    try {
-                        val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                try {
+                    val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                    if (triggerTime < nowInMillis()) wantText = context.getString(R.string.warn_time_past)
+                    else {
                         val timer_ = upsertBlkEmb(timer) { it.triggerTime = triggerTime }
                         timer_.reset()
-                    } catch (e: Throwable) {
-                        Loge(TAG, e, "editing timer error")
+                        onDismiss()
                     }
-                }
-                onDismiss()
+                } catch (e: Throwable) { wantText = context.getString(R.string.warn_time_past) + ": " + e.message }
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun AddTimerDialog(episode: Episode, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     CommonPopupCard(onDismiss = onDismiss) {
         val zdt = remember { Instant.fromEpochMilliseconds(nowInMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var year by remember(zdt) { mutableIntStateOf(zdt.year) }
@@ -891,14 +895,18 @@ fun AddTimerDialog(episode: Episode, onDismiss: () -> Unit) {
                 Checkbox(checked = isRepeat, onCheckedChange = { isChecked -> isRepeat = isChecked })
                 Text(stringResource(R.string.repeat_current_media))
             }
+            var wantText by remember { mutableStateOf("") }
+            if (wantText.isNotBlank()) Text(wantText, color = Color.Red)
             Button(onClick = {
-                runOnIOScope {
-                    try {
-                        val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                try {
+                    val triggerTime = LocalDateTime(year, month, date, hour, minute, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                    if (triggerTime < nowInMillis()) wantText = context.getString(R.string.warn_time_past)
+                    else {
                         playEpisodeAtTime(triggerTime, episode.id, isRepeat)
-                    } catch (e: Throwable) { Loge(TAG, e, "editing timer error") }
-                }
-                onDismiss()
+                        onDismiss()
+                    }
+                } catch (e: Throwable) { wantText = context.getString(R.string.warn_time_past) + ": " + e.message }
+
             }) { Text(stringResource(R.string.confirm_label)) }
         }
     }

@@ -646,7 +646,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             Text(stringResource(id = R.string.add_comments)) } },
                         { if (!isExternal) Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.clickable {
                             onSelected()
-                            if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager?.downloadNow(selected, true)
+                            if (mobileAllowEpisodeDownload || !networkMonitor.isNetworkRestricted) EpisodeAdrDLManager.manager.downloadNow(selected, true)
                             else {
                                 commonConfirms.add(CommonConfirmAttrib(
                                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
@@ -654,8 +654,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                                     cancelRes = R.string.cancel_label,
                                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                                    onConfirm = { EpisodeAdrDLManager.manager?.download(selected) },
-                                    onNeutral = { EpisodeAdrDLManager.manager?.downloadNow(selected, true) }))
+                                    onConfirm = { EpisodeAdrDLManager.manager.download(selected) },
+                                    onNeutral = { EpisodeAdrDLManager.manager.downloadNow(selected, true) }))
                             }
                         }) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")

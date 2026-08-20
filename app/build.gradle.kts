@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 105
-        versionName = "12.7.0"
+        versionCode = 106
+        versionName = "12.7.1"
 
         ndkVersion = "29.0.14206865"
 
@@ -178,6 +178,7 @@ androidComponents {
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.08.00"))
+    implementation("androidx.compose.foundation:foundation-layout:1.12.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")

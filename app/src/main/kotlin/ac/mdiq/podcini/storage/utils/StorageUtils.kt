@@ -112,9 +112,27 @@ val freeSpaceAvailable: Long
 
 val cacheDir: UnifiedFile = internalDir / "cache"
 
-suspend fun createCacheDir() {
-    if (!cacheDir.exists()) internalDir.createDirectory("cache")
+fun initStorage() {
+    CoroutineScope(Dispatchers.IO).launch {
+        if (!cacheDir.exists()) internalDir.createDirectory("cache")
+        // Create a .nomedia file to prevent scanning by the media scanner.
+        val nomediaFile = mediaDir / ".nomedia"
+        if (!nomediaFile.exists()) {
+            try { mediaDir.createFile("", ".nomedia")
+            } catch (e: Exception) {
+                Logs(TAG, e, "failed creating .nomedia file")
+                if (customMediaUriString.isNotBlank()) {
+                    upsert(appPrefs) {
+                        it.useCustomMediaFolder = false
+                        it.customMediaUri = ""
+                        it.customFolderUnavailable = true
+                    }
+                }
+            }
+        }
+    }
 }
+
 
 var tempRoottree by mutableStateOf<Uri?>(null)
 
@@ -436,28 +454,6 @@ suspend fun deleteDirectoryRecursively(dir: UnifiedFile) {
         for (file in dir.listChildren()) deleteDirectoryRecursively(file)
     }
     dir.delete()
-}
-
-/**
- * Create a .nomedia file to prevent scanning by the media scanner.
- */
-fun createNoMediaFile() {
-    CoroutineScope(Dispatchers.IO).launch {
-        val nomediaFile = mediaDir / ".nomedia"
-        if (!nomediaFile.exists()) {
-            try { mediaDir.createFile("", ".nomedia")
-            } catch (e: Exception) {
-                Logs(TAG, e, "failed creating .nomedia file")
-                if (customMediaUriString.isNotBlank()) {
-                    upsert(appPrefs) {
-                        it.useCustomMediaFolder = false
-                        it.customMediaUri = ""
-                        it.customFolderUnavailable = true
-                    }
-                }
-            }
-        }
-    }
 }
 
 private val ACCENT_MAP: Map<Char, Char> = mapOf(

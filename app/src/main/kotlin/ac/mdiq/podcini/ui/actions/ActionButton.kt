@@ -148,7 +148,7 @@ class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: 
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInSystemDefault(item.link!!)
             ButtonTypes.CANCEL -> {
                 if (typeToCancel == ButtonTypes.DOWNLOAD) {
-                    runBlocking { EpisodeAdrDLManager.manager?.cancel(item) }
+                    runBlocking { EpisodeAdrDLManager.manager.cancel(item) }
                     if (appPrefs.enableAutoDl) upsertBlk(item) { it.isAutoDownloadEnabled = false }
                     type = ButtonTypes.DOWNLOAD
                 } else if (typeToCancel == ButtonTypes.TTS) {
@@ -250,7 +250,7 @@ class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: 
                         LogeFor(TAG, item.id, "episode downloadUrl is null or blank")
                         return true
                     }
-                    val isDownloading = EpisodeAdrDLManager.manager?.isDownloading(item.downloadUrl!!) == true
+                    val isDownloading = EpisodeAdrDLManager.manager.isDownloading(item.downloadUrl!!) == true
                     return isDownloading || item.downloaded
                 }
                 if (shouldNotDownload()) return
@@ -267,7 +267,7 @@ class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: 
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                    onConfirm = { EpisodeAdrDLManager.manager?.download( listOf(item)) },
+                    onConfirm = { EpisodeAdrDLManager.manager.download( listOf(item)) },
                     onNeutral = { downloadNow() }))
             }
             ButtonTypes.TTS_NOW -> {
@@ -334,7 +334,7 @@ class ActionButton(var item: Episode, val feed: Feed? = null, val preferSingle: 
         item = item_
         fun undownloadedType(): ButtonTypes {
             fun isDownloadingMedia(): Boolean {
-                return EpisodeAdrDLManager.manager?.isDownloading(item.downloadUrl!!) == true
+                return EpisodeAdrDLManager.manager.isDownloading(item.downloadUrl!!) == true
             }
             return when {
                 item.downloadUrl.isNullOrBlank() -> ButtonTypes.TTS
