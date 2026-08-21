@@ -2,6 +2,90 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.7.1+001 (versionCode 1060001)
+
+Rebased onto upstream **v12.7.1** (versionCode 106), taking in **two** upstream releases at once —
+12.7.0 arrived on 2026-08-18 and 12.7.1 superseded it two days later, so this fork line skips
+straight to the newer one. A pure tracking release: **no new fork features**, the whole custom layer
+replayed onto the new base and the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — neither upstream release changes a stored
+> shape. The one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x
+> build it still applies, so export from the UI page first.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **One collision, the recurring one.** `app/build.gradle.kts`, where upstream reasserts the version
+  literals (`106` / `"12.7.1"`) while the fork keeps deriving them from `forkVersionName` /
+  `forkVersionCode`. All twenty-nine commits of the custom layer applied otherwise clean — including
+  `Composables.kt`, the one file both sides touch this time: upstream rewrote the toast popup's
+  header row directly beneath the border and padding the house style adds to that popup, and the two
+  merged without a conflict.
+- **Version base moved to 12.7.1 / 106**, so this line's codes (`1060001`, `1060002`, …) all exceed
+  the 12.6.3 line's (`1040001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.7.0 and 12.7.1
+
+- **A second, slower Apple search that finds feeds the normal one hides.** "Deep search Apple
+  Podcasts" joins the advanced search list: when Apple's index returns a podcast with no feed URL
+  attached, it opens that podcast's Apple page and digs the real feed address out of the page
+  itself. It is deliberately excluded from "Search all sources" — it costs a web fetch per hidden
+  result, so it is there when the ordinary Apple search comes up short, not on every query.
+- **Search results survive leaving the screen.** The find-feeds list is no longer thrown away and
+  re-run when you navigate away and come back; the previous results are still there. A count of how
+  many were found now sits at the top of the screen.
+- **The top chart honours the country you picked, on the first load.** Opening the chart could fetch
+  the list for the wrong country because the request was assembled before the stored country code
+  was read; the country is now passed into the request explicitly. The country picker also stops
+  refiltering on every keystroke — it waits half a second after you stop typing.
+- **Subscribing and immediately leaving no longer errors.** The post-subscribe bookkeeping ran on the
+  UI thread while the screen was already tearing down; it moved to a background scope.
+- **Timers can only be set to the future.** Both the add- and edit-timer dialogs now check the time
+  you entered and, if it has already passed, show a red "Timer can only be set to the future" line
+  and stay open instead of silently accepting a timer that would never fire. A failed edit reports
+  itself the same way rather than disappearing into the log, and deleting a timer closes the dialog.
+- **The Timers view no longer crashes while clearing old timers.** Auto-removing expired timers from
+  the Facets screen removed embedded records by identity against a list of live references, which
+  could take the screen down; it is a single filtered removal now.
+- **A timer firing on a sleeping device waits for its source app.** The alarm receiver was rewritten
+  as a timer receiver: when external source providers are enabled it now waits for them to bind, and
+  gives playback a five-second grace period, before starting the episode.
+- **A timer no longer steals audio focus.** Audio focus is requested only for playback you started by
+  tapping a play button, so an episode started by a timer does not interrupt whatever else is
+  playing.
+- **Playback start waits for the player instead of poking the service.** Starting an episode before
+  the media controller has connected used to kick the playback service and hope; it now waits for the
+  controller to actually report connected, then starts. Player settings that were applied before the
+  player existed are applied inside the start path instead.
+- **A player stuck on the same position gives up.** If the saved position does not move for ten
+  consecutive checks, playback is paused rather than left spinning.
+- **An open/close loop in the cache reader is fixed** — the cached-media reader closed a connection it
+  was about to reuse, which could spin indefinitely.
+- **Progress-save timing corrected again.** The 2%-of-duration interval is now computed without
+  integer-dividing first, and the value set when you change speed is no longer overwritten back to
+  the minimum every time playback starts.
+- **Todos are reachable from the episode action list again.** "Add Todo" is back as an action, with
+  its own icon, opening the todo editor directly. The editor itself is tidier — the notes and
+  due-date fields open by tapping their labels instead of ticking checkboxes, the notes box grows to
+  eight lines and opens by itself when a todo already has one — and an edited todo now actually
+  refreshes on screen, where before an edit that kept the same number of todos went unnoticed.
+  Episode details shows a todo's note next to its due date.
+- **The toast popup gains a close button** beside the existing hold-to-keep lock, so a stack of
+  messages can be dismissed at once.
+- **Faster, less repetitive startup.** Cache and `.nomedia` setup collapse into one background job,
+  the download manager is built on first use instead of on every launch, and first-launch work —
+  version bookkeeping, sync-service wiring, the one-off feed update — is skipped when the app is
+  merely being recreated after a rotation or theme change.
+- **A failed Conscrypt install no longer takes startup with it.** On the GMS-free build the bundled
+  TLS provider now falls back to the system provider with a log line instead of throwing.
+- **Feed search results show more.** Every result now carries an author line ("Anonymous" when the
+  feed gives none) and an episode count, and the feed URL is no longer truncated to one line.
+- **No schema change.** Realm stays at 158. Dependencies: OkHttp 5.4.0 → 5.5.0, and Compose
+  `foundation-layout` 1.12.0 is pulled in explicitly.
+
 ## 12.6.3+001 (versionCode 1040001)
 
 Rebased onto upstream **v12.6.3** (versionCode 104), a single commit on top of 12.6.2. A pure
