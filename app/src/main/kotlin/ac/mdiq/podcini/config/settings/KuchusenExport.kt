@@ -3,7 +3,7 @@ package ac.mdiq.podcini.config.settings
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.storage.database.appPrefs
+import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.config
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
@@ -202,7 +202,7 @@ object KuchusenExport {
 
     private fun appSettingsJson(): String {
         val entries = JSONObject()
-        val prefs = appPrefs
+        val prefs = appPrefsFlow!!.value
         for (p in APP_PREF_FIELDS) {
             val value = p.get(prefs) ?: continue
             val entry = tagValue(value) ?: continue
@@ -423,7 +423,7 @@ object KuchusenExport {
         if (Cat.APP_SETTINGS in cats) staged.entries["app_settings.json"]?.let { bytes ->
             val entriesObj = JSONObject(String(bytes)).optJSONObject("entries") ?: JSONObject()
             var applied = 0
-            upsertBlk(appPrefs) { managed ->
+            upsertBlk(appPrefsFlow!!.value) { managed ->
                 for (p in APP_PREF_FIELDS) {
                     val entry = entriesObj.optJSONObject(p.name) ?: continue
                     val value = untagValue(entry) ?: continue
