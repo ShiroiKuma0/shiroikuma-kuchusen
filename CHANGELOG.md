@@ -2,6 +2,106 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.8.1+001 (versionCode 1080001)
+
+Rebased onto upstream **v12.8.1** (versionCode 108), taking in **two** upstream releases at once —
+12.8.0 arrived on 2026-08-22 and 12.8.1 superseded it the next day, so this fork line skips straight
+to the newer one. (Upstream spent versionCode 107 on 12.8.0, which is why this line's base jumps
+106 → 108.) A tracking release: **no new fork features**, the whole custom layer replayed onto the
+new base and the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — neither upstream release changes a stored
+> shape. The one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x
+> build it still applies, so export from the UI page first.
+
+> **The APK is ~7.3 MiB larger** (29.0 MiB → 36.3 MiB). Upstream moved streaming playback onto
+> Google's Cronet stack and bundles the engine in the app, so the growth is upstream's, not the
+> fork's. See *Streaming now speaks HTTP/3* below for what it buys.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **One porting fix, forced by upstream's flow rewrite.** Upstream replaced the global `appPrefs`
+  object with a `StateFlow` (see below), and the fork's export/import code read that global in three
+  places — reading app settings out, and writing them back on restore. All three now read the flow's
+  current value, the same way upstream's own background code does. Behaviour is identical; the
+  **App settings** export category is unaffected in both directions.
+- **One collision, the recurring one.** `app/build.gradle.kts`, where upstream reasserts the version
+  literals (`108` / `"12.8.1"`) while the fork keeps deriving them from `forkVersionName` /
+  `forkVersionCode`. All thirty-one commits of the custom layer applied otherwise clean — including
+  the five files both sides touch this time (`AppTheme.kt`, `Composables.kt`, `LibraryScreen.kt`,
+  `MainScreen.kt` and `strings.xml`), every one of which merged without a conflict even where
+  upstream rewrote the lines next to the fork's.
+- **Version base moved to 12.8.1 / 108**, so this line's codes (`1080001`, `1080002`, …) all exceed
+  the 12.7.1 line's (`1060001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.8.0 and 12.8.1
+
+- **Streaming now speaks HTTP/3.** Playback streaming has left OkHttp for Chromium's network stack:
+  on Android 12+ devices with a recent network module it uses the system's own HTTP engine, and
+  everywhere else a bundled Cronet engine, both with QUIC (HTTP/3), HTTP/2 and Brotli enabled and an
+  8-second connect timeout. Upstream's stated aim is high-latency networks, where negotiating down
+  from HTTP/3 to HTTP/1.1 automatically makes the difference between a stream that starts and one
+  that stalls. **Caveat, and upstream flags it too:** only proxies **without** authentication are
+  properly supported now, and upstream is explicitly asking for someone to verify proxy behaviour —
+  if you stream through an authenticated proxy, test before relying on this build.
+- **The theme switches live — no restart.** Changing light/dark/system used to finish the activity
+  and relaunch the app. It now re-skins in place. (The fork's own theming page always worked this
+  way; this brings upstream's own theme setting in line.)
+- **A crashed page no longer takes the app with it.** If Android kills the WebView renderer while
+  show-notes are displayed — which it does under memory pressure — the app used to die with it. The
+  dead view is now detached and disposed, and the app logs the failure and carries on.
+- **"Views per day" is now "Trending", and sorts in more places.** The sort option is renamed, and
+  feed-based sorting (by feed title, feed score, feed score count) is offered across most Facets
+  modes — Planned, Repeats, Due, Liked, Commented, Tagged — plus Trending in Feed details and
+  Facets where the source supports it. This rides on a new sorting routine that sorts the fetched
+  list in memory rather than in the database query, which is what makes orders the query cannot
+  express possible at all.
+- **Apple episode search on the Remote tab.** A new searcher queries Apple's catalogue for
+  *episodes* (not shows), keeping only results whose title actually contains what you typed —
+  deliberately strict, so a two-word query does not return a hundred loosely-related episodes.
+- **Remote search is manual, and no longer trips over itself.** Typing no longer fires a search on
+  every keystroke; the search runs when you submit the query on the Remote tab, and cached results
+  come back when you return to it. Selecting or deselecting a searcher mid-search now waits for the
+  running search to finish instead of mutating the result list underneath it — the fix for
+  12.8.1's "issue with multiple searchers", where two searchers running at once could corrupt or
+  lose results. The searcher picker is inert while a search is in flight, and the search-criteria
+  menu item is hidden on the Remote tab, where it never applied.
+- **Timer and due-time entry is one field.** The five separate year/month/day/hour/minute spinners
+  in the timer and todo dialogs are replaced by a single `y.M.d.H.m` text field that must be
+  confirmed before it takes effect. The add-timer and edit-timer dialogs are now one dialog.
+- **A todo only plays the episode if you ask it to.** Setting a due time on a todo used to schedule
+  playback at that time implicitly. There is now a **Notify** checkbox: no tick, no playback — the
+  due time is just a due time.
+- **Changing a due time cancels the old alarm.** Editing a timer, or moving a todo's due time,
+  previously left the previous alarm armed — so the episode could still start at the old time. The
+  prior schedule is now cancelled before the new one is set, and re-arming a timer clears its
+  existing alarm first.
+- **Auto-download/enqueue policy can be set for several feeds at once.** The whole policy editor —
+  the policy choice and its include/exclude filters — moved from the single-feed section of feed
+  settings into the multi-select section. Feed settings is reordered around it.
+- **Statistics opens on today.** The Overview's date started at the Unix epoch (1 January 1970)
+  instead of the current date.
+- **The position saver interval resets on new media.** A guard clause meant the adaptive
+  progress-save interval kept the previous episode's value when a new one started.
+- **Faster, quieter cold starts.** Three background entry points — the media-button receiver, the
+  download worker and the feed-refresh worker — each re-ran full app initialization on every
+  invocation; all three now skip it. Pressing a headset button, or a scheduled refresh firing, no
+  longer redoes the work app startup already did.
+- **External-app messages name the app.** Toasts about a source-provider app connecting,
+  disconnecting or failing to bind now say *which* app, and a bind failure reports the actual error
+  instead of a flat "unqualified or incompatible". The "Use external apps" setting text is rewritten
+  to explain what such an app actually is.
+- **Wi-Fi sync is switched off** by upstream, marked as an antique implementation pending a rewrite.
+  Nextcloud/gpodder sync is unaffected.
+- **Under the hood:** the two global preference objects became observable flows, which is the single
+  largest change in this release by line count and touches roughly forty files — behaviour is meant
+  to be identical, but it is the change most likely to surface a stray bug, so it is worth knowing
+  about. Two app-wide coroutine scopes replace a scattering of per-object ones. A dropped `@Stable`
+  annotation and several `mutableStateOf` wrappers come off model classes that never needed them.
+
 ## 12.7.1+001 (versionCode 1060001)
 
 Rebased onto upstream **v12.7.1** (versionCode 106), taking in **two** upstream releases at once —
