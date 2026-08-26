@@ -81,8 +81,10 @@ anti-tamper, and `com.github.XilinJia:PodciniLib` is consumed straight from jitp
 
 7. **Stop.** Let 白い熊 test. Commit/push only on their explicit **"Push"** (force-push needed for
    `custom` since rebasing rewrites history: `git push --force-with-lease origin custom`; `main` is a
-   fast-forward: `git push origin main`). Once `custom` is pushed and confirmed, the
-   `custom-pre-<newver>` backup branch can be deleted (ask first).
+   fast-forward: `git push origin main`). **Delete the `custom-pre-<newver>` backup branch as part
+   of that push** -- `git branch -D custom-pre-<newver>` once the push succeeds, without asking. It
+   exists only to survive the rebase, and the remote holds the history afterwards. Never mention it
+   in a build report either; the report ends at the delivered APK.
 
 ## Notes
 
