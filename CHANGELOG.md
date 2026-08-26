@@ -2,6 +2,75 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.8.2+001 (versionCode 1090001)
+
+Rebased onto upstream **v12.8.2** (versionCode 109), released 2026-08-25, two days after 12.8.1.
+A tracking release: **no new fork features**, the whole custom layer replayed onto the new base and
+the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — upstream changes no stored shape. The
+> one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x build it still
+> applies, so export from the UI page first.
+
+> **Size is flat**: 36.31 MiB → 36.33 MiB (+16 KiB). Last release's 7 MiB jump was Cronet arriving;
+> nothing comparable lands here.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **Two porting fixes, both forced by upstream's playback rewrite** (see below). The drawer's
+  players toggle wrote `activeTheatres` directly; that value is now read-only state collected from
+  a flow, so the write goes to `activeTheatresFlow` instead — the fork's yellow icon in place of
+  upstream's alternating one is unaffected. And `MainScreen`, where the fork's back handler exits
+  the app instead of showing upstream's "no more screens" toast, needed its imports narrowed after
+  upstream reworked how toasts are held.
+- **One collision, the recurring one.** `app/build.gradle.kts`, where upstream reasserts the version
+  literals (`109` / `"12.8.2"`) while the fork keeps deriving them from `forkVersionName` /
+  `forkVersionCode`. The other thirty-one commits of the custom layer applied clean.
+- **Version base moved to 12.8.2 / 109**, so this line's codes (`1090001`, `1090002`, …) all exceed
+  the 12.8.1 line's (`1080001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.8.2
+
+**The player stops being a Compose object.** Last release turned the two global preference objects
+into flows; this one does the same to playback, and the change is structural. The `InTheatre`
+singleton is deleted outright — its file replaced by `Theatres.kt`, its members promoted to
+top-level declarations — and every piece of Compose state inside it becomes a `StateFlow`: the
+active queue, the active-theatre count, and each theatre's player. The Compose runtime imports
+leave the playback package entirely, which is the point: non-UI code no longer depends on the UI
+toolkit to hold its state.
+
+- **Current media is now fed by the database, not assigned by hand.** `curEpisode` becomes
+  `curMediaFlow`, and setting it opens a Realm query flow scoped to that episode, cancelled and
+  reopened on each change. Player status, playback speed, video mode, buffer percentage, bitrate,
+  resolution, MIME type, channel count and repeat all become flows alongside it. This is upstream's
+  "re-worked curMedia monitoring", and it is the largest single file change in the release.
+- **Buffer progress moves onto a flow**, polled every five seconds. The old buffering-callback
+  plumbing and its `BufferUpdateEvent` are gone; the player UI collects the flow directly.
+- **Invalid durations get corrected in place.** When buffering completes on an episode whose stored
+  duration is missing or zero, the real duration reported by the player is written back — so the
+  episode list and the player UI stop showing a bad length.
+- **Fixed: error playing a downloaded file.** Download progress moved off a Compose state map onto
+  a flow, and the list-summary helper that computed remaining time no longer force-unwraps a player
+  that may not exist — it reads playback speed from the feed map instead.
+- **Speed changes in the video player reach the player UI.** The speed dialog resolves its player
+  once and reads the live speed flow, so a change made in one surface shows in the other.
+- **Fewer start-up flickers in the player UI**, from the same rework — the UI no longer reacts to a
+  burst of separate events while the player settles.
+- **"Likely removed" no longer lists duplicates** on the online-feed screen; the results are
+  collected into a set.
+- **Feed settings regroup** under a new *Others* heading, and editing the feed that is currently
+  playing now forces a playback reset so the change takes effect immediately.
+- **Toasts and session logs become flows** too, as does the recording flag and the per-feed queue
+  counter. The episode-monitor machinery in the database layer — roughly a hundred lines of mutex,
+  monitor registry and per-episode subscription — is deleted, superseded by the per-media flow.
+- **Text-to-speech loses its Compose coupling**: its progress and speaking state are reported
+  through callbacks rather than Compose state holders, and its waits use typed durations.
+- **Build**: Android Gradle Plugin 9.3.1 → 9.3.2, and `media3-ui-compose` 1.11.0 joins the
+  dependency set.
+
 ## 12.8.1+001 (versionCode 1080001)
 
 Rebased onto upstream **v12.8.1** (versionCode 108), taking in **two** upstream releases at once —
