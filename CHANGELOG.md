@@ -2,6 +2,90 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.8.6+001 (versionCode 1130001)
+
+Rebased onto upstream **v12.8.6** (versionCode 113), released 2026-08-29 — taking in **four**
+upstream releases at once. 12.8.3 landed on the 26th, 12.8.4 on the 27th, 12.8.5 on the 28th and
+12.8.6 on the 29th, one per day; none is skipped, they simply arrived faster than the fork rebased,
+and the version base jumps 109 → 113 accordingly. A tracking release: **no new fork features**, the
+whole custom layer replayed onto the new base and the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — upstream changes no stored shape. The
+> one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x build it still
+> applies, so export from the UI page first.
+
+> **Size shrinks slightly**: 36.33 MiB → 36.05 MiB (−288 KiB), from Google Play's Cronet variant
+> being excluded at the dependency level.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **One porting fix**, in the drawer's players toggle. Upstream reworked it in 12.8.5 — it now shuts
+  the second player down explicitly when dropping back to one, and reads the new theatre count
+  rather than the stale one when sizing the player. That logic is taken as-is and the fork's own
+  change sits on top of it unchanged: the yellow line-art glyph in place of upstream's two
+  alternating images, which is also why the fork no longer needs the value that picked between them.
+- **Two collisions, both routine.** `app/build.gradle.kts`, where upstream reasserts the version
+  literals (`113` / `"12.8.6"`) while the fork keeps deriving them from `forkVersionName` /
+  `forkVersionCode`; and `README.md`, where upstream reworded its feature list and the fork replaces
+  that whole block. The other thirty-three commits of the custom layer applied clean.
+- **Version base moved to 12.8.6 / 113**, so this line's codes (`1130001`, `1130002`, …) all exceed
+  the 12.8.2 line's (`1090001`, …) and upgrades stay monotonic.
+- **A coincidence worth noting**: upstream recoloured the "Player UI in the drawer" strip to yellow
+  on dark grey. For once its choice agrees with the house style.
+
+### Inherited from upstream 12.8.3 – 12.8.6
+
+No new subsystem this time. Where 12.8.1 and 12.8.2 moved preferences and playback off Compose state
+onto flows, these four releases are the settling-in: the external-source gateway is made robust, the
+duration correction that 12.8.2 promised is actually implemented, the player sheet stops hiding
+itself, and a long-standing crash on non-Latin text is fixed.
+
+- **External source apps connect reliably again.** The gateway registry was completing its
+  readiness signal with an empty list *before* it started work, so anything waiting on it — a feed
+  update in particular — was told there were no clients. That line is gone; initialization now runs
+  on a supervised main-immediate scope instead of an IO one, so one failing client no longer takes
+  the registry down with it, and it refuses to start twice concurrently. Teardown is unified: the
+  three disconnect callbacks each used to do their own partial cleanup, and now all route through a
+  single `disconnect()` that clears every field and unbinds exactly once. Binding and unbinding are
+  wrapped against exceptions throughout, and the wait-for-ready call takes a timeout and reads its
+  state under lock rather than racing a reassignment. Feed updates also wait 3 seconds after
+  readiness instead of 1.
+- **Ordinary podcasts no longer take the external path.** Feed refresh used to consult the external
+  client map first and fall back to a normal download; now RSS, Atom and untyped feeds go straight
+  to the normal download, and only genuinely external types ask a client — with no client meaning no
+  update, rather than a podcast fetch against a source-app URL.
+- **When external apps are configured but none are connected**, returning to the app now asks what
+  to do: reconnect, or turn the setting off.
+- **Media durations are corrected properly.** On a timeline or media-item change, a duration
+  differing from the stored one by more than five seconds is written back and logged — replacing
+  12.8.3's narrower "only if invalid, only at buffering" attempt. On the other side, a feed refresh
+  can no longer reset the duration of an episode already in progress.
+- **Fixed: crash when creating the second player.** The HTTP and Cronet engines were being rebuilt
+  per player over the same cache directory; they are now created once, given per-player storage
+  paths, and released when the service stops. Player shutdown is factored into one guarded routine.
+- **Fixed: the Pause button in episode lists pauses the right player.** It now targets the player
+  the episode is actually on — remembered from the "default / secondary" choice — instead of looping
+  over both.
+- **Repeat becomes a per-media action.** A new **Repeat this** entry appears when long-pressing
+  Pause, setting repeat on whichever player holds the media; playback no longer ends the episode
+  when repeat is on, which is the fix for repeat under both Stream and Play. The old "Repeat current
+  media" checkbox leaves the speed dialog, and the long-press menu drops the options that made no
+  sense while paused.
+- **The player sheet stops hiding itself.** Hiding is now refused unless the deliberate swipe-to-
+  dismiss gesture asked for it, and the sheet follows its target state rather than its settled one —
+  so an incidental downward swipe no longer makes the player vanish. When it *is* hidden, the
+  "Player UI in the drawer" strip is clickable to bring it back, and says so.
+- **Fixed: crash when removing a feed** whose description begins with characters outside the basic
+  plane — emoji, CJK extensions. Truncation counted UTF-16 units and could cut a surrogate pair in
+  half; every place that shortens a description, title or episode name now counts code points.
+- **The toast close button clears the whole queue** instead of only the first three.
+- **Fixed: F-Droid builds** exclude Google Play Services' Cronet from the media3 data source, and
+  renderer-level speed adjustment is disabled as too device-dependent.
+- **Build**: navigation3 1.1.6 → 1.1.7, glance-appwidget 1.1.1 → 1.2.0.
+
 ## 12.8.2+001 (versionCode 1090001)
 
 Rebased onto upstream **v12.8.2** (versionCode 109), released 2026-08-25, two days after 12.8.1.
