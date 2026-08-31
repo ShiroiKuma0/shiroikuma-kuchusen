@@ -2,6 +2,65 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.8.7+001 (versionCode 1140001)
+
+Rebased onto upstream **v12.8.7** (versionCode 114), released 2026-08-30 — a single upstream commit,
+arriving the day after 12.8.6. A tracking release: **no new fork features**, the whole custom layer
+replayed onto the new base and the build counter reset to `+001`.
+
+> **No export needed.** The Realm schema stays at 158 — upstream touches only screen code, no stored
+> shape. The one-way migration warning belongs to `12.6.0+001`; if you are coming from a 12.5.x build
+> it still applies, so export from the UI page first.
+
+> **Size unchanged**: 36.05 MiB, three bytes off the previous build.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **One collision, the routine one.** `app/build.gradle.kts`, where upstream reasserts the version
+  literals (`114` / `"12.8.7"`) while the fork keeps deriving them from `forkVersionName` /
+  `forkVersionCode`. The other thirty-seven commits of the custom layer applied clean — `README.md`
+  included, which upstream left alone this time.
+- **Version base moved to 12.8.7 / 114**, so this line's codes (`1140001`, `1140002`, …) all exceed
+  the 12.8.6 line's (`1130001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.8.7
+
+A screen-layer release, entirely under `ui/screens`: no model, playback or gateway code is touched.
+The theme is the flow migration 12.8.1 and 12.8.2 began, now reaching Library and Logs — both still
+read Compose state where a live database flow was available — plus three small behavioural fixes.
+
+- **The Library follows the database again.** Its subscription preferences — filter, sort, archived,
+  selected languages, tags and queues — were held in a mutable Compose field that every reader and
+  writer went through, with each write reassigning the whole object by hand. They now come from a
+  live query, so a preference changed anywhere is reflected immediately and the feed list, the
+  volume list and the four generated query strings re-evaluate off the same source instead of
+  re-reading state after the fact. Replacing the shown feed set with a different set of equal length
+  now refreshes too, where before only a change in count did.
+- **Logs are live.** The share, download and deletion logs were fetched once when their tab was
+  opened; each is now a standing query for whichever mode is selected, so entries appear as they are
+  written and no longer need the screen reopened. An empty log falls back to the session view. The
+  three post-delete reloads and the reload after re-handling a shared URL disappear with the fetches
+  they existed to repeat.
+- **The Logs screen is cheaper to scroll.** Its three filtered lists were being rebuilt on every
+  recomposition inside the list body; they are now computed once per change of the log set or of the
+  success/error toggle.
+- **The Logs top bar swaps its icons.** The current mode's icon becomes the drawer button, and the
+  title is left empty, in place of the mode icon as title and a history glyph for the drawer.
+- **Fixed: the player sheet now hides when there is nothing to play.** 12.8.6 taught the sheet to
+  refuse hiding unless a deliberate swipe asked for it, which also blocked the app's own attempt to
+  hide it once the last media was gone; that path is now permitted explicitly.
+- **Fixed: removing a feed returns to where you came from.** It navigated to the Library
+  unconditionally; it now goes back one screen.
+- **Auto-download EQ policy options show up for multi-feed edits.** In feed settings, the policy rows
+  appeared only when the reference feed already had a policy of its own — they are now shown whenever
+  more than one feed is being edited.
+- **Three list flows start eagerly** — the Facets episode list, the feed-details feed and the search
+  results — instead of five seconds after the last observer leaves, so returning to those screens no
+  longer waits for a re-subscribe.
+
 ## 12.8.6+001 (versionCode 1130001)
 
 Rebased onto upstream **v12.8.6** (versionCode 113), released 2026-08-29 — taking in **four**
