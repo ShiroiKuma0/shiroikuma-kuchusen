@@ -42,17 +42,17 @@ source packages remain unchanged — only the installed package id, label, and i
 
 We base our version on upstream and add a fork increment (`BUILD_NUMBER`).
 
-- `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (currently `12.8.6` / `113`).
+- `VERSION_NAME` / `VERSION_CODE` in `gradle.properties` **track upstream** (currently `12.8.7` / `114`).
 - `BUILD_NUMBER` is **our** increment. It starts at `1` and bumps by `1` on every build.
 - Fork `versionName` = `"<VERSION_NAME>+<BUILD_NUMBER>"`, with the counter **zero-padded to three
-  digits** (e.g. `12.8.6+001`) so builds sort in order in file lists — `+010` must land after
+  digits** (e.g. `12.8.7+001`) so builds sort in order in file lists — `+010` must land after
   `+009`, not before `+9`.
-- Fork `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (e.g. `113 * 10000 + 1 = 1130001`).
+- Fork `versionCode` = `VERSION_CODE * 10000 + BUILD_NUMBER` (e.g. `114 * 10000 + 1 = 1140001`).
   The padding is **text only** — the versionCode keeps the plain integer.
 - Output APK filename = `shiroikuma-kuchusen_<VERSION_NAME>+<BUILD_NUMBER>_arm64-v8a.apk`
-  (e.g. `shiroikuma-kuchusen_12.8.6+001_arm64-v8a.apk`).
+  (e.g. `shiroikuma-kuchusen_12.8.7+001_arm64-v8a.apk`).
 
-So the first build is `+001` (`1130001`), the next build is `+002` (`1130002`), and so on. On a new
+So the first build is `+001` (`1140001`), the next build is `+002` (`1140002`), and so on. On a new
 upstream version, `BUILD_NUMBER` resets to `1` (see the **upstream-new-version** skill).
 
 **Never rename what is already built.** Builds made before the padding switch (e.g.
