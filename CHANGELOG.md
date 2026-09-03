@@ -2,6 +2,101 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.9.1+001 (versionCode 1160001)
+
+Rebased onto upstream **v12.9.1** (versionCode 116), released 2026-09-02 — two upstream commits, one
+per day: 12.9.0 on the 1st, 12.9.1 on the 2nd. A tracking release: **no new fork features**, the
+whole custom layer replayed onto the new base and the build counter reset to `+001`. versionCode 115
+existed upstream as 12.9.0 but was never built here, so this line starts at `1160001`.
+
+> **The Realm schema moves 158 → 159 — this one is a one-way door.** `CurrentState` drops two fields
+> (`curMediaType`, `curFeedId`), and krdb removes them on first launch without a migration block. The
+> upgrade itself is safe and touches nothing you would miss — those two fields only recorded which
+> media the player had loaded — but once this build has opened the database, **12.8.7+001 and earlier
+> will refuse to open it**, because their config still declares schema 158. Export from the UI page
+> first if you want a way back.
+
+> **The database is compacted at launch from now on.** Upstream turned on `compactOnLaunch()`, which
+> reclaims the file when more than half its allocated space is unused. The first launch of this build
+> may pause a moment longer, `Podcini.realm` may shrink noticeably, and the **Database** category of
+> the fork's one-file backup shrinks with it — the same content in a smaller ZIP.
+
+> **Size**: 36.05 MiB (37,797,980 bytes), 72 bytes larger than 12.8.7+001.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the token-gated headless export, the black-yellow identity and the clean-exit back
+  handler all carry over untouched.
+- **One porting fix.** Upstream dissolved its `net` package, and `updateFeedFull` — the call the
+  backup's feed restore uses to re-subscribe a feed from `feeds.json` — moved from
+  `storage.database` to `sourcing.feed.FeedUpdater.Companion`. Its signature is unchanged, so
+  `KuchusenExport.kt`'s import is the only line that moved; the restore path itself is untouched.
+  Upstream's own Podcast Addict importer now imports it exactly the same way.
+- **Two collisions, both routine.** `app/build.gradle.kts` reasserts the version literals (`116` /
+  `"12.9.1"`) while the fork keeps deriving them from `forkVersionName` / `forkVersionCode`.
+  `NavDrawerScreen.kt`'s players toggle collided harder than usual: upstream renamed
+  `activeTheatresFlow` to `activeTheatresCount` and gave the toggle a two-state glyph — a teaser
+  image when one theatre is live, the launcher icon when two are. That new logic is taken as-is,
+  with our yellow `ic_launcher_sk_foreground` standing in for upstream's icon and our
+  `ContentScale.Fit` kept, so both survive.
+- **Note for testers**: upstream now deletes the crash log whenever the running `versionName` differs
+  from the last one seen. The fork's `versionName` carries the build counter (`12.9.1+001`), so that
+  happens on *every* fork build, not just every upstream release — a crash from the previous build is
+  gone once the new one starts.
+- **Version base moved to 12.9.1 / 116**, so this line's codes (`1160001`, `1160002`, …) all exceed
+  the 12.8.7 line's (`1140001`, …) and upgrades stay monotonic.
+
+### Inherited from upstream 12.9.0
+
+The largest structural release the fork has taken in: 110 files, 1,332 insertions, 1,586 deletions,
+most of it packages moving rather than logic changing. Nothing here is user-visible on its own, but
+it is the ground the two real fixes stand on.
+
+- **The `net` package is dissolved.** `net/download`, `net/feed`, `net/searcher` and `net/ssl` move
+  under a new `sourcing` package alongside the external-source gateway (itself moved from `sources`);
+  `net/sync` becomes a top-level `sync`; `net/utils/NetworkUtils` becomes `utils/NetworkUtils`; the
+  sync transceiver becomes `sourcing/Transceiver`. `LocalFeeds.kt` leaves `storage/database` for
+  `sourcing/feed`, and `Feeds.kt` hands 202 lines of feed-updating to `FeedUpdater`.
+- **Fixed: play and pause from external controls are obeyed properly.** Restoring the player's state
+  at startup moved out of the theatre objects into the playback service, where it now also re-reads
+  which queue the current episode belongs to and restarts the state monitor. Previously the service
+  could come up with a media loaded but the surrounding state stale, so a headset, watch, or
+  notification button pressed before the app was touched could act on the wrong thing.
+- **The player's status stops being a flow.** `MediaPlayerBase` held its status in a `StateFlow` that
+  published transitional states; it is now a plain field, and `PlayerStatus` loses `INDETERMINATE`
+  and `PREPARING` along with the `isPreparing` / `isUnknown` checks that existed to wait them out.
+  `setPlayerStatus` becomes `handlePlayerStatus`, `savePlayerStatus` becomes `saveCurState`, and
+  `prepare()` becomes `prepareInitialized()`.
+- **Obsolete broadcasts are gone from the player.** The shutdown-playback-service receiver is no
+  longer registered on either SDK path, and `MainActivityStarter` — a helper for launching the main
+  activity by intent — is deleted outright.
+- **Logs: subscription logs can no longer be cleared.** The clear-logs menu is hidden in the
+  Deletions view and its handler removed, because upstream needs that history for subscription
+  events it plans to add.
+- **Logs: download entries older than 30 days are trimmed at startup**, once, when the Logs view
+  model is created.
+- **The crash report from the previous version is cleared** on the first launch after an update, so
+  the bug-report screen no longer shows a stale stack trace from a build you already replaced.
+- **The database is compacted on launch** when more than half its allocated space is unused.
+- **In feed settings, "enable second algorithm" moved below the first algorithm** it modifies.
+- **Two dozen settings summaries were rewritten** for clarity — auto-enqueue, auto-download, episode
+  cache, episode limit, preferred languages, skip intro/outro, volume adaptation and others now say
+  "feed" where they said "podcast", and describe what they do in fewer words.
+
+### Inherited from upstream 12.9.1
+
+A small release: one screen reworked, and the build tooling moved forward.
+
+- **Fixed: renaming a queue, and adding or removing one, now reaches the screen.** The Queues screen
+  held its queue list in Compose state and read the current queue through snapshots, so a change to
+  the queue set arrived at the database but not always at the list. The list is now a live query, the
+  current queue is a flow that falls back to the active queue instead of going null, and the three
+  content flows — entries, recycle bin, sorted episodes — derive from it rather than from a snapshot.
+  The manual counter that used to force a name refresh is gone.
+- **Tooling**: AGP 9.3.2 → 9.4.0, Gradle 9.6.1 → 9.7.1, coil3 3.5.0 → 3.6.1, xmlutil 1.0.2 → 1.0.2.1.
+  Builds clean on JDK 21 with the existing SDK, NDK and build-tools.
+
 ## 12.8.7+001 (versionCode 1140001)
 
 Rebased onto upstream **v12.8.7** (versionCode 114), released 2026-08-30 — a single upstream commit,
