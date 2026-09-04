@@ -6,11 +6,11 @@
 
 **A podcast & media player re-skinned into the black-yellow house style, themable live, backing itself up in one file — by hand or on command.**
 
-A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additions**: a live whole-app theming page (colours, fonts, shapes — every change re-skins the app instantly), a one-file category backup that includes the whole listening database, a token-gated automation interface that lets another app trigger that backup headlessly, and a black-yellow line-art identity.
+A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additions**: a live whole-app theming page (colours, fonts, shapes — every change re-skins the app instantly), a one-file category backup that includes the whole listening database, an automation interface that lets a sister app trigger that backup headlessly, a data door that hands the whole backup to a caller it can identify — so a wiped phone can be put back — and a black-yellow line-art identity.
 
 Installs **side-by-side** with Podcini.A (app id `shiroikuma.kuchusen`).
 
-**📥 Latest release: [`12.9.1+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
+**📥 Latest release: [`12.9.1+002`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
 
 </div>
 
@@ -24,9 +24,13 @@ One page themes everything, live: foundation colours (background, text, secondar
 
 The first section of the UI page backs the app up into a single ZIP: **Subscribed feeds, Database, Colours, Typography & fonts, Shape & borders, App settings** — all preselected. Settings travel as plain per-category JSON (plus your imported fonts); the **Database** category carries a transactionally consistent snapshot of the listening database itself — episodes, play positions, queues, ratings — so one file is a real restore point, not a settings dump. Set an export directory once and the page answers "Last export: …" every time it opens; settings imports merge (never wipe) and skip feeds you already have, while a restored database takes effect on the restart the app then insists on.
 
-## 🤖 Backup on command — headless, token-gated
+## 🤖 Backup on command — headless
 
-The app answers a broadcast from a sister automation app and exports itself with no UI at all: it writes the same one ZIP, optionally into a directory the caller names, reports progress as **real counts** while it works (`Category 3/6 — Colours`, `Database 24.0 MB / 61.3 MB` — never a meaningless percentage), and replies with the written path, its exact byte size and the category count. A master switch (**off** by default) and a 24-byte token — tap to copy, regenerate at will, never included in any backup — are the only gate; both rows sit inside the Export/Import section where backup lives.
+The app answers a broadcast from a sister automation app and exports itself with no UI at all: it writes the same one ZIP, optionally into a directory the caller names, reports progress as **real counts** while it works (`Category 3/6 — Colours`, `Database 24.0 MB / 61.3 MB` — never a meaningless percentage), and replies with the written path, its exact byte size and the category count. It runs in a foreground service with a wakelock, because a real library's database snapshot takes minutes and nothing shorter-lived survives that; a 中止 from the panel unwinds it at the next file boundary and leaves the backup directory exactly as it was found. The switch ships **on** and sits inside the Export/Import section where backup lives, with an optional token underneath it for when you want callers to prove themselves.
+
+## 🚪 The data door — restoring a wiped phone
+
+A second, stricter entrance exists for the app that rebuilds a phone from nothing. It hands the whole backup over a file descriptor the caller opened — never a path — and it will only talk to a caller it can name, whose uid the kernel confirms and whose signing certificate matches a pinned fingerprint. That is what lets your subscriptions, play positions and queues come back on a freshly wiped device, where no token has ever been pasted and nothing has been configured yet. Restores land on disk before the app reports success, so a backup that says it worked did.
 
 ## 🖤 Black-yellow identity, everywhere
 

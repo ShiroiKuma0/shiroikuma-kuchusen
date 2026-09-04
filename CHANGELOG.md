@@ -2,6 +2,81 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.9.1+002 (versionCode 1160002)
+
+Same upstream base (**v12.9.1**, versionCode 116). This release is entirely about the backup
+automation: it implements version 2 of the sister-app contract, and fixes three defects in the
+version 1 code that had never run on a phone.
+
+### Backing up a real library no longer kills the app
+
+**This is the important one.** The headless export ran inside the broadcast receiver, holding the
+broadcast open for the whole job. Android gives a receiver about ten seconds in the foreground and a
+minute in the background, and `goAsync()` does not extend that — and this app's archive carries a
+Realm snapshot whose `writeCopyTo` runs for **minutes** on a real subscription list. So an automated
+backup of an actual library would have been declared unresponsive and killed part-way through,
+leaving a half-written `.part` file, no reply, and the app that asked for it waiting forever. It
+would have looked like nothing happened.
+
+The export now runs in its own foreground service, under an ongoing notification and a partial
+wakelock — the wakelock because EMUI otherwise force-releases it seconds in and quietly starves the
+process, which stops a long export at no consistent point with nothing in any log. `CANCEL_EXPORT`
+is routed through the exported receiver into that service, so 中止 really stops the run, deletes the
+partial file and answers `ERROR:cancelled`.
+
+### A restore that says it worked, did
+
+Restoring the **Colours**, **Typography** and **Shape** categories wrote them asynchronously. The
+app that drives a restore force-stops this one the moment it reports success — deliberately, so a
+shutdown cannot write stale settings back over what was just restored — and an asynchronous write
+still in flight at that moment is simply lost. A clean-phone restore could therefore have reported
+success with the whole house look silently unapplied, every other category correct and nothing
+reporting a failure. Those writes are synchronous now, and every preferences file the restore
+touches is flushed to disk before anything is told it succeeded.
+
+### A progress line that keeps proving the app is alive
+
+The caller presumes an app dead after two minutes of silence, and this export goes quiet twice over:
+it reports once per category, and the database snapshot is minutes of silence *before* the first
+byte reaches the archive — so throttling messages could never help, because the silence is upstream
+of it. A heartbeat now re-sends the last true line every fifteen seconds. It re-sends the real one
+rather than inventing a moving number, because a fabricated count cannot be told apart from
+progress. The two copies of the progress sender have become one, correlating on both ids so a single
+reader serves both entrances.
+
+### The data door (new)
+
+A `ContentProvider` at `shiroikuma.kuchusen.automation` that hands the whole backup to a caller
+through a **file descriptor the caller opened**, and can put one back. It identifies who is asking
+three ways — an exact package name, the uid the kernel reports, and a pinned signing certificate —
+because the caller supplies the destination, and "some app called `shiroikuma.*`" is not an
+identity. `import` exists **only** here and never as a broadcast, since an import overwrites the
+entire database. A `describe` call answers a header (version, format, what the backup contains, and
+an explicitly empty list of permissions this app's restore needs) without exporting anything, so a
+caller can draw a list and judge compatibility before streaming anything.
+
+This is what makes a wiped phone recoverable: the app can be reinstalled and its subscriptions, play
+positions and queues put back before it is ever launched.
+
+### The gate ships open now
+
+The automation switch **defaults to on** and the token is **opt-in**, moved to a second row with the
+token itself hidden until it is asked for. The reasoning is the wipe: a 48-character secret pasted
+from this app into another cannot survive one, and a gate that only works on an already-configured
+phone is no gate for setting a phone up. The switch stays, because it is the only way to shut this
+app's automation off.
+
+Because the default inverted, all three flag writes are now synchronous. A write that never reaches
+disk used to fall back to "off"; it now falls back to **on**, so a lost "turn it off" would have
+quietly reopened the door.
+
+### Worth knowing
+
+**The first automated backup of a real library takes minutes, not seconds.** That is the database
+snapshot, and it is honest now — the foreground service carries it and the progress row keeps
+ticking across the silent stretch — but the row will sit on the same line for a while before the
+byte counter starts moving. Nothing is stuck.
+
 ## 12.9.1+001 (versionCode 1160001)
 
 Rebased onto upstream **v12.9.1** (versionCode 116), released 2026-09-02 — two upstream commits, one
