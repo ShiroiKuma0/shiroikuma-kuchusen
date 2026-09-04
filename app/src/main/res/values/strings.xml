@@ -695,7 +695,12 @@
 
     <!-- 保存復元 automation (inside the Export / Import section) -->
     <string name="kuchusen_auto_title">Automation export</string>
-    <string name="kuchusen_auto_sum">Let a sister app (白い熊 自由作業盤) trigger this backup headlessly through a token-gated intent.</string>
+    <string name="kuchusen_auto_sum">Let a sister app (白い熊 自由作業盤, 白い熊 応用管理) trigger this backup headlessly and back this app up with its data.</string>
+    <string name="kuchusen_auto_require_token">Use authorization token?</string>
+    <string name="kuchusen_auto_require_token_sum">Off: any sister app may drive the automation. On: a caller must also present the token below. Either way the data door checks the caller\'s package, uid and signature.</string>
+    <string name="kuchusen_auto_notif_channel">Automation data</string>
+    <string name="kuchusen_auto_notif_export">Backing up data…</string>
+    <string name="kuchusen_auto_notif_import">Restoring data…</string>
     <string name="kuchusen_auto_token">Automation token</string>
     <string name="kuchusen_auto_token_hint">Tap to copy the full token</string>
     <string name="kuchusen_auto_token_copied">Automation token copied</string>
