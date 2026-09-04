@@ -1,37 +1,51 @@
 package ac.mdiq.podcini.config.automation
 
-import ac.mdiq.podcini.R
-import ac.mdiq.podcini.config.settings.KuchusenExport
 import ac.mdiq.podcini.config.settings.KuchusenExport.Cat
-import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.os.SystemClock
-import android.provider.DocumentsContract
 import android.util.Log
-import androidx.core.content.ContextCompat
-import androidx.documentfile.provider.DocumentFile
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import java.io.File
-import java.io.IOException
-import java.io.OutputStream
-import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "StateExportReceiver"
 
-/** 白い熊's 保存復元 wire contract: a headless, token-gated export of this app's whole state. */
+/**
+ * 白い熊's 保存復元 wire contract: a headless export of this app's whole state, the category list,
+ * and the cancel that stops a run.
+ *
+ * The gate lives in [AutomationAuth]: since contract v2 the switch ships ON and the token is only
+ * checked when 白い熊 has asked for one — a token sent to us anyway is ignored, never refused.
+ *
+ * This receiver is the **unauthenticated** half of the surface, deliberately: it only ever writes
+ * where it was told to and reports what it did. Everything that moves data through a caller-supplied
+ * descriptor — and `import`, which can overwrite this app's database — lives behind
+ * [AutomationProvider], which knows who is calling.
+ *
+ * ## Nothing long-running happens here, and that is the point
+ *
+ * A manifest receiver must reach `finish()` within Android's broadcast window — about 10 s in the
+ * foreground, about 60 s otherwise — and **`goAsync()` does not extend it**. Overrunning it raises
+ * an ANR against this app and kills the process mid-export, leaving a half-written archive and a
+ * caller waiting on a reply that can never come. This app's export takes minutes on a real library,
+ * so it runs in [StateExportService] and this receiver does three cheap things only: read the gate,
+ * answer the instant question, or hand over and get out.
+ */
 class StateExportReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val app = context.applicationContext
         val action = intent.action ?: return
+
+        // CANCEL_EXPORT is answered first and answered here: it is fire-and-forget, carries no reply
+        // channel of its own, and must be instant — the one terminal reply belongs to the export it
+        // stops, which answers ERROR:cancelled through its own channel. A cancel that arrives when
+        // nothing is running, or after the export finished, is a silent no-op: 自由作業盤 fires it
+        // whenever 白い熊 presses 中止, without knowing how far we got.
+        if (action.endsWith(".action.CANCEL_EXPORT")) {
+            if (AutomationAuth.refuse(app, intent.getStringExtra("token")) != null) return
+            StateExportService.requestCancel(intent.getStringExtra("reply_id"))
+            return
+        }
+
         val replyAction = intent.getStringExtra("reply_action")
         val replyPackage = intent.getStringExtra("reply_package")
         val replyId = intent.getStringExtra("reply_id")
@@ -39,197 +53,62 @@ class StateExportReceiver : BroadcastReceiver() {
             Log.w(TAG, "$action without a reply channel (reply_action/reply_package/reply_id) — ignored")
             return
         }
-        // Read before goAsync(): afterwards the receiver no longer owns the pending result.
-        val ordered = isOrderedBroadcast
-        val pending = goAsync()
-        // Exactly one terminal reply per request — an async success and a synchronous error can
-        // never both fire.
-        val replied = AtomicBoolean(false)
 
-        fun reply(result: String) {
-            if (!replied.compareAndSet(false, true)) return
-            // Unconditional: this one line is how a failing automation run is diagnosed on-device.
-            Log.i(TAG, "$replyId → $result")
-            try {
-                // A fresh broadcast is the only channel EMUI carries reliably; no ResultReceiver,
-                // no PendingIntent, no Messenger.
-                app.sendBroadcast(Intent(replyAction).apply {
-                    setPackage(replyPackage)
-                    addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
-                    putExtra("reply_id", replyId)
-                    putExtra("result", result)
-                })
-                // Correct AOSP behaviour and free, but EMUI severs it between third-party apps —
-                // never the only reply.
-                if (ordered) pending.resultData = result
-            } catch (e: Throwable) {
-                Log.e(TAG, "reply broadcast failed", e)
-            } finally { runCatching { pending.finish() } }
-        }
+        // One function, one place: two checks written out at each entry point is how "disabled" and
+        // "bad token" drift apart across forty-two apps.
+        val refusal = AutomationAuth.refuse(app, intent.getStringExtra("token"))
+        if (refusal != null) return reply(app, replyAction, replyPackage, replyId, refusal)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                when {
-                    !AutomationAuth.isEnabled(app) -> reply("ERROR:automation disabled")
-                    !AutomationAuth.matches(app, intent.getStringExtra("token")) -> reply("ERROR:bad token")
-                    action.endsWith(".action.LIST_CATEGORIES") -> reply(categoryList(app))
-                    action.endsWith(".action.EXPORT_STATE") -> exportState(app, intent, replyPackage, replyId, ::reply)
-                    else -> reply("ERROR:unknown action")
+        when {
+            // An enum walk and a handful of string lookups — instant, and answered from here.
+            action.endsWith(".action.LIST_CATEGORIES") ->
+                reply(app, replyAction, replyPackage, replyId, categoryList(app))
+
+            // Hand over and return at once, leaving no ANR window open behind us. The service owns
+            // everything from here: validating `items`, choosing the directory, the progress
+            // broadcasts and the single terminal reply.
+            action.endsWith(".action.EXPORT_STATE") ->
+                runCatching { StateExportService.start(app, intent) }.onFailure {
+                    // The service never started, so nothing else will ever answer this request.
+                    Log.e(TAG, "could not start the export service", it)
+                    reply(app, replyAction, replyPackage, replyId,
+                        "ERROR:${(it.message ?: it.javaClass.simpleName).replace('\n', ' ').trim().take(160)}")
                 }
-            } catch (e: Throwable) {
-                Log.e(TAG, "automation request failed", e)
-                reply("ERROR:${shortReason(e)}")
-            }
+
+            else -> reply(app, replyAction, replyPackage, replyId, "ERROR:unknown action")
         }
-    }
-
-    /** `id<TAB>label` per category. This app's categories are flat — no sub-options. */
-    private fun categoryList(context: Context): String =
-        "OK:" + Cat.entries.joinToString("\n") { "${it.id}\t${context.getString(it.labelRes)}" }
-
-    private fun exportState(context: Context, intent: Intent, replyPackage: String, replyId: String, reply: (String) -> Unit) {
-        val cats = when (val selection = selectCategories(intent.getStringExtra("items"))) {
-            is Selection.Bad -> return reply("ERROR:unknown category in items: ${selection.unknown.joinToString(",")}")
-            is Selection.Ok -> selection.cats
-        }
-        val name = KuchusenExport.exportFileName()
-        val target = when (val destination = resolveTarget(context, intent.getStringExtra("path")?.trim(), name)) {
-            is Destination.Failed -> return reply("ERROR:${destination.reason}")
-            is Destination.Ready -> destination.target
-        }
-
-        val progress = ProgressSender(context, intent.getStringExtra("progress_action"), replyPackage, replyId)
-        var counter: CountingOutputStream? = null
-        KuchusenExport.export(cats, { CountingOutputStream(target.open()).also { counter = it } }) {
-            progress.send(it.text, it.current, it.total, it.unit)
-        }
-
-        // The caller cannot stat the file, so both numbers are ours to compute.
-        val bytes = target.length().takeIf { it > 0L } ?: counter?.count ?: 0L
-        progress.sendFinal(context.getString(R.string.kuchusen_eim_prog_done, KuchusenExport.humanSize(bytes)), bytes)
-        reply("OK:${target.path()}|$bytes|${KuchusenExport.humanSize(bytes)}|${cats.size} categories")
-    }
-
-    // ---- Category selection ---------------------------------------------------------------------
-
-    private sealed class Selection {
-        class Ok(val cats: Set<Cat>) : Selection()
-        class Bad(val unknown: List<String>) : Selection()
-    }
-
-    /** Absent or empty `items` means everything. */
-    private fun selectCategories(items: String?): Selection {
-        val ids = items?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
-        if (ids.isEmpty()) return Selection.Ok(Cat.entries.toSet())
-        val unknown = ids.filter { KuchusenExport.catById(it) == null }
-        if (unknown.isNotEmpty()) return Selection.Bad(unknown)
-        return Selection.Ok(ids.mapNotNull { KuchusenExport.catById(it) }.toSet())
-    }
-
-    // ---- Where the one ZIP goes -------------------------------------------------------------------
-
-    /** The single file this run writes — either a plain path or a document in the SAF export tree. */
-    private interface Target {
-        fun open(): OutputStream
-        fun length(): Long
-        fun path(): String
-    }
-
-    private class FileTarget(private val file: File) : Target {
-        override fun open(): OutputStream = file.outputStream()
-        override fun length(): Long = file.length()
-        override fun path(): String = file.absolutePath
-    }
-
-    private class SafTarget(private val context: Context, private val dir: DocumentFile, private val name: String) : Target {
-        private var created: DocumentFile? = null
-        override fun open(): OutputStream {
-            val file = dir.createFile("application/zip", name) ?: throw IOException("cannot create $name in the export directory")
-            created = file
-            return context.contentResolver.openOutputStream(file.uri) ?: throw IOException("cannot open $name for writing")
-        }
-        override fun length(): Long = created?.length() ?: 0L
-        override fun path(): String = created?.let { absolutePathOf(it.uri) } ?: dir.uri.toString()
-    }
-
-    private sealed class Destination {
-        class Ready(val target: Target) : Destination()
-        class Failed(val reason: String) : Destination()
     }
 
     /**
-     * Directory precedence: the `path` extra → the app's configured export directory → an error.
-     * `path` needs All-files access; without it we fall back to the configured SAF directory,
-     * exactly as the contract prescribes, and only fail when there is none.
+     * `id<TAB>label` per category. This app's categories are flat — no sub-options — and everything
+     * it exports is authored rather than derived, so nothing is opt-out. The positional third
+     * (parent) and fourth (default) fields therefore only appear if a category is ever marked off.
      */
-    private fun resolveTarget(context: Context, path: String?, name: String): Destination {
-        val safDir = KuchusenExport.exportDir(context)
-        if (!path.isNullOrEmpty()) {
-            if (canWriteAnywhere(context)) {
-                val dir = File(path)
-                if (!dir.isDirectory && !dir.mkdirs()) throw IOException("cannot create directory $path")
-                return Destination.Ready(FileTarget(File(dir, name)))
-            }
-            Log.w(TAG, "no All-files access — ignoring path=$path")
-            if (safDir == null) return Destination.Failed("no-storage-access")
+    private fun categoryList(context: Context): String =
+        "OK:" + Cat.entries.joinToString("\n") {
+            val head = "${it.id}\t${context.getString(it.labelRes)}"
+            if (it.defaultSelected) head else "$head\t\toff"
         }
-        return safDir?.let { Destination.Ready(SafTarget(context, it, name)) } ?: Destination.Failed("no-directory")
-    }
 
-    private fun canWriteAnywhere(context: Context): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager()
-        else ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-
-    // ---- Progress: real numbers, never a percentage -----------------------------------------------
-
-    private class ProgressSender(private val context: Context, private val action: String?,
-                                 private val replyPackage: String, private val replyId: String) {
-        private var lastSent = 0L
-        private var lastUnit = ""
-
-        fun send(text: String, current: Long, total: Long, unit: String, force: Boolean = false) {
-            if (action.isNullOrBlank()) return
-            val now = SystemClock.elapsedRealtime()
-            if (!force && now - lastSent < 500L) return      // at most one every 500 ms
-            lastSent = now
-            lastUnit = unit
-            context.sendBroadcast(Intent(action).apply {
+    /**
+     * The only channel EMUI carries reliably: a fresh broadcast, addressed with `setPackage`, with
+     * `FLAG_INCLUDE_STOPPED_PACKAGES` so a backgrounded or never-launched caller still hears it. No
+     * `ResultReceiver`, no `PendingIntent`, no `Messenger` — EMUI will not reliably carry a live
+     * binder into another app's manifest receiver, and a broadcast carrying one may be dropped.
+     */
+    private fun reply(context: Context, replyAction: String, replyPackage: String, replyId: String, result: String) {
+        // Unconditional: this one line is how a failing automation run is diagnosed on-device.
+        Log.i(TAG, "$replyId → $result")
+        runCatching {
+            context.sendBroadcast(Intent(replyAction).apply {
                 setPackage(replyPackage)
                 addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES)
                 putExtra("reply_id", replyId)
-                putExtra("app", context.getString(R.string.app_name))
-                putExtra("text", text)
-                putExtra("current", current)
-                putExtra("total", total)
-                putExtra("unit", unit)
+                putExtra("result", result)
             })
-        }
-
-        /** Always sent, however the throttle fell. */
-        fun sendFinal(text: String, bytes: Long) =
-            send(text, bytes, bytes, lastUnit.ifEmpty { context.getString(R.string.kuchusen_eim_unit_bytes) }, force = true)
-    }
-
-    // ---- Small helpers ----------------------------------------------------------------------------
-
-    private class CountingOutputStream(private val out: OutputStream) : OutputStream() {
-        var count = 0L
-            private set
-        override fun write(b: Int) { out.write(b); count++ }
-        override fun write(b: ByteArray, off: Int, len: Int) { out.write(b, off, len); count += len }
-        override fun flush() = out.flush()
-        override fun close() = out.close()
-    }
-
-    private fun shortReason(e: Throwable): String =
-        (e.message ?: e.javaClass.simpleName).replace('\n', ' ').trim().take(160)
-
-    companion object {
-        /** Renders a primary-storage document URI as the path 白い熊 sees in a file manager. */
-        fun absolutePathOf(uri: Uri): String = runCatching {
-            val docId = DocumentsContract.getDocumentId(uri)
-            if (docId.startsWith("primary:")) "/storage/emulated/0/" + docId.removePrefix("primary:")
-            else uri.toString()
-        }.getOrDefault(uri.toString())
+            // Correct AOSP behaviour and free, but EMUI severs the result channel between
+            // third-party apps — never the only reply.
+            if (isOrderedBroadcast) resultData = result
+        }.onFailure { Log.e(TAG, "reply broadcast failed", it) }
     }
 }
