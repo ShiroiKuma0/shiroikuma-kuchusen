@@ -60,8 +60,17 @@ object KuchusenExport {
     /** The realm snapshot's entry name inside the zip (and of the temporary snapshot file). */
     private const val DB_ENTRY = "database.realm"
 
-    /** A selectable category; `id` is the entry name (`<id>.json`) inside the zip. */
-    enum class Cat(val id: String, @param:StringRes val labelRes: Int) {
+    /**
+     * A selectable category; `id` is the entry name (`<id>.json`) inside the zip.
+     *
+     * `defaultSelected` is what an automation caller gets when it names no `items`, and what the
+     * data door reports in its header. Everything this app exports is **authored** — subscriptions,
+     * play state, queues, the theme 白い熊 built — so nothing here is opt-out. The flag exists
+     * because the family contract puts the default on *our* side of the wire: a category that were
+     * ever large, derived and re-creatable (a cover cache, a downloaded-media dump) would be added
+     * here as `false` and start unticked in 自由作業盤's picker.
+     */
+    enum class Cat(val id: String, @param:StringRes val labelRes: Int, val defaultSelected: Boolean = true) {
         FEEDS("feeds", R.string.kuchusen_eim_cat_feeds),
         DATABASE("database", R.string.kuchusen_eim_cat_database),
         COLORS("colors", R.string.kuchusen_eim_cat_colors),
@@ -72,11 +81,28 @@ object KuchusenExport {
 
     fun catById(id: String): Cat? = Cat.entries.firstOrNull { it.id == id }
 
+    /** What an automation caller gets when it names no `items` — our recommendation, not our footprint. */
+    fun defaultCats(): Set<Cat> = Cat.entries.filter { it.defaultSelected }.toSet()
+
+    /**
+     * Raised out of [export] when the caller's cancel flag comes up at a write boundary.
+     *
+     * A distinct type rather than a bare exception because a cancelled export and a failed one are
+     * two different terminal replies: the caller answers `ERROR:cancelled` for the first and the
+     * real reason for the second, and only one of them is 白い熊 pressing 中止.
+     */
+    class Cancelled : Exception("cancelled")
+
     /**
      * One progress step of an export. `text` is the numbers-first display line 白い熊 reads;
      * `current`/`total`/`unit` carry the same fact structurally, for bars and logic.
+     *
+     * `item` is the **category id** being written right now. 自由作業盤 draws our categories as a
+     * list and highlights the one in progress; it cannot work that out from `current`, because
+     * `current` is whatever we are counting at that moment — categories while we walk them, feeds or
+     * bytes while we write one of them.
      */
-    class Progress(val text: String, val current: Long, val total: Long, val unit: String)
+    class Progress(val text: String, val current: Long, val total: Long, val unit: String, val item: String? = null)
 
     // ---- Export directory (device-local) --------------------------------------------------------
 
@@ -213,17 +239,19 @@ object KuchusenExport {
         return settingsJson(entries)
     }
 
-    private fun feedsJson(onProgress: (Progress) -> Unit): String {
+    private fun feedsJson(isCancelled: () -> Boolean, onProgress: (Progress) -> Unit): String {
         val arr = JSONArray()
         val context = getAppContext()
         val feeds = getFeedList().filterNot { it.isSynthetic() }
         val total = feeds.size.toLong()
         var done = 0L
         for (feed in feeds) {
+            // Between feeds, never mid-write: the row we are on is finished or not started.
+            if (isCancelled()) throw Cancelled()
             done++
             if (done % 20L == 0L || done == total)
                 onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_feeds, done, total), done, total,
-                    context.getString(R.string.kuchusen_eim_unit_feeds)))
+                    context.getString(R.string.kuchusen_eim_unit_feeds), Cat.FEEDS.id))
             if (feed.downloadUrl.isNullOrBlank()) continue
             arr.put(JSONObject()
                 .put("title", feed.title ?: "")
@@ -255,7 +283,7 @@ object KuchusenExport {
     }
 
     /** Streams the realm snapshot into the zip, reporting real byte counts as it goes. */
-    private fun writeDatabaseEntry(zip: ZipOutputStream, onProgress: (Progress) -> Unit) {
+    private fun writeDatabaseEntry(zip: ZipOutputStream, isCancelled: () -> Boolean, onProgress: (Progress) -> Unit) {
         val context = getAppContext()
         val snapshot = snapshotDatabase()
         try {
@@ -269,6 +297,9 @@ object KuchusenExport {
             snapshot.inputStream().buffered().use { input ->
                 val buf = ByteArray(256 * 1024)
                 while (true) {
+                    // The realm file is the long step — minutes for a big library — so the flag is
+                    // read once per buffer, between whole writes rather than inside one.
+                    if (isCancelled()) throw Cancelled()
                     val n = input.read(buf)
                     if (n <= 0) break
                     zip.write(buf, 0, n)
@@ -276,7 +307,7 @@ object KuchusenExport {
                     if (written - reported >= 2L * 1024 * 1024 || written == total) {
                         reported = written
                         onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_db,
-                            humanSize(written), humanSize(total)), written, total, unit))
+                            humanSize(written), humanSize(total)), written, total, unit, Cat.DATABASE.id))
                     }
                 }
             }
@@ -295,10 +326,16 @@ object KuchusenExport {
 
     /**
      * Streams the selected categories into a ZIP; any failure surfaces as an exception.
-     * The whole backup is this one file — the UI panel and the automation receiver are two thin
-     * callers of this same function, and `onProgress` is what the caller reports outward.
+     * The whole backup is this one file — the UI panel, the automation receiver and the data door
+     * are thin callers of this same function, and `onProgress` is what the caller reports outward.
+     *
+     * `isCancelled` is polled at write boundaries only — between categories, between feeds, between
+     * buffers of the realm snapshot — so a cancelled run unwinds at the next boundary rather than
+     * being torn down mid-write, and raises [Cancelled] for the caller to answer. Deleting whatever
+     * was half-written belongs to the caller, which is the only side that knows where it went.
      */
-    fun export(cats: Set<Cat>, openOutput: () -> OutputStream, onProgress: (Progress) -> Unit = {}) {
+    fun export(cats: Set<Cat>, openOutput: () -> OutputStream, isCancelled: () -> Boolean = { false },
+               onProgress: (Progress) -> Unit = {}) {
         val context = getAppContext()
         val selected = Cat.entries.filter { it in cats }
         val steps = selected.size.toLong()
@@ -313,12 +350,16 @@ object KuchusenExport {
                 .put("categories", JSONArray(selected.map { it.id }))
             writeEntry(zip, "manifest.json", manifest.toString(2).toByteArray())
             for (cat in selected) {
+                if (isCancelled()) throw Cancelled()
                 step++
+                // `current` is the POSITION of the category being written — 「Category 4/9 — …」 means
+                // this one is number four, not that four are done.
                 onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_cat, step, steps,
-                    context.getString(cat.labelRes)), step, steps, context.getString(R.string.kuchusen_eim_unit_cats)))
+                    context.getString(cat.labelRes)), step, steps,
+                    context.getString(R.string.kuchusen_eim_unit_cats), cat.id))
                 when (cat) {
-                    Cat.FEEDS -> writeEntry(zip, "feeds.json", feedsJson(onProgress).toByteArray())
-                    Cat.DATABASE -> writeDatabaseEntry(zip, onProgress)
+                    Cat.FEEDS -> writeEntry(zip, "feeds.json", feedsJson(isCancelled, onProgress).toByteArray())
+                    Cat.DATABASE -> writeDatabaseEntry(zip, isCancelled, onProgress)
                     Cat.COLORS, Cat.SHAPE -> writeEntry(zip, "${cat.id}.json", uiSettingsJson(cat).toByteArray())
                     Cat.TYPOGRAPHY -> {
                         writeEntry(zip, "typography.json", uiSettingsJson(cat).toByteArray())
@@ -370,6 +411,37 @@ object KuchusenExport {
             out[key] = v
         }
         return out
+    }
+
+    /**
+     * Block until every store this import touched is on disk.
+     *
+     * **応用管理 force-stops this app the instant the import replies success** — `Process.killProcess`,
+     * a `SIGKILL` — which is deliberate and belongs on its side: a running process writes its cached
+     * `SharedPreferences` back out at orderly shutdown and would silently undo the import that just
+     * happened. The consequence for us is that anything left un-flushed at that moment is simply
+     * lost, and **the restore reports success over missing data** — invisible in testing, because a
+     * hand-run import is followed by a normal lifecycle that flushes properly, and only the automated
+     * path kills the process cold.
+     *
+     * The audit is "what does this restore path start asynchronously", not "where is `apply()`":
+     *
+     * - The UI prefs (`kuchusen_ui`) were the one asynchronous write — `androidx.core.content.edit`
+     *   defaults to `commit = false`, so [KuchusenUi.importPrefValues] read as durable and was not.
+     *   It now commits, and [KuchusenUi.flushPrefs] additionally lands any earlier `apply()` from a
+     *   setter this path does not own.
+     * - Realm is already durable on return: [upsertBlk] and `addNewFeed` both go through
+     *   `realm.writeBlocking`.
+     * - Font files and the restored database file are plain `File` writes. A `SIGKILL` does not lose
+     *   those — the bytes are already in the kernel's hands — so they owe nothing here.
+     *
+     * Called from [importStaged], so the hand-run Export/Import panel gets it as well as the data
+     * door. Both callers are off the main thread, so the synchronous write is free on each; a panel
+     * that imported on the main thread would be trading a truncated restore for an ANR.
+     */
+    fun flushToDisk(context: Context) {
+        KuchusenUi.flushPrefs()
+        eximportPrefs(context).edit(commit = true) { }
     }
 
     /** What an import did: the per-category summary, and whether the database was swapped. */
@@ -450,6 +522,9 @@ object KuchusenExport {
             databaseRestored = true
             parts.add(context.getString(R.string.kuchusen_eim_sum_database, humanSize(target.length())))
         }
+
+        // Nothing may be told this succeeded until it is actually on disk — see [flushToDisk].
+        flushToDisk(context)
 
         val summary = if (parts.isEmpty()) context.getString(R.string.kuchusen_eim_sum_nothing) else parts.joinToString("\n")
         return ImportResult(summary, databaseRestored)
