@@ -107,9 +107,20 @@ object KuchusenUi {
     /** Snapshot of every stored UI pref, keyed as in the prefs file. */
     fun prefsSnapshot(): Map<String, Any?> = prefs.all
 
-    /** Merge typed values back into the prefs store (never clears), then refresh the live states. */
+    /**
+     * Merge typed values back into the prefs store (never clears), then refresh the live states.
+     *
+     * **`commit = true`, not `apply()`.** 応用管理 force-stops this app the instant the automation
+     * import replies success — `Process.killProcess`, a `SIGKILL` — and an `apply()` still in flight
+     * at that moment has only an asynchronous disk write pending and no orderly shutdown left to
+     * flush it. The restore would report success and the house look would come back unrestored, with
+     * every other category correct and nothing reporting a failure. `androidx.core.content.edit`
+     * defaults to `commit = false`, so the call site read as durable without being it. The import
+     * already runs off the main thread on both callers — the Export/Import panel wraps it in
+     * `Dispatchers.IO`, and the data door runs on an IO scope — so the synchronous write is free.
+     */
     fun importPrefValues(values: Map<String, Any>) {
-        prefs.edit {
+        prefs.edit(commit = true) {
             for ((key, v) in values) {
                 when (v) {
                     is Boolean -> putBoolean(key, v)
@@ -121,6 +132,18 @@ object KuchusenUi {
             }
         }
         reloadFromPrefs()
+    }
+
+    /**
+     * Block until this file's in-memory map is on disk, whoever queued it.
+     *
+     * An empty `commit()` writes the whole map on the calling thread, so it also lands any earlier
+     * `apply()` from a setter 白い熊 touched moments before — writes the import path does not own
+     * and cannot reach by changing its own `edit()`. That is the point: there is no need to track
+     * which keys were pending.
+     */
+    fun flushPrefs() {
+        prefs.edit(commit = true) { }
     }
 
     /** Every imported font file on disk (for settings export). */

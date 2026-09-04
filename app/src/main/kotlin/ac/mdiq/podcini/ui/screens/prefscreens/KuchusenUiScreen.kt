@@ -362,11 +362,23 @@ private fun ChannelSlider(name: String, value: Int, tint: Color, onChange: (Int)
 private fun hasAllFilesAccess(): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
 
+/** The page's switch, in house colours — two of them sit in the automation rows. */
+@Composable
+private fun HouseSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Switch(checked = checked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(
+        checkedThumbColor = KuchusenUi.backgroundColor, checkedTrackColor = KuchusenUi.accentColor,
+        uncheckedThumbColor = KuchusenUi.secondaryTextColor, uncheckedTrackColor = KuchusenUi.backgroundColor,
+        uncheckedBorderColor = KuchusenUi.accentColor))
+}
+
 @Composable
 private fun AutomationRows(start: Dp) {
     val context = LocalContext.current
     var enabled by remember { mutableStateOf(AutomationAuth.isEnabled(context)) }
-    var token by remember { mutableStateOf(AutomationAuth.token(context)) }
+    var requireToken by remember { mutableStateOf(AutomationAuth.isTokenRequired(context)) }
+    // Read lazily: the token generates itself on first read, and there is no reason to mint one for
+    // a row 白い熊 is not being shown.
+    var token by remember { mutableStateOf(if (requireToken) AutomationAuth.token(context) else "") }
     var showRegen by remember { mutableStateOf(false) }
     var filesAccess by remember { mutableStateOf(hasAllFilesAccess()) }
     // The grant screen returns no result — re-read the real state when we come back from it.
@@ -374,22 +386,38 @@ private fun AutomationRows(start: Dp) {
         filesAccess = hasAllFilesAccess()
     }
 
+    // 1. The master switch — ON out of the box since contract v2, because the case this serves is a
+    //    freshly wiped phone where nobody has configured anything yet.
     Row(verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(start = start, top = 6.dp, bottom = 2.dp)) {
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
             Text(stringResource(R.string.kuchusen_auto_title), color = KuchusenUi.textColor)
             Text(stringResource(R.string.kuchusen_auto_sum), color = KuchusenUi.secondaryTextColor, fontSize = 13.sp)
         }
-        Switch(checked = enabled, onCheckedChange = { on ->
+        HouseSwitch(enabled) { on ->
             enabled = on
             AutomationAuth.setEnabled(context, on)
-        }, colors = SwitchDefaults.colors(
-            checkedThumbColor = KuchusenUi.backgroundColor, checkedTrackColor = KuchusenUi.accentColor,
-            uncheckedThumbColor = KuchusenUi.secondaryTextColor, uncheckedTrackColor = KuchusenUi.backgroundColor,
-            uncheckedBorderColor = KuchusenUi.accentColor))
+        }
     }
 
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = start)) {
+    // 2. The token, opt-in. A pasted secret cannot survive a wipe, so it is no longer the gate.
+    Row(verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = start, top = 2.dp, bottom = 2.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(stringResource(R.string.kuchusen_auto_require_token), color = KuchusenUi.textColor)
+            Text(stringResource(R.string.kuchusen_auto_require_token_sum),
+                color = KuchusenUi.secondaryTextColor, fontSize = 13.sp)
+        }
+        HouseSwitch(requireToken) { on ->
+            requireToken = on
+            AutomationAuth.setTokenRequired(context, on)
+            if (on && token.isEmpty()) token = AutomationAuth.token(context)
+        }
+    }
+
+    // 3. The token itself — shown only when it is being asked for. A 48-character secret sitting
+    //    under an off switch invites pasting it somewhere it will do nothing.
+    if (requireToken) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = start)) {
         Column(modifier = Modifier.weight(1f).clickable {
             val clip = context.getSystemService(ClipboardManager::class.java)
             clip?.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.kuchusen_auto_token), token))
