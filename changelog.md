@@ -1,3 +1,7 @@
+# 12.9.4
+
+* ensured further accesses to player in Main dispatcher
+
 # 12.9.3
 
 * fixed crashes due to accessing player from IO dispatcher

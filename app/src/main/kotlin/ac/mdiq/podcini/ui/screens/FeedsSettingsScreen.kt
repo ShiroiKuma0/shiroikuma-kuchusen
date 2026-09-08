@@ -473,7 +473,7 @@ fun FeedsSettingsScreen() {
                                             att.preferredLnaguages.clear()
                                             att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
                                         } } }
-                                        withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
+                                        if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) { forcePlaybackReset = true }
                                     }
                                     showIcon =  false
                                 }))
@@ -505,7 +505,7 @@ fun FeedsSettingsScreen() {
                                         }
                                     }
                                 }
-                                withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
+                                if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) { forcePlaybackReset = true }
                             }
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
@@ -534,7 +534,7 @@ fun FeedsSettingsScreen() {
                                     }
                                 }
                             }
-                            withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
+                            if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) { forcePlaybackReset = true }
                         }
                     }
                     Row(Modifier.fillMaxWidth()) {
@@ -563,17 +563,13 @@ fun FeedsSettingsScreen() {
                                         if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
                                     }
                                 }
-                                withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
+                                if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) { forcePlaybackReset = true }
                             }
                         }
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)
                             Spacer(modifier = Modifier.width(20.dp))
-                            Text(text = stringResource(R.string.pref_feed_video_quality), style = CustomTextStyles.titleCustom, color = textColor,
-                                modifier = Modifier.clickable {
-//                                    videoQuality = feed.videoQualitySetting.tag
-                                    showDialog = true
-                                })
+                            Text(text = stringResource(R.string.pref_feed_video_quality), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog = true })
                             Spacer(modifier = Modifier.width(30.dp))
                             Text(videoQuality, style = MaterialTheme.typography.bodyMedium, color = textColor)
                         }

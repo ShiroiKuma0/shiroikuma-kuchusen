@@ -68,6 +68,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
     FF(R.string.button_action_fast_forward, R.string.keycode_media_fast_forward),
@@ -131,11 +133,13 @@ fun PlaybackScreen() {
                     trailingIcon = {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(
                             onClick = {
-                                runOnIOScope { upsert(appAttribs) { att->
-                                    att.langsPreferred.clear()
-                                    att.langsPreferred.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
-                                } }
-                                forcePlaybackReset = true
+                                runOnIOScope {
+                                    upsert(appAttribs) { att->
+                                        att.langsPreferred.clear()
+                                        att.langsPreferred.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+                                    }
+                                    withContext(Dispatchers.Main) { forcePlaybackReset = true }
+                                }
                                 showIcon =  false
                             }))
                     })

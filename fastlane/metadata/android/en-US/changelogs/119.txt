@@ -1,0 +1,1 @@
+* ensured further accesses to player in Main dispatcher

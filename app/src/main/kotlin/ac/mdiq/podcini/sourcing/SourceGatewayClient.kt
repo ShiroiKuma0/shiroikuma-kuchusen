@@ -133,7 +133,7 @@ object AppGatewayRegistry {
                     val cs = getSourceClients()
                     if (cs.isNotEmpty()) sourceClients.addAll(cs)
                 }
-                forcePlaybackReset = true
+                withContext(Dispatchers.Main) { forcePlaybackReset = true }
                 if (sourceClients.isNotEmpty()) {
                     _state.value = GatewayState.Ready(sourceClients)
                     currentDeferred.complete(sourceClients)
