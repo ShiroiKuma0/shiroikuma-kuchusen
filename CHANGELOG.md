@@ -2,6 +2,49 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.9.1+003 (versionCode 1160003) — 2026-09-08
+
+Same upstream base (**v12.9.1**, versionCode 116). One defect, and it was the worst kind: every
+backup written since 12.9.1+002 was unrestorable, and every one of them reported success.
+
+### The database was never actually in the backup
+
+An archive taken by this app carried a `database.realm` that no unzip, and no restore, could read —
+`invalid distance too far back`. The six other members were perfect; the one that holds the
+episodes, play positions and queues was not. It was found on the other side, during a restore, after
+forty other apps' payloads came back byte-perfect through the identical path.
+
+The cause was a single line. The database entry was written at a faster compression level than the
+JSON entries around it, and the level was switched **after** the first entry had already been
+compressed. On this phone that mid-archive switch corrupts the *next* entry: compression levels 1–3
+select a different internal compression routine than 4–9, and zlib changing routines part-way
+through an archive leaves the following entry a stream nothing can decompress. It only damages an
+entry large enough to span more than one compression pass — so the small JSON members were untouched
+and the database, the only large one, was destroyed. Desktop Java does not reproduce it at all;
+only running the export on the phone shows it.
+
+The compression level is now chosen once, before the first entry, and never changed again.
+
+### The export now verifies itself, and fails loudly when it cannot
+
+The archive's recorded checksums and sizes had been correct the whole time — they describe what went
+*into* the compressor, and the fault was in what came out of it. Nothing between the compressor and
+the file had ever asked the only question that mattered: can these bytes be read back?
+
+Now every byte is decompressed again as it is written, entry by entry, and each one's length and
+checksum are checked at the moment it closes. The check runs in the stream rather than as a second
+pass over the finished file, which is what lets it cover the data door as well — that path writes
+into a descriptor the calling app opened, which may be a pipe with nothing to reopen and re-read,
+and it was the path that actually failed. It costs one decompression pass, in constant memory, and
+it names the entry that broke as it breaks.
+
+An export that cannot verify itself now stops and says so — `archive verification failed on
+database.realm: …` — instead of leaving behind a file that looks exactly like a backup until the day
+someone needs it.
+
+**Backups taken with 12.9.1+001 and +002 cannot be repaired.** Their database contents were never
+written correctly. Take a fresh backup with this build.
+
 ## 12.9.1+002 (versionCode 1160002)
 
 Same upstream base (**v12.9.1**, versionCode 116). This release is entirely about the backup
