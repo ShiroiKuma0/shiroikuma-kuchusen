@@ -22,12 +22,16 @@ import io.github.xilinjia.krdb.types.TypedRealmObject
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.zip.CRC32
+import java.util.zip.DataFormatException
 import java.util.zip.Deflater
+import java.util.zip.Inflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -283,15 +287,19 @@ object KuchusenExport {
     }
 
     /** Streams the realm snapshot into the zip, reporting real byte counts as it goes. */
-    private fun writeDatabaseEntry(zip: ZipOutputStream, isCancelled: () -> Boolean, onProgress: (Progress) -> Unit) {
+    private fun writeDatabaseEntry(zip: ZipOutputStream, verifier: ArchiveVerifier,
+                                   isCancelled: () -> Boolean, onProgress: (Progress) -> Unit) {
         val context = getAppContext()
         val snapshot = snapshotDatabase()
         try {
             val total = snapshot.length()
             val unit = context.getString(R.string.kuchusen_eim_unit_bytes)
-            // A realm file is large and already compact; speed beats ratio here.
-            zip.setLevel(Deflater.BEST_SPEED)
+            // NO setLevel HERE. The compression level is chosen once, before the first entry, in
+            // [export] — see the note there. Changing it at this point is what silently destroyed
+            // every backup this app wrote between 2026-09-04 and 2026-09-08.
             zip.putNextEntry(ZipEntry(DB_ENTRY))
+            verifier.beginEntry(DB_ENTRY)
+            val crc = CRC32()
             var written = 0L
             var reported = 0L
             snapshot.inputStream().buffered().use { input ->
@@ -302,6 +310,7 @@ object KuchusenExport {
                     if (isCancelled()) throw Cancelled()
                     val n = input.read(buf)
                     if (n <= 0) break
+                    crc.update(buf, 0, n)
                     zip.write(buf, 0, n)
                     written += n
                     if (written - reported >= 2L * 1024 * 1024 || written == total) {
@@ -312,16 +321,100 @@ object KuchusenExport {
                 }
             }
             zip.closeEntry()
-            zip.setLevel(Deflater.DEFAULT_COMPRESSION)
+            verifier.endEntry(crc.value, written)
         } finally { snapshotDir().deleteRecursively() }
     }
 
     // ---- Export ---------------------------------------------------------------------------------
 
-    private fun writeEntry(zip: ZipOutputStream, name: String, bytes: ByteArray) {
+    /**
+     * Every byte of the archive, inflated straight back as it is written.
+     *
+     * This app spent four days writing backups that could not be restored and reporting success
+     * every time, because nothing between the deflater and the file ever asked whether the bytes
+     * could be read again. The recorded CRC and sizes were all correct — they describe what went
+     * *into* the deflater, and the fault was in what came out of it. Only an inflate catches that.
+     *
+     * **Why in-stream and not a second pass over the finished file.** The data door writes into a
+     * descriptor 応用管理 opened, which may be a pipe: there is nothing to reopen and re-read, and
+     * that is the one path that actually failed. Inflating as we go verifies a pipe, a SAF document
+     * and a plain file identically, in constant memory, and it names the entry that broke at the
+     * moment it breaks rather than after another full pass. Inflating is several times cheaper than
+     * the deflate it checks, so the archive costs a fraction more to write and stops being a
+     * question mark.
+     *
+     * It sits directly beneath the [ZipOutputStream] and above the buffer, so `closeEntry()` is an
+     * exact boundary: by the time it returns, every byte of that entry has come past here.
+     */
+    private class ArchiveVerifier(private val out: OutputStream) : OutputStream() {
+        private val inflater = Inflater(true)
+        private val crc = CRC32()
+        private val scratch = ByteArray(64 * 1024)
+        private var entry: String? = null
+        private var produced = 0L
+        private var closed = false
+
+        /** Called after `putNextEntry`, so the local header has already gone past untouched. */
+        fun beginEntry(name: String) {
+            inflater.reset()
+            crc.reset()
+            produced = 0L
+            entry = name
+        }
+
+        /**
+         * Called after `closeEntry`, which has flushed the whole deflate stream and then written the
+         * data descriptor. Those trailing descriptor bytes are never fed to the inflater: it has
+         * already reached the end of the stream by then and [write] stops feeding it.
+         */
+        fun endEntry(expectedCrc: Long, expectedSize: Long) {
+            val name = entry ?: return
+            entry = null
+            if (!inflater.finished()) fail(name, "the deflate stream never ended")
+            if (produced != expectedSize) fail(name, "inflated to $produced bytes, not $expectedSize")
+            if (crc.value != expectedCrc) fail(name, "checksum mismatch after inflating")
+        }
+
+        override fun write(b: Int) = write(byteArrayOf(b.toByte()), 0, 1)
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            // The archive first, always: verification must not be able to lose a byte of it.
+            out.write(b, off, len)
+            val name = entry ?: return
+            if (inflater.finished()) return
+            inflater.setInput(b, off, len)
+            try {
+                while (!inflater.finished() && !inflater.needsInput()) {
+                    val n = inflater.inflate(scratch)
+                    if (n == 0) break   // asking for a preset dictionary we are never going to have
+                    crc.update(scratch, 0, n)
+                    produced += n
+                }
+            } catch (e: DataFormatException) {
+                fail(name, e.message ?: "not a readable deflate stream")
+            }
+        }
+
+        override fun flush() = out.flush()
+
+        override fun close() {
+            if (closed) return
+            closed = true
+            // The stream still gets closed even if the inflater is what went wrong.
+            try { out.close() } finally { inflater.end() }
+        }
+
+        private fun fail(name: String, why: String): Nothing =
+            throw IOException("archive verification failed on $name: $why")
+    }
+
+
+    private fun writeEntry(zip: ZipOutputStream, verifier: ArchiveVerifier, name: String, bytes: ByteArray) {
         zip.putNextEntry(ZipEntry(name))
+        verifier.beginEntry(name)
         zip.write(bytes)
         zip.closeEntry()
+        verifier.endEntry(CRC32().apply { update(bytes) }.value, bytes.size.toLong())
     }
 
     /**
@@ -340,34 +433,59 @@ object KuchusenExport {
         val selected = Cat.entries.filter { it in cats }
         val steps = selected.size.toLong()
         var step = 0L
-        ZipOutputStream(openOutput().buffered()).use { zip ->
-            val manifest = JSONObject()
-                .put("format", FORMAT)
-                .put("version", VERSION)
-                .put("app", context.packageName)
-                .put("appVersion", BuildConfig.VERSION_NAME)
-                .put("createdTs", System.currentTimeMillis())
-                .put("categories", JSONArray(selected.map { it.id }))
-            writeEntry(zip, "manifest.json", manifest.toString(2).toByteArray())
-            for (cat in selected) {
-                if (isCancelled()) throw Cancelled()
-                step++
-                // `current` is the POSITION of the category being written — 「Category 4/9 — …」 means
-                // this one is number four, not that four are done.
-                onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_cat, step, steps,
-                    context.getString(cat.labelRes)), step, steps,
-                    context.getString(R.string.kuchusen_eim_unit_cats), cat.id))
-                when (cat) {
-                    Cat.FEEDS -> writeEntry(zip, "feeds.json", feedsJson(isCancelled, onProgress).toByteArray())
-                    Cat.DATABASE -> writeDatabaseEntry(zip, isCancelled, onProgress)
-                    Cat.COLORS, Cat.SHAPE -> writeEntry(zip, "${cat.id}.json", uiSettingsJson(cat).toByteArray())
-                    Cat.TYPOGRAPHY -> {
-                        writeEntry(zip, "typography.json", uiSettingsJson(cat).toByteArray())
-                        for (font in KuchusenUi.fontFiles()) writeEntry(zip, "fonts/${font.name}", font.readBytes())
+        // The verifier sits directly under the zip and above the buffer, so it sees every byte the
+        // ZipOutputStream emits at the moment it emits it — which is what makes `closeEntry()` an
+        // exact boundary. Below the buffer those bytes would still be sitting in it.
+        val verifier = ArchiveVerifier(openOutput().buffered())
+        try {
+            ZipOutputStream(verifier).use { zip ->
+                // ---- The compression level is set HERE and never again -------------------------------
+                // A realm file is large and already compact, so speed beats ratio for the archive as a
+                // whole — every other entry is a few kB of JSON and loses nothing by it.
+                //
+                // It has to be set before the FIRST entry, and this is not a style preference. On this
+                // phone, `ZipOutputStream.setLevel()` called after an entry has already been deflated
+                // produces a **corrupt** next entry: zlib's deflateParams switches compression function
+                // (levels 1-3 use deflate_fast, 4-9 deflate_slow) mid-archive and the entry that follows
+                // is a deflate stream no inflater can read — `invalid distance too far back`. It only
+                // bites an entry big enough to span more than one deflate pass, which in this archive is
+                // exactly one entry: the realm snapshot. Desktop JVMs do not reproduce it, so nothing
+                // short of running the export on the phone would have caught it.
+                zip.setLevel(Deflater.BEST_SPEED)
+                val manifest = JSONObject()
+                    .put("format", FORMAT)
+                    .put("version", VERSION)
+                    .put("app", context.packageName)
+                    .put("appVersion", BuildConfig.VERSION_NAME)
+                    .put("createdTs", System.currentTimeMillis())
+                    .put("categories", JSONArray(selected.map { it.id }))
+                writeEntry(zip, verifier, "manifest.json", manifest.toString(2).toByteArray())
+                for (cat in selected) {
+                    if (isCancelled()) throw Cancelled()
+                    step++
+                    // `current` is the POSITION of the category being written — 「Category 4/9 — …」 means
+                    // this one is number four, not that four are done.
+                    onProgress(Progress(context.getString(R.string.kuchusen_eim_prog_cat, step, steps,
+                        context.getString(cat.labelRes)), step, steps,
+                        context.getString(R.string.kuchusen_eim_unit_cats), cat.id))
+                    when (cat) {
+                        Cat.FEEDS -> writeEntry(zip, verifier, "feeds.json", feedsJson(isCancelled, onProgress).toByteArray())
+                        Cat.DATABASE -> writeDatabaseEntry(zip, verifier, isCancelled, onProgress)
+                        Cat.COLORS, Cat.SHAPE -> writeEntry(zip, verifier, "${cat.id}.json", uiSettingsJson(cat).toByteArray())
+                        Cat.TYPOGRAPHY -> {
+                            writeEntry(zip, verifier, "typography.json", uiSettingsJson(cat).toByteArray())
+                            for (font in KuchusenUi.fontFiles())
+                                writeEntry(zip, verifier, "fonts/${font.name}", font.readBytes())
+                        }
+                        Cat.APP_SETTINGS -> writeEntry(zip, verifier, "app_settings.json", appSettingsJson().toByteArray())
                     }
-                    Cat.APP_SETTINGS -> writeEntry(zip, "app_settings.json", appSettingsJson().toByteArray())
                 }
             }
+        } finally {
+            // Closed here as well as by the zip above, because a ZipOutputStream whose
+            // finish() throws never reaches its own out.close() — and a verifier failure
+            // throws exactly there. close() is idempotent.
+            verifier.close()
         }
     }
 
