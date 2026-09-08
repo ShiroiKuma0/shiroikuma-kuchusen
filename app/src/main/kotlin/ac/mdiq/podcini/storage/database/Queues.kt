@@ -19,7 +19,9 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.timeIt
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 import kotlin.random.Random
 
@@ -126,13 +128,14 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
         Loge(TAG, "Current queue is virtual, ignored")
         return
     }
+    val curPlaying = withContext(Dispatchers.Main) { if (queue.id == actQueueFlow.value.id) theatres[0].mPlayerFlow.value?.curMediaFlow?.value else null }
     realm.write {
         for (e in episodes) {
             var qes = queue.entries
             if (qes.indexOfFirst { it.episodeId == e.id } >= 0) continue
             val insertPosition = if (queue.autoSort) 0 else {
                 qes = queue.entries
-                calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueueFlow.value.id) theatres[0].mPlayerFlow.value?.curMediaFlow?.value else null))
+                calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), curPlaying)
             }
             Logd(TAG, "addToQueue insertPosition: $insertPosition")
             val qe = QueueEntry().apply {
@@ -206,10 +209,16 @@ suspend fun smartRemoveFromQueues(item_: Episode, queues_: List<PlayQueue> = lis
         if (q.id != actQueueFlow.value.id && q.contains(item)) removeFromQueue(q, listOf(item))
     }
     //        ensure actQueueFlow.value is last updated
+    var curMediaId0: Long? = null
+    var curMediaId1: Long? = null
+    withContext(Dispatchers.Main) {
+        curMediaId0 = theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.id
+        curMediaId1 = theatres[1].mPlayerFlow.value?.curMediaFlow?.value?.id
+    }
     if (actQueueFlow.value.id in queues.map { it.id }) {
         Logd(TAG, "actQueueFlow.value: [${actQueueFlow.value.name}]")
         val qes = actQueueFlow.value.entries
-        curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.id || it.episodeId == theatres[1].mPlayerFlow.value?.curMediaFlow?.value?.id }
+        curIndexInActQueue = qes.indexOfFirst { it.episodeId == curMediaId0 || it.episodeId == curMediaId1 }
         if (actQueueFlow.value.size() > 0 && actQueueFlow.value.contains(item)) removeFromQueue(actQueueFlow.value, listOf(item))
         else upsertBlk(actQueueFlow.value) { it.update() }
     }
@@ -222,7 +231,13 @@ suspend fun removeFromAllQueues(episodes: Collection<Episode>, playState: Episod
     }
     //        ensure actQueueFlow.value is last updated
     val qes = actQueueFlow.value.entries
-    curIndexInActQueue = qes.indexOfFirst { it.episodeId == theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.id || it.episodeId == theatres[1].mPlayerFlow.value?.curMediaFlow?.value?.id }
+    var curMediaId0: Long? = null
+    var curMediaId1: Long? = null
+    withContext(Dispatchers.Main) {
+        curMediaId0 = theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.id
+        curMediaId1 = theatres[1].mPlayerFlow.value?.curMediaFlow?.value?.id
+    }
+    curIndexInActQueue = qes.indexOfFirst { it.episodeId == curMediaId0 || it.episodeId == curMediaId1 }
     if (actQueueFlow.value.size() > 0) removeFromQueue(actQueueFlow.value, episodes, playState)
 }
 

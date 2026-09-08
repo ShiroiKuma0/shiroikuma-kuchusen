@@ -29,6 +29,7 @@ import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.os.Build
+import android.os.DeadObjectException
 import android.os.IBinder
 import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
@@ -322,7 +323,7 @@ class SourceGatewayClient() {
 
     suspend fun disconnect() {
         mutex.withLock {
-            if (gateway != null) Logt(TAG, "Disconnecting ${gateway?.attributes?.name}")
+            gateway?.let { try { Logt(TAG, "Disconnecting ${it.attributes?.name}") } catch (_: DeadObjectException) { Logt(TAG, "Disconnecting dead gateway") } catch (_: RemoteException) { Logt(TAG, "Disconnecting gateway") } }
             connection?.let { try { PodciniApp.getAppContext().unbindService(it) } catch (_: Exception) { } }
             connection = null
             attributes?.apply { typeClientMap.remove(feedType) }

@@ -128,8 +128,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.withContext
 
 private const val TAG = "FeedSettingsScreen"
 
@@ -471,8 +473,8 @@ fun FeedsSettingsScreen() {
                                             att.preferredLnaguages.clear()
                                             att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
                                         } } }
+                                        withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
                                     }
-                                    if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                                     showIcon =  false
                                 }))
                         })
@@ -503,7 +505,7 @@ fun FeedsSettingsScreen() {
                                         }
                                     }
                                 }
-                                if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
+                                withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
                             }
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
@@ -532,7 +534,7 @@ fun FeedsSettingsScreen() {
                                     }
                                 }
                             }
-                            if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
+                            withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
                         }
                     }
                     Row(Modifier.fillMaxWidth()) {
@@ -561,8 +563,8 @@ fun FeedsSettingsScreen() {
                                         if (client?.attributes?.hasMultiQualities == true && f.videoModePolicy != VideoMode.AUDIO_ONLY) findLatest(f)?.videoQuality = type.code
                                     }
                                 }
+                                withContext(Dispatchers.Main) { if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true }
                             }
-                            if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) forcePlaybackReset = true
                         }
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)

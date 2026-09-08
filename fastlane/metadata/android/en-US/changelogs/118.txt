@@ -1,0 +1,2 @@
+* fixed crashes due to accessing player from IO dispatcher
+* fixed DeadObjectException when toasting about external client disconnect

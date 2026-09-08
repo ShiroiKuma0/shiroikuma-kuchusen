@@ -1,3 +1,8 @@
+# 12.9.3
+
+* fixed crashes due to accessing player from IO dispatcher
+* fixed DeadObjectException when toasting about external client disconnect
+
 # 12.9.2
 
 * created a separate "legacy" flavor by compressing libs to generate smaller apk's, only for apk-size conscious people
