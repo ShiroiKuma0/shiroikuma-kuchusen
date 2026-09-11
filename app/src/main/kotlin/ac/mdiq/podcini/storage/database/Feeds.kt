@@ -18,6 +18,7 @@ import ac.mdiq.podcini.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.ResultsChange
@@ -188,10 +189,11 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
     }
     val eps = realm.query(Episode::class).query("feedId == ${toFeed.id}").find()
     val dur = eps.sumOf { it.duration }
-    upsertBlk(toFeed) {
+    val feed_ = upsertBlk(toFeed) {
         it.episodesCount = eps.size
         it.totleDuration = dur.toLong()
     }
+    sumup(feed_)
 }
 
 fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
@@ -222,6 +224,7 @@ suspend fun addToFeed(episode: Episode, toFeed: Feed, log: ShareLog? = null) {
         episode.id = getEntityId()
         episode.feedId = toFeed.id
         upsertBlk(episode) {}
+        sumup(toFeed)
         EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
         ShareLog.Status.SUCCESS.code
     }
@@ -231,30 +234,28 @@ suspend fun addToFeed(episode: Episode, toFeed: Feed, log: ShareLog? = null) {
     }
 }
 
-fun addRemoteToMiscSyndicate(episode: Episode) {
-    fun getMiscSyndicate(): Feed {
+suspend fun addRemoteToMiscSyndicate(episode: Episode) {
+    suspend fun getMiscSyndicate(): Feed {
         val feedId: Long = 11
         var feed = getFeed(feedId, true)
         if (feed != null) return feed
         feed = createSynthetic(feedId, "Misc Syndicate")
         feed.type = FeedType.RSS.name
-        upsertBlk(feed) {}
-        return feed
+        return upsert(feed) {}
     }
     val feed = getMiscSyndicate()
     Logd(TAG, "addToMiscSyndicate: feed: ${feed.title}")
     val episodes = getEpisodes(null, null, feedId=feed.id, copy = false)
     if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return
     Logd(TAG, "addToMiscSyndicate adding new episode: ${episode.title}")
-    //        if (episode.feedId != null && episode.feedId!! >= MAX_SYNTHETIC_ID) {
-    //            episode.origFeedTitle = episode.feed?.title
-    //            episode.origFeeddownloadUrl = episode.feed?.downloadUrl
-    //            episode.origFeedlink = episode.feed?.link
-    //        }
+    episode.origFeedTitle = episode.feed?.title
+    episode.origFeeddownloadUrl = episode.feed?.downloadUrl
+    episode.origFeedlink = episode.feed?.link
     episode.id = getEntityId()
     episode.feedId = feed.id
-    upsertBlk(episode) {}
-    upsertBlk(feed) {}
+    upsert(episode) {}
+    Logt(TAG, "Episode added to synthetic feed: 'Misc Syndicate'")
+    sumup(feed)
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
@@ -315,6 +316,7 @@ suspend fun trimEpisodes(feed_: Feed): Int {
                     }
                 }
             }
+            sumup(f)
         }
     }
     return n

@@ -88,6 +88,7 @@ import androidx.work.WorkManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -260,16 +261,10 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         autoBackup()
-        if (!firstStart && appPrefsFlow?.value?.loadExternalApp == true && sourceClients.isEmpty()) {
-            commonConfirms.add(CommonConfirmAttrib(title = getString(R.string.reconnect_external_apps), message = getString(R.string.reconnect_external_apps_sum),
-                confirmRes = R.string.reconnect, cancelRes = R.string.setting_off,
-                onConfirm = { AppGatewayRegistry.initialize(true, CoroutineScope(Dispatchers.Default)) },
-                onCancel = {
-                    upsertBlk(appPrefsFlow!!.value) { p-> p.loadExternalApp = false}
-                    Logt(TAG, getString(R.string.pref_use_external_apps) + " " + getString(R.string.setting_off))
-                }
-            ))
-        }
+
+        if (!firstStart && appPrefsFlow?.value?.loadExternalApp == true && sourceClients.isEmpty())
+            AppGatewayRegistry.initialize(true, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+
         firstStart = false
         val curTime = nowInMillis()
         Logd(TAG, "onResume curTime: $curTime postRepeatsTime: ${appPrefsFlow!!.value.postRepeatsTime}")

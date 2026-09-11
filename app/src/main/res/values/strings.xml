@@ -81,9 +81,6 @@
     <string name="repeats_past_due">Repeat media past due</string>
     <string name="repeats_past_due_sum">You have %d scheduled media past due. Open the list?</string>
 
-    <string name="reconnect_external_apps">Reconnect external apps</string>
-    <string name="reconnect_external_apps_sum">You set to use external apps, but none of them are connected now. What do you want to do now?</string>
-
     <string name="reconnect">Reconnect</string>
     <string name="setting_off">Turn off setting</string>
 
@@ -101,6 +98,7 @@
     <string name="share_url_label">Share URL</string>
     <string name="go_to_position_label">Go to this position</string>
 
+    <string name="clear_log">Clear the log</string>
     <string name="clear_logs">Clear the logs</string>
 
     <!-- Playback history -->

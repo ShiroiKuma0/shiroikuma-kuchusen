@@ -129,6 +129,7 @@ object AppGatewayRegistry {
             try {
                 sourceClients.forEach { runCatching { it.disconnect() } }
                 sourceClients.clear()
+                typeClientMap.clear()
                 if (loadExternal) {
                     val cs = getSourceClients()
                     if (cs.isNotEmpty()) sourceClients.addAll(cs)
@@ -201,6 +202,7 @@ object AppGatewayRegistry {
                     } catch (e: Exception) {
                         Loge(TAG, e, "External service bind error")
                         clients.remove(client)
+                        typeClientMap.values.remove(client)
                     }
                     if (continuation.isActive) continuation.resumeWith(Result.success(client))
                 }
@@ -208,6 +210,8 @@ object AppGatewayRegistry {
                 override fun onServiceDisconnected(name: ComponentName?) {
                     Logt(TAG, "Service ${client.attributes?.name} disconnected")
                     PodcastSearcherRegistry.searcherInfos.clear()
+                    sourceClients.remove(client)
+                    typeClientMap.values.remove(client)
                     PodciniApp.appIOScope.launch { client.disconnect() }
                     clients.remove(client)
                 }
@@ -215,6 +219,8 @@ object AppGatewayRegistry {
                 override fun onBindingDied(name: ComponentName?) {
                     Logt(TAG, "${client.attributes?.name} binding died, trying to rebind service")
                     PodcastSearcherRegistry.searcherInfos.clear()
+                    sourceClients.remove(client)
+                    typeClientMap.values.remove(client)
                     PodciniApp.appIOScope.launch { client.disconnect() }
                     clients.remove(client)
                     if (continuation.isActive) continuation.resumeWith(Result.success(null))
@@ -224,6 +230,8 @@ object AppGatewayRegistry {
                 override fun onNullBinding(name: ComponentName?) {
                     Logt(TAG, "Service ${client.attributes?.name} not bond: null binding, trying to rebind")
                     PodcastSearcherRegistry.searcherInfos.clear()
+                    sourceClients.remove(client)
+                    typeClientMap.values.remove(client)
                     PodciniApp.appIOScope.launch { client.disconnect() }
                     clients.remove(client)
                     if (continuation.isActive) continuation.resumeWith(Result.success(null))
@@ -323,7 +331,7 @@ class SourceGatewayClient() {
 
     suspend fun disconnect() {
         mutex.withLock {
-            gateway?.let { try { Logt(TAG, "Disconnecting ${it.attributes?.name}") } catch (_: DeadObjectException) { Logt(TAG, "Disconnecting dead gateway") } catch (_: RemoteException) { Logt(TAG, "Disconnecting gateway") } }
+            gateway?.let { try { Logt(TAG, "Disconnecting ${it.attributes?.name}") } catch (_: DeadObjectException) { Logt(TAG, "Disconnecting unknown dead gateway") } catch (_: RemoteException) { Logt(TAG, "Disconnecting unknown gateway") } }
             connection?.let { try { PodciniApp.getAppContext().unbindService(it) } catch (_: Exception) { } }
             connection = null
             attributes?.apply { typeClientMap.remove(feedType) }

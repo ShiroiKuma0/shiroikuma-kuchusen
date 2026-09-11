@@ -1,3 +1,11 @@
+# 12.9.5
+
+* ensure cleanup when an external client disconnects/dies
+* if died or disconnected, external clients reconnect on app resume
+* in Shared error mode of Logs screen, clicking on a log will check existence and prompt
+* update synthetic feed summary when new episodes are added to or erase from it
+* minor code refactoring
+
 # 12.9.4
 
 * ensured further accesses to player in Main dispatcher

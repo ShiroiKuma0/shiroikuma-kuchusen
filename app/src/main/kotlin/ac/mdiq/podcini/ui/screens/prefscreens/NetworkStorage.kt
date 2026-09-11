@@ -117,6 +117,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -365,7 +366,7 @@ fun NetworkStorageScreen() {
         }
         TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
             val appPrefs_ = upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
-            AppGatewayRegistry.initialize(appPrefs_.loadExternalApp, CoroutineScope(Dispatchers.Default))
+            AppGatewayRegistry.initialize(appPrefs_.loadExternalApp, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

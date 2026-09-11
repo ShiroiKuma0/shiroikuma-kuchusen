@@ -93,6 +93,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -176,7 +177,6 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
 
     var relatedResults by mutableStateOf<List<FeedSearchResult>>(listOf())
 
-    internal var showNoPodcastFoundDialog by mutableStateOf(false)
     internal var errorMessage by mutableStateOf("")
     internal var errorDetails by mutableStateOf("")
 
@@ -199,10 +199,8 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         }
         gatewayClient = clientBySearcher(source)
 
-        if (feedUrl.isEmpty()) {
-            Loge(TAG, "feedUrl is null.")
-            showNoPodcastFoundDialog = true
-        } else {
+        if (feedUrl.isEmpty()) Loge(TAG, "feedUrl is null.")
+        else {
             Logd(TAG, "Activity was started with url $feedUrl")
             showProgress = true
             // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
@@ -293,7 +291,10 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
                             isFeedFoundBySearch = true
                             val feedBuilder = FeedBuilder(showError)
                             feedBuilder.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, _ -> handleFeed(feed_) }
-                        } else withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
+                        } else {
+                            showProgress = false
+                            Loge(TAG, getAppContext().getString(R.string.null_value_podcast_error))
+                        }
                     }
                 }
             }
@@ -549,12 +550,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
     if (vm.showTabsDialog) ShowTabsDialog(onDismiss = { vm.showTabsDialog = false })
 
-    if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
-        title = { Text(stringResource(R.string.error_label)) },
-        text = { Text(stringResource(R.string.null_value_podcast_error)) },
-        confirmButton = { TextButton(onClick = { vm.showNoPodcastFoundDialog = false }) { Text("OK") } })
-
-    if (vm.errorMessage.isNotBlank()) Loge(TAG, "${vm.errorMessage}\n${vm.errorDetails}")
+    LaunchedEffect(vm.errorMessage) {
+        if (vm.errorMessage.isNotBlank()) {
+            vm.showProgress = false
+            Loge(TAG, "${vm.errorMessage}\n${vm.errorDetails}")
+        }
+    }
 
     swipeActions.ActionOptionsDialog()
 

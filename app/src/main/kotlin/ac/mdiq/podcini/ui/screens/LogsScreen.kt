@@ -2,35 +2,37 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity
-import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.receiveShared
+import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.addEpisode
+import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.handleShared
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sourcing.SourceGatewayClient
 import ac.mdiq.podcini.sourcing.download.RequestType
 import ac.mdiq.podcini.sourcing.feed.FeedUpdater
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sourcing.sourceClients
-import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.ButtonTypes
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
 import ac.mdiq.podcini.ui.compose.ConfirmDialog
+import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
+import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.borderColor
+import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.sessionLogsFlow
@@ -59,6 +61,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -210,7 +213,6 @@ fun LogsScreen() {
         }
         CommonPopupCard(onDismiss = { onDismiss() }) {
             Column(modifier = Modifier.padding(10.dp)) {
-                
                 Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
                 Text(message, color = textColor)
                 Row(Modifier.padding(top = 10.dp)) {
@@ -231,41 +233,34 @@ fun LogsScreen() {
         val sharedlogState = remember { mutableStateOf(ShareLog()) }
         if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismiss = { showSharedDialog.value = false })
 
+        var addAsNew by remember { mutableStateOf(false) }
+        var client by remember { mutableStateOf<SourceGatewayClient?>(null) }
+        var existing by remember { mutableStateOf<List<Episode>?>(null) }
         var sharedUrl by remember { mutableStateOf("") }
-        if (sharedUrl.isNotBlank()) ConfirmAddToFeed(onDismiss = {  }) { toFeed->
-            Logd(TAG, "ConfirmAddToFeed cb sharedUrl: $sharedUrl")
-            val log = realm.query(ShareLog::class).query("url == $0", sharedUrl).first().find()
-            val client = sourceClients.find { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 1 } == true }
-            if (client != null) {
-                val episode = client.withProvider { it.buildEpisode(sharedUrl)?.toEpisode() }
-                if (episode != null) addToFeed(episode, toFeed, log)
-                else {
-                    Loge(TAG, "Failed adding episode: client can't handle. url=$sharedUrl")
-                    if (log != null) upsert(log) {
-                        it.details = "client can't handle"
-                        it.status = ShareLog.Status.ERROR.code
+        var theLog by remember { mutableStateOf<ShareLog?>(null) }
+        if (client != null && sharedUrl.isNotBlank()) {
+            when {
+                addAsNew -> ConfirmAddToFeed(onDismiss = {  }) { toFeed -> addEpisode(client!!, sharedUrl, toFeed) { sharedUrl = "" } }
+                existing.isNullOrEmpty() -> ConfirmAddToFeed(onDismiss = { }) { toFeed -> addEpisode(client!!, sharedUrl, toFeed) { sharedUrl = "" } }
+                else -> CommonDialogSurface(onDismiss = { }) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
+                            EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
+                        }
+                        Row(modifier = Modifier.align(Alignment.BottomEnd)) {
+                            Button(modifier = Modifier.padding(end = 20.dp), onClick = {
+                                if (theLog != null) upsertBlk(theLog!!) {
+                                    it.details = "share log cleared"
+                                    it.status = ShareLog.Status.SUCCESS.code
+                                }
+                                sharedUrl = ""
+                            }) { Text(stringResource(R.string.clear_log)) }
+                            Button(onClick = { addAsNew = true }) { Text(stringResource(R.string.add_as_new)) }
+                        }
                     }
-                }
-            } else {
-                val clients = sourceClients.filter { it.withProvider { p-> p.canHandleUrl(sharedUrl) == 0 } == true }
-                var success = false
-                for (c in clients) {
-                    val episode = c.withProvider { it.buildEpisode(sharedUrl)?.toEpisode() }
-                    if (episode != null) {
-                        addToFeed(episode, toFeed, log)
-                        success = true
-                        break
-                    }
-                }
-                if (!success) {
-                    Loge(TAG, "Failed adding episode: no client can handle. url=$sharedUrl")
-                    if (log != null) upsert(log) {
-                        it.details = "no client can handle"
-                        it.status = ShareLog.Status.ERROR.code
-                    }
+                    episodeForInfo?.let { EpisodeScreen(it) }
                 }
             }
-            sharedUrl = ""
         }
 
         val logs = remember(vm.shareLogs, vm.showSuccessLogs) { vm.shareLogs.filter { vm.showSuccessLogs == (it.status == ShareLog.Status.SUCCESS.code) } }
@@ -274,8 +269,18 @@ fun LogsScreen() {
                 Column(modifier = Modifier.fillMaxWidth().clickable {
                     Logd(TAG, "shared log url: ${log.url}")
                     if (log.status in listOf(ShareLog.Status.ERROR.code, ShareLog.Status.MISSING.code)) {
+                        addAsNew = false
+                        client = null
+                        existing = null
+                        theLog = log
                         Logt(TAG, "Handling shared url...")
-                        runOnIOScope { receiveShared(log.url!!, context as MainActivity, false, log) { _, _ -> sharedUrl = log.url!! } }
+                        runOnIOScope {
+                            handleShared(log.url!!, context as MainActivity, false, log) { cl, ex ->
+                                client = cl
+                                sharedUrl = log.url!!
+                                existing = ex
+                            }
+                        }
                         return@clickable
                     }
                     var hasError = false
@@ -300,7 +305,7 @@ fun LogsScreen() {
                             Logt(TAG, "Handling shared url...")
                             val log_ = upsertBlk(log) { it.status = ShareLog.Status.MISSING.code }
                             vm.shareLogs = listOf()
-                            receiveShared(log_.url!!, context as MainActivity, false, log_) { _, _ -> sharedUrl = log_.url!! }
+                            handleShared(log_.url!!, context as MainActivity, false, log_) { _, _ -> sharedUrl = log_.url!! }
                         }
                     }
                 }) {

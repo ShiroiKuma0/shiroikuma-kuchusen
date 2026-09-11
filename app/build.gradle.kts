@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 119
-        versionName = "12.9.4"
+        versionCode = 120
+        versionName = "12.9.5"
 
         ndkVersion = "29.0.14206865"
 
@@ -215,7 +215,7 @@ configurations {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.08.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -272,7 +272,6 @@ dependencies {
     implementation("io.ktor:ktor-http:3.5.2")
     implementation("io.ktor:ktor-client-core:3.5.2")
     implementation("io.ktor:ktor-client-okhttp:3.5.2")
-//     implementation("io.ktor:ktor-client-cio:3.5.2")
     implementation("io.ktor:ktor-utils:3.5.2")
 
     implementation("com.fleeksoft.ksoup:ksoup:0.2.6")

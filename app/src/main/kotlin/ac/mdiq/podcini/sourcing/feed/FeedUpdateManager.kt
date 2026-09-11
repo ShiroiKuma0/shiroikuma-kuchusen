@@ -45,6 +45,7 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
@@ -187,7 +188,7 @@ object FeedUpdateManager {
 //            ClientConfig.initialize()
             if (appPrefsFlow!!.value.loadExternalApp) {
                 AppGatewayRegistry.awaitReady()
-                delay(3000.milliseconds)
+                delay(4.seconds)
             }
 
             fun rescheduleUpdateTaskOnce() {

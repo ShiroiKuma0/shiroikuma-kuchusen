@@ -76,35 +76,15 @@ class ShareReceiverActivity : ComponentActivity() {
         var failed by mutableStateOf(false)
         var client by mutableStateOf<SourceGatewayClient?>(null)
         var existing by mutableStateOf<List<Episode>?>(null)
-        suspend fun addEpisode(toFeed: Feed) {
-            val log = realm.query(ShareLog::class).query("url == $0", text).first().find()
-            if (client != null) {
-                val episode = client?.withProvider { it.buildEpisode(text)?.toEpisode() }
-                if (episode != null) addToFeed(episode, toFeed, log)
-                else {
-                    Loge(TAG, "Failed adding episode: client can't handle. url=$text")
-                    if (log != null) upsert(log) {
-                        it.details = "Can not build episode"
-                        it.status = ShareLog.Status.ERROR.code
-                    }
-                }
-            } else {
-                Loge(TAG, "Failed adding episode: client is null. url=$text")
-                if (log != null) upsert(log) {
-                    it.details = "client is null"
-                    it.status = ShareLog.Status.ERROR.code
-                }
-            }
-        }
         setContent { PodciniTheme {
             when {
                 failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
                     confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(toFeed) }
+                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(client!!, text, toFeed) }
                 existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
                     title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(toFeed) }
+                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(client!!, text, toFeed) }
                 existing!!.size > 1 -> {
                     Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                         Box(modifier = Modifier.fillMaxWidth()) {
@@ -128,7 +108,7 @@ class ShareReceiverActivity : ComponentActivity() {
         runOnIOScope {
             var log = ShareLog(text)
             log = upsertBlk(log) {}
-            receiveShared(text, this, true, log) { c, ex ->
+            handleShared(text, this, true, log) { c, ex ->
                 client = c
                 existing = ex
             }
@@ -138,7 +118,22 @@ class ShareReceiverActivity : ComponentActivity() {
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
 
-        suspend fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean,  log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
+        suspend fun addEpisode(client:  SourceGatewayClient, url: String, toFeed: Feed, onSuccess: ()->Unit = {}) {
+            val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
+            val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
+            if (episode != null) {
+                addToFeed(episode, toFeed, log)
+                onSuccess()
+            } else {
+                Loge(TAG, "Failed adding episode: client can't handle. url=$url")
+                if (log != null) upsert(log) {
+                    it.details = "Can not build episode"
+                    it.status = ShareLog.Status.ERROR.code
+                }
+            }
+        }
+
+        suspend fun handleShared(sharedText: String, activity: ComponentActivity, finish: Boolean, log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
             Logd(TAG, "receiveShared sharedText: $sharedText")
             when {
 //            plain text

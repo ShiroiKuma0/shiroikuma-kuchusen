@@ -6,6 +6,7 @@ import ac.mdiq.podcini.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.base.releaseAController
 import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
@@ -33,8 +34,11 @@ object ClientConfig {
 
     @Synchronized
     fun initialize() {
-        if (initialized) return
-
+        if (initialized) {
+            if (appPrefsFlow?.value?.loadExternalApp == true && sourceClients.isEmpty())
+                AppGatewayRegistry.initialize(appPrefsFlow!!.value.loadExternalApp, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+            return
+        }
         getRealmInstance()
         initAppPrefs()
         AppGatewayRegistry.initialize(appPrefsFlow!!.value.loadExternalApp, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
