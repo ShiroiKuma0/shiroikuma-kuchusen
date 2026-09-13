@@ -2,6 +2,115 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.10.0+001 (versionCode 1210001) — 2026-09-13
+
+Rebased onto upstream **v12.10.0** (versionCode 121), released 2026-09-13 — taking in **five**
+upstream releases at once. 12.9.2 landed on the 6th, 12.9.3 and 12.9.4 both on the 8th, 12.9.5 on
+the 11th and 12.10.0 today. A tracking release: **no new fork features**, the whole custom layer
+replayed onto the new base and the build counter reset to `+001`.
+
+> **Take a fresh backup after installing.** The Realm schema moves **159 → 161**: upstream adds two
+> stored shapes, `TranscriptMeta` and `CaptionCue`, and hangs them off every episode. Your existing
+> database migrates forward on first launch as usual, and a backup taken with 12.9.1+003 still
+> restores here — but a backup taken *after* this build carries schema 161 and will not go back into
+> a 12.9.x install. The one-way migration warning from `12.6.0+001` still applies to anyone arriving
+> from a 12.5.x build.
+>
+> **Upstream also dropped the pre-150 migration step**, which set `episodesDownloadable` on RSS and
+> Atom feeds. A database that has not been opened since schema 150 — roughly 12.4.x — no longer has
+> that path available. Anything kept current is unaffected.
+
+> **Size**: 36.67 MiB, up 609 KiB on 12.9.1+003 — the caption parsers and the new player HTTP stack.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the self-verifying export, the token-gated headless export, the data door and the
+  black-yellow identity all carry over untouched.
+- **No porting fix needed** — the first rebase in a while that needed none. Nothing the fork patches
+  was touched in a way our code reads; the single overlap, `LibraryScreen.kt`, took its nine upstream
+  lines by auto-merge, and the release compiles clean with no warning of ours.
+- **Two collisions, both additive rather than semantic.** `app/build.gradle.kts` absorbed the bulk of
+  the upstream rework (112 lines) and conflicted twice. One is the routine version-literal clash,
+  where upstream reasserts `121` / `"12.10.0"` and the fork keeps deriving them from
+  `forkVersionCode` / `forkVersionName`. The other is new: 12.9.2's legacy flavors bring a
+  `configurations` block that lands immediately before `dependencies {}` — exactly where the
+  `buildFork` task is registered — so git saw one region rewritten twice. Both blocks are kept.
+  `README.md` conflicted in two hunks and ours stands in both, which drops the note upstream added
+  about its Legacy downloads.
+- **The legacy flavors are not shipped.** `freeLegacy` and `playLegacy` are registered and buildable,
+  but `buildFork` is unchanged: it still assembles the plain `free` release and picks the arm64-v8a
+  split out of `outputs/apk/free/release`.
+- **Version base moved to 12.10.0 / 121**, so this line's codes (`1210001`, `1210002`, …) all exceed
+  the 12.9.1 line's (`1160001`, …) and upgrades stay monotonic. 117 through 120 are upstream releases
+  we never built separately; their contents arrive here in one step.
+
+### Inherited from upstream 12.9.2 – 12.10.0
+
+59 files, 1483 insertions, 694 deletions — and for once none of it is packages moving: the tree that
+12.9.1 rearranged stayed exactly where it was put.
+
+**Transcripts and captions — the headline.** Podcasting 2.0 transcripts are now supported, with the
+available options captured at the moment you subscribe to a feed or when it updates, and stored
+against the episode. YouTube captions are supported too, fetched only when the media is actually
+played. Five formats parse: WebVTT, SubRip, HTML, JSON and TTML — anything else is kept as plain
+transcript text. A new `CaptionUtils.kt` (297 lines) does the parsing; `TranscriptMeta` records where
+a transcript came from and in what language, `CaptionCue` holds each cue with its start, end, speaker
+and text.
+
+- **Captions play along with the audio.** In PlayerDetailed the selected transcript can be shown as
+  captions, three at a time — previous, current and next — and clicking one seeks to it.
+- **Transcript options are selectable** from PlayerDetailed or EpisodeInfo, and the transcript or the
+  joined captions can be opened as a popup from either.
+- **Sharing is consolidated.** Episode sharing now goes through one `ShareDialog`, which gains share
+  transcript and share captions when the episode has them.
+
+**Playback and networking.**
+
+- **A user agent is now set in the player pipeline**, on both the Media3 data source and the Cronet
+  HTTP engine, which resolves redirect rejections some hosts were issuing against an unidentified
+  client. A new `playback/base/OKHTTP.kt` (185 lines) carries the player's own OkHttp stack.
+- **Feed language changes behave better.** The player's reaction when a feed's preferred languages
+  are changed has been tuned.
+- **The mp4 chapter fetcher is improved**, and podcast URL type detection is fixed for some kinds of
+  URL that were not being recognised when adding a podcast.
+
+**External source clients** — the interface this fork's own automation sits beside, though it does
+not use it.
+
+- **Clients auto-reconnect.** A dedicated reconnect path with its own mutex was added; clients that
+  died or were disconnected now reconnect when the app resumes.
+- **Cleanup is guaranteed when a client disconnects or dies**, and the disconnect logging survives a
+  `DeadObjectException` from a gateway that is already gone rather than throwing on the way out.
+
+**Crash fixes** — 12.9.3 and 12.9.4 exist for these.
+
+- **Fixed: crashes from accessing the player on the IO dispatcher.** Further player accesses were
+  moved onto the Main dispatcher in 12.9.4 after the first pass in 12.9.3.
+- **Fixed: `DeadObjectException` when toasting about an external client disconnect.**
+
+**Elsewhere.**
+
+- **Synthetic feed summaries update** when episodes are added to or erased from them.
+- **The Logs screen checks before it acts.** In Shared error mode, clicking a log now checks the
+  entry still exists and prompts.
+- **Queue resolution simplified** on `Feed`: the active-queue and none cases were folded out of the
+  getter, and the `queueTextExt` variant removed.
+
+**Packaging and dependencies.**
+
+- **A legacy flavor pair was added** (12.9.2) — the same app with dependency libs compressed, giving
+  a smaller APK at the cost of a larger install and a slower first launch. We do not ship it.
+- **AGP 9.4.0 and Kotlin 2.4.0 are now declared** in `settings.gradle.kts` and the root buildscript
+  rather than resolved implicitly.
+- Media3 1.11.0 → **1.11.1** (and media3-cast 1.10.0 → 1.11.0), PodciniLib 1.1.2 → **1.1.4**, Compose
+  BOM 2026.08.00 → **2026.09.00**, Coil 3.6.1 → **3.6.2**, Okio 3.18.1 → **3.18.2**, Conscrypt 2.5.3
+  → **2.7.0** (the `free` flavor's TLS provider, so ours), play-services-base 18.9.0 → 18.10.1 and
+  cast-framework 22.2.0 → 22.3.1. Two dependencies are dropped outright: `ktor-client-cio` and
+  `okhttp-urlconnection`.
+- **PodciniLib 1.1.4 is a compatibility break for external source apps** — upstream notes that any
+  external app you use with it needs updating to match.
+
 ## 12.9.1+003 (versionCode 1160003) — 2026-09-08
 
 Same upstream base (**v12.9.1**, versionCode 116). One defect, and it was the worst kind: every
