@@ -21,8 +21,9 @@ import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.model.SyncPrefs
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
+import ac.mdiq.podcini.storage.model.CaptionCue
+import ac.mdiq.podcini.storage.model.TranscriptMeta
 import ac.mdiq.podcini.storage.model.Volume
-import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.util.Log
@@ -58,6 +59,8 @@ val config: RealmConfiguration by lazy {
         ShareLog::class,
         SubscriptionLog::class,
         Chapter::class,
+        TranscriptMeta::class,
+        CaptionCue::class,
         Todo::class,
         Timer::class,
         PAFeed::class,
@@ -67,18 +70,10 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(159)
+    )).name("Podcini.realm").schemaVersion(161)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
-            if (oldRealm.schemaVersion() < 150) {
-                Log.d(TAG, "migrating DB from below 150")
-                var feeds = newRealm.query("Feed").find().toList()
-                for (f in feeds) {
-                    val type = f.getNullableValue<String>("type")
-                    if (type in listOf(FeedType.RSS.name, FeedType.ATOM.name)) f.set("episodesDownloadable", true)
-                }
-            }
             if (oldRealm.schemaVersion() < 157) {
                 Log.d(TAG, "migrating DB from below 157")
                 var feeds = oldRealm.query("Feed").find().toList()

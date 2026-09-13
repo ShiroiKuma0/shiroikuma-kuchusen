@@ -25,6 +25,7 @@ import android.media.MediaMetadataRetriever
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.core.text.HtmlCompat
+import androidx.core.text.parseAsHtml
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,7 +78,7 @@ object TTSEngine {
         runOnIOScope {
             var readerText: String? = null
             when (textSourceIndex) {
-                1 -> readerText = HtmlCompat.fromHtml(item.description ?: "", HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                1 -> readerText = item.description?.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                 2 -> {
                     if (item.transcript == null) {
                         val url = item.link!!
@@ -86,7 +87,7 @@ object TTSEngine {
                         readerText = article.textContent ?: ""
                         item = upsert(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
                         Logd(TAG, "readability4J: ${readerText.substring(max(0, readerText.length - 100), readerText.length)}")
-                    } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                    } else readerText = item.transcript!!.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                 }
             }
             Logd(TAG, "readerText: $readerText")
@@ -133,7 +134,7 @@ object TTSEngine {
             var readerText: String? = null
             processCB(1)
             when (textSourceIndex) {
-                1 -> readerText = HtmlCompat.fromHtml(item.description ?: "", HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                1 -> readerText = item.description?.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                 2 -> {
                     if (item.transcript == null) {
                         val url = item.link!!
@@ -142,7 +143,7 @@ object TTSEngine {
                         readerText = article.textContent
                         item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
                         Logd(TAG, "readability4J: ${readerText?.substring(max(0, readerText.length - 100), readerText.length)}")
-                    } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                    } else readerText = item.transcript!!.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                 }
             }
 

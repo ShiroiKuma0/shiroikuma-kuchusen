@@ -3,15 +3,15 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.base.actQueueFlow
-import ac.mdiq.podcini.playback.base.activeTheatresCount
-import ac.mdiq.podcini.playback.base.ensureAController
-import ac.mdiq.podcini.playback.base.theatres
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.Media3Player.Companion.nuclearCacheWipe
 import ac.mdiq.podcini.playback.base.PlayerStatusSimple
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
+import ac.mdiq.podcini.playback.base.actQueueFlow
+import ac.mdiq.podcini.playback.base.activeTheatresCount
+import ac.mdiq.podcini.playback.base.ensureAController
 import ac.mdiq.podcini.playback.base.isCurrentlyPlaying
+import ac.mdiq.podcini.playback.base.theatres
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.playback.isRecordingFlow
@@ -57,7 +57,7 @@ import ac.mdiq.podcini.utils.formatLargeIntegerBrief
 import ac.mdiq.podcini.utils.formatNumberKmp
 import ac.mdiq.podcini.utils.formatWithGrouping
 import ac.mdiq.podcini.utils.openInSystemDefault
-import ac.mdiq.podcini.utils.shareLink
+import ac.mdiq.podcini.utils.shareText
 import ac.mdiq.podcini.utils.timeIt
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -99,6 +99,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -158,8 +159,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
-import androidx.core.app.ShareCompat
-import androidx.core.text.HtmlCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -178,12 +177,14 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.cos
@@ -191,6 +192,7 @@ import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG = "AudioPlayerScreen"
 
@@ -266,7 +268,7 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
 
     var showPlayButton by mutableStateOf(true)
 
-//    private var posJob: Job? = null
+    //    private var posJob: Job? = null
     private var curIdJob: Job? = null
     private var curStateJob: Job? = null
 
@@ -626,12 +628,6 @@ fun AVPlayerScreen() {
 
     LaunchedEffect(theatresCount) { if (theatresCount == 1) actPlayerId = 0 }
 
-    var showHomeText by remember { mutableStateOf(false) }
-
-    // TODO: somehow, these 2 are not used?
-    //     var homeText: String? = remember { null }
-    var readerhtml: String? by remember { mutableStateOf(null) }
-
     //    private var chapterControlVisible by mutableStateOf(false)
     var chapterIndex by remember { mutableIntStateOf(-1) }
     var displayedChapterIndex by remember { mutableIntStateOf(-1) }
@@ -669,7 +665,6 @@ fun AVPlayerScreen() {
 
     LaunchedEffect(key1 = curMedia0?.id) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curMedia0?.title}")
-        showHomeText = false
         displayedChapterIndex = -1
         vms[0].episodeFeed = curMedia0?.feed
         if (psState == PSState.Hidden && vms[0].episodeFeed != null) psState = PSState.PartiallyExpanded
@@ -677,7 +672,6 @@ fun AVPlayerScreen() {
 
     LaunchedEffect(key1 = curMedia1?.id) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curMedia1?.title}")
-        showHomeText = false
         displayedChapterIndex = -1
         vms[1].episodeFeed = curMedia1?.feed
         if (psState == PSState.Hidden && vms[1].episodeFeed != null) psState = PSState.PartiallyExpanded
@@ -870,15 +864,6 @@ fun AVPlayerScreen() {
                     DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                         actPlayerId = vm.playerId
                         showShareDialog = true
-                        expanded = false
-                    })
-                    DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                        val notes = if (showHomeText) readerhtml else episode.description
-                        if (!notes.isNullOrEmpty()) {
-                            val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                            val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
-                            context.startActivity(intent)
-                        }
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
@@ -1143,19 +1128,66 @@ fun AVPlayerScreen() {
             )
         }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
             SelectionContainer { Text(episode.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            var showCaption by remember { mutableStateOf(false) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.weight(0.1f))
+                if (episode.captionCues.isNotEmpty()) Icon(imageVector = if (showCaption) Icons.Default.CheckCircle else ImageVector.vectorResource(androidx.media3.session.R.drawable.media3_icon_closed_captions),
+                    contentDescription = "caption", tint = if (showCaption) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { showCaption = !showCaption })
                 Spacer(modifier = Modifier.weight(0.2f))
-                val ratingIconRes by remember(episode.rating) { mutableIntStateOf( Rating.fromCode(episode.rating).res) }
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable { showChooseRatingDialog = true })
-                Spacer(modifier = Modifier.weight(0.4f))
                 val episodeDate = remember(episode.pubDate) { formatDateTimeFlex(episode.pubDate).trim() }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.4f))
+                val ratingIconRes by remember(episode.rating) { mutableIntStateOf( Rating.fromCode(episode.rating).res) }
+                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable { showChooseRatingDialog = true })
+                Spacer(modifier = Modifier.weight(0.1f))
                 Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable {  comboAction.performAction(episode) })
-                Spacer(modifier = Modifier.weight(0.2f))
+                Spacer(modifier = Modifier.weight(0.1f))
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
-
+            if (episode.captionCues.isNotEmpty()) {
+                var cueIndex by remember { mutableIntStateOf(-1) }
+                val captionPrev = remember(cueIndex) { if (cueIndex>0) episode.captionCues[cueIndex-1] else null }
+                val captionNow = remember(cueIndex) { if (cueIndex>=0) episode.captionCues[cueIndex] else null }
+                val captionNext = remember(cueIndex) { if (cueIndex>=0 && cueIndex<episode.captionCues.size-1) episode.captionCues[cueIndex+1] else null }
+                LaunchedEffect(key1 = showCaption) {
+                    val cues = episode.captionCues
+                    fun findCueIndex(positionMs: Long): Int {
+                        var low = 0
+                        var high = cues.lastIndex
+                        while (low <= high) {
+                            val mid = (low + high) ushr 1
+                            if (cues[mid].startMs <= positionMs) low = mid + 1
+                            else high = mid - 1
+                        }
+                        return high
+                    }
+                    fun cueAt(positionMs: Long, isSeek: Boolean = false) {
+                        if (cues.isEmpty()) return
+                        if (isSeek || cueIndex < 0 || positionMs < cues[cueIndex].startMs) cueIndex = findCueIndex(positionMs)
+                        else {
+                            while (cueIndex + 1 < cues.size && positionMs >= cues[cueIndex + 1].startMs) cueIndex++
+                        }
+                    }
+                    while (isActive && showCaption) {
+                        val pos = player?.getPosition() ?: 0
+                        cueAt(pos.toLong()+500)
+                        delay(500.milliseconds)
+                    }
+                }
+                if (showCaption) {
+                    if (captionPrev != null) Text(captionPrev.speaker + ": " + captionPrev.text, color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().clickable {
+                        player?.seekTo(captionPrev.startMs.toInt())
+                    })
+                    if (captionNow != null) SelectionContainer {
+                        Text(captionNow.speaker + ": " + captionNow.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)).clickable {
+                            player?.seekTo(captionNow.startMs.toInt())
+                        })
+                    }
+                    if (captionNext != null) Text(captionNext.speaker + ": " + captionNext.text, color = textColor.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().clickable {
+                        player?.seekTo(captionNext.startMs.toInt())
+                    })
+                }
+            }
             EpisodeDetails(episode, psState == PSState.Expanded, true)
             val imgLarge = remember(episode.id, displayedChapterIndex) {
                 if (displayedChapterIndex == -1 || episode.chapters.isEmpty() || episode.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) episode.imageUrl ?: episode.feed?.imageUrl
@@ -1164,7 +1196,7 @@ fun AVPlayerScreen() {
             if (imgLarge != null) AsyncImage( ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
             Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
                 onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
-                onLongClick = { if (!episode.link.isNullOrBlank()) shareLink(context, episode.link!!) }
+                onLongClick = { if (!episode.link.isNullOrBlank()) context.shareText(episode.link!!, R.string.share_url_label) }
             ) )
         }
     }

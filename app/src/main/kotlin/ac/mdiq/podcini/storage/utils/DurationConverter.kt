@@ -32,7 +32,6 @@ fun durationStringAdapt(ms: Int): String {
     val hours = if (totalSeconds > 3600) totalSeconds / 3600 else 0
     val minutes = (if (totalSeconds > 3600) (totalSeconds % 3600) else totalSeconds) / 60
     val seconds = totalSeconds % 60
-
     return if (hours > 0) hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0')
     else minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0')
 }
@@ -55,8 +54,7 @@ fun durationStringLongToMs(input: String): Int {
 }
 
 /**
- * Converts short duration string (XX:YY) to milliseconds. If durationIsInHours is true then the
- * format is HH:MM, otherwise it's MM:SS.
+ * Converts short duration string (XX:YY) to milliseconds. If inHours is true then the format is HH:MM, otherwise it's MM:SS.
  */
 fun durationStringShortToMs(input: String, inHours: Boolean): Int {
     val parts = input.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()

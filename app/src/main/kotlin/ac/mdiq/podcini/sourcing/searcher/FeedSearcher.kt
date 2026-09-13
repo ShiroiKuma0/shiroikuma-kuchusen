@@ -195,6 +195,7 @@ class ItunesDeepSearcher: ItunesSearcher() {
         }
         return runCatching {
             val html = getKtorClient().get(collectionViewUrl) {
+                header(HttpHeaders.Accept, "application/json")
                 header(HttpHeaders.UserAgent, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
             }.bodyAsText()
             val directMatch = feedUrlRegex.find(html)?.groupValues?.get(1)

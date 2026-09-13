@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.shared.PodciniHttpClient.proxyConfig
 import ac.mdiq.podcini.shared.ProxyConfig
+import ac.mdiq.podcini.shared.USER_AGENT
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -19,6 +20,7 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.toIPC
+import ac.mdiq.podcini.storage.model.toTranscriptMeta
 import ac.mdiq.podcini.storage.model.toWidget
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.VideoMode
@@ -105,6 +107,7 @@ import androidx.media3.exoplayer.upstream.DefaultAllocator
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
+import io.github.xilinjia.krdb.ext.toRealmList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -620,9 +623,9 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             }
         }
 
-        //        val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
-        //        val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
-        //        val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(upstreamFactory)
+//                val baseHttpDataSourceFactory = OkHttpDataSource.Factory(getOKHttpClient())
+//                val upstreamFactory = DefaultDataSource.Factory(context, baseHttpDataSourceFactory)
+//                val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(upstreamFactory)
 
         val extractorsFactory = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
         val httpDataSourceFactory =
@@ -686,6 +689,14 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     fun mediaSourceFromClient(needVideo: Boolean, sameMedia: Boolean = false): MediaSource? {
         val media = curMediaFlow.value ?: return null
         if (curClient == null)  return null
+
+        runOnIOScope {
+            val captions = curClient!!.withProvider { it.getCaptionSpecs(media.toIPC()) }
+            if (!captions.isNullOrEmpty()) {
+                val tm = captions.map { it.toTranscriptMeta() }.toRealmList()
+                upsert(media) { it.transcriptMetas = tm }
+            }
+        }
 
         var mSource: MediaSource? = null
         val context = getAppContext()
@@ -1243,7 +1254,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             builder.enableHttp2(true)
                 .enableQuic(true)
                 .enableBrotli(true)
-                //            .setUserAgent(USER_AGENT)
+                .setUserAgent(USER_AGENT)
                 .setStoragePath(File(getAppContext().cacheDir, "cronet").apply { mkdirs() }.absolutePath)
                 .enableHttpCache(CronetEngine.Builder.HTTP_CACHE_DISK_NO_HTTP, 10L * 1024 * 1024)
             if (config?.type == Type.HTTP && !config.host.isNullOrEmpty()) {
@@ -1272,8 +1283,7 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
             val appContext = getAppContext()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SdkExtensions.getExtensionVersion(Build.VERSION_CODES.S) >= 7 && (proxyConfig == null || proxyConfig!!.host == null)) {
                 Logd(TAG, "createHttpDataSourceFactory setting HttpEngine")
-                if (httpEngine == null) httpEngine = HttpEngine.Builder(appContext).setEnableQuic(true)
-                    //                .setUserAgent(USER_AGENT)
+                if (httpEngine == null) httpEngine = HttpEngine.Builder(appContext).setEnableQuic(true).setEnableHttp2(true).setUserAgent(USER_AGENT)
                     .setStoragePath(File(appContext.cacheDir, "httpengine").apply { mkdirs() }.absolutePath)
                     .setEnableHttpCache(HttpEngine.Builder.HTTP_CACHE_DISK_NO_HTTP, 10L * 1024 * 1024).build()
             } else if (cronetEngine == null) cronetEngine = createCronetEngine(proxyConfig, networkExecutor)

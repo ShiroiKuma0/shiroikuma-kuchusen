@@ -37,8 +37,9 @@ Available such apps are:
 15. Allows linking/relating multiple media for better grouping.
 16. Is capable of preserving important media when a feed is unsubscribed.
 17. Spotlights sending/receiving feeds and subscriptions catalogue across devices without a server.
-18. Offers Readability and Text-to-Speech for RSS contents.
-19. Supports auto-backups, customized media folder and importing DB from other apps
+18. Supports Podcasting 2.0 transcript and captions from external sources
+19. Offers Readability and Text-to-Speech for RSS contents.
+20. Supports auto-backups, customized media folder and importing DB from other apps
 
 ### Note:
 

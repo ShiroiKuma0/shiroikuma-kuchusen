@@ -43,7 +43,7 @@ import ac.mdiq.podcini.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatShortFileSize
 import ac.mdiq.podcini.utils.openInSystemDefault
-import ac.mdiq.podcini.utils.shareLink
+import ac.mdiq.podcini.utils.shareText
 import android.speech.tts.TextToSpeech
 import android.view.ViewGroup
 import android.webkit.RenderProcessGoneDetail
@@ -110,8 +110,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
+import androidx.core.text.parseAsHtml
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -249,15 +249,6 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                                val notes = episode.description
-                                if (!notes.isNullOrEmpty()) {
-                                    val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                                    val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
-                                    context.startActivity(intent)
-                                }
-                                expanded = false
-                            })
                             DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                                 showShareDialog = true
                                 expanded = false
@@ -326,7 +317,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                     AsyncImage(model = ImageRequest.Builder(context).data(episode.imageUrl ?: episodeFeed?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).build(), placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
                     Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
                         onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
-                        onLongClick = { if (!episode.link.isNullOrBlank()) shareLink(context, episode.link!!) }
+                        onLongClick = { if (!episode.link.isNullOrBlank()) context.shareText(episode.link!!, R.string.share_url_label) }
                     ) )
                     Text("Time spent: " + durationStringShort(episode.timeSpent, true))
                     Text("Played duration: " + durationStringShort(episode.playedDuration.toLong(), true))
@@ -377,7 +368,7 @@ fun EpisodeWebView(episode: Episode) {
                                 readerhtml = article.contentWithDocumentsCharsetOrUtf8
                             } else {
                                 readerhtml = episode.transcript
-                                readerText = HtmlCompat.fromHtml(readerhtml!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                                readerText = readerhtml!!.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             }
                             if (!readerhtml.isNullOrEmpty()) {
                                 val shownotesCleaner = ShownotesCleaner()
@@ -477,10 +468,8 @@ fun EpisodeWebView(episode: Episode) {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, borderColor), onDismissRequest = { expanded = false }) {
                     if (readMode && !readerhtml.isNullOrEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                        val notes = readerhtml!!
-                        val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                        val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
-                        context.startActivity(intent)
+                        val shareText = readerhtml!!.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                        context.shareText(shareText, R.string.share_notes_label)
                         expanded = false
                     })
                 }

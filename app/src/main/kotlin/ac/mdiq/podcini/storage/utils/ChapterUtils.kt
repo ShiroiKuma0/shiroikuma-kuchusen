@@ -220,18 +220,42 @@ class MP4ChapterReader(val source: BufferedSource) {
         while (!source.exhausted()) {
             val size = source.readInt().toLong() and 0xFFFFFFFFL
             val type = source.readUtf8(4)
+            Logd(TAG, "parseM4A type: $type size: $size")
+            if (size < 8) return
+
             when (type) {
-                "moov", "udta" -> continue
-                "chpl" -> {
-                    extractM4AChapters(size - 8)
-                    return
-                }
-                else -> if (size >= 8) source.skip(size - 8)
+                "moov" -> parseM4AContainer(size - 8)
+                else -> source.skip(size - 8)
             }
         }
     }
 
+    private fun parseM4AContainer(size: Long) {
+        var remaining = size
+        while (remaining >= 8) {
+            val atomSize = source.readInt().toLong() and 0xFFFFFFFFL
+            val type = source.readUtf8(4)
+            Logd(TAG, "parseM4AContainer type: $type size: $atomSize")
+            if (atomSize !in 8..remaining) return
+
+            when (type) {
+                "trak", "mdia", "minf", "dinf", "stbl", "udta" -> parseM4AContainer(atomSize - 8)
+                "meta" -> {
+                    source.skip(4)
+                    parseM4AContainer(atomSize - 12)
+                }
+                "chpl" -> {
+                    extractM4AChapters(atomSize - 8)
+                    return
+                }
+                else -> source.skip(atomSize - 8)
+            }
+            remaining -= atomSize
+        }
+    }
+
     private fun extractM4AChapters(atomDataSize: Long) {
+        Logd(TAG, "extractM4AChapters $atomDataSize")
         var bytesRead = 0L
         source.skip(4)
         bytesRead += 4
@@ -244,20 +268,16 @@ class MP4ChapterReader(val source: BufferedSource) {
             val startTimeMs = source.readLong() / 10_000
             val titleLength = source.readByte().toInt() and 0xFF
             bytesRead += 9
-
             val remainingInAtom = atomDataSize - bytesRead
             val actualTitleLength = minOf(titleLength.toLong(), remainingInAtom)
-
             val title = source.readUtf8(actualTitleLength)
             bytesRead += actualTitleLength
-
             val chapter = Chapter()
             chapter.title = title
             chapter.chapterId = "ch_${i}_${startTimeMs}"
             chapter.start = startTimeMs
             chapters.add(chapter)
         }
-
         if (bytesRead < atomDataSize) source.skip(atomDataSize - bytesRead)
     }
 }
@@ -392,6 +412,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
         }
     }
 
+    // TODO: likely overkill
     suspend fun openNetSourceTail(cb: (BufferedSource)->Unit) {
         val client = getKtorClient()
         val contentLength = client.head(streamurl!!).headers[HttpHeaders.ContentLength]?.toLong() ?: 0L
@@ -419,7 +440,7 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
     var chapters: List<Chapter> = listOf()
     openSource { fileSource, size ->
         val format = peekFileFormat(fileSource)
-        Logd(TAG, "loadChaptersFromMediaFile1 format: $format")
+        Logd(TAG, "loadChaptersFromMedia format: $format")
         val countingSource = CountingSource(fileSource)
         fun enumerateEmptyChapterTitles(chapters: List<Chapter>) {
             for (i in chapters.indices) {
@@ -444,28 +465,8 @@ suspend fun loadChaptersFromMedia(episode: Episode): List<Chapter> {
                     reader.parseM4A()
                     reader.chapters.toList()
                 } catch (e: EOFException) {
-                    Logd(TAG, "failed getting chapters in MP4 media header, try tail")
-                    var cList = listOf<Chapter>()
-                    if (size != null) {
-                        val skipAmount = maxOf(0L, size - 128_000L)
-                        fileSource.use { buffered ->
-                            buffered.skip(skipAmount)
-                            reader.parseM4A()
-                            cList = reader.chapters.toList()
-                        }
-                    } else if (!streamurl.isNullOrBlank()) {
-                        openNetSourceTail { fileSource ->
-                            val reader = MP4ChapterReader(fileSource)
-                            try {
-                                reader.parseM4A()
-                                cList = reader.chapters.toList()
-                            } catch (e: Exception) {
-                                Logs(TAG, e, "failed to get chapters for MP4 media ${episode.title}")
-                                cList = emptyList()
-                            }
-                        }
-                    }
-                    cList
+                    Logd(TAG, "Failed to parse MP4 chapter metadata")
+                    emptyList()
                 }
             }
             MediaFormat.OGG, MediaFormat.FLAC -> {

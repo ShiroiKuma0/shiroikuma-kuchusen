@@ -70,7 +70,7 @@ import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.isCallable
 import ac.mdiq.podcini.utils.openInSystemDefault
-import ac.mdiq.podcini.utils.shareLink
+import ac.mdiq.podcini.utils.shareText
 import ac.mdiq.podcini.utils.timeIt
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -469,7 +469,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     expanded = false
                                 })
                                 if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                                    shareLink(context, feed?.downloadUrl ?: "")
+                                    context.shareText(feed?.downloadUrl!!, R.string.share_url_label)
                                     expanded = false
                                 })
                                 if (!feed?.link.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {

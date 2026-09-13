@@ -14,9 +14,11 @@ import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.CrashReportWriter
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.openInSystemDefault
+import ac.mdiq.podcini.utils.shareFile
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -58,7 +60,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat.enableEdgeToEdge
 import kotlinx.coroutines.Dispatchers
@@ -151,7 +152,8 @@ class BugReportActivity : ComponentActivity() {
                 process.waitFor()
                 val authority = getString(R.string.provider_authority)
                 val fileUri = FileProvider.getUriForFile(this@BugReportActivity, authority, java.io.File(logfile.absPath))
-                IntentBuilder(this@BugReportActivity).setType("text/*").addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
+                if (fileUri != null) shareFile(fileUri, "text/*", R.string.share_file_label)
+                else Loge(TAG, "Share file failed: fileUri is null")
             } catch (e: Throwable) { Logs(TAG, e, "Can't export logcat") }
         }
     }

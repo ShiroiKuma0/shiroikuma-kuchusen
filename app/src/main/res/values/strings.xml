@@ -162,6 +162,9 @@
 
     <string name="description_label">Description</string>
     <string name="transcript">Transcript</string>
+    <string name="show_transcript">Show transcript</string>
+
+    <string name="caption_selections">Caption selections</string>
 
     <string name="show_all_feeds">Show all feeds</string>
     <string name="show_archived">Show archived</string>
@@ -241,6 +244,9 @@
     <string name="share_label">Share</string>
     <string name="share_file_label">Share file</string>
     <string name="share_notes_label">Share notes</string>
+    <string name="share_transcript">Share transcript</string>
+    <string name="share_captions">Share captions</string>
+
     <string name="repeat_episodes_msg">Please specify a repeat interval for the episodes.</string>
     <string name="ignore_episodes_confirmation_msg">Please confirm that you want to ignore episodes.</string>
     <string name="erase_episodes_confirmation_msg">Please confirm that you want to erase episodes.</string>
@@ -1085,6 +1091,7 @@
     <string name="auto_enqueue">Auto enqueue</string>
 
     <!-- Share episode dialog -->
+    <string name="include_comment">Include comment</string>
     <string name="share_playback_position_dialog_label">Include playback position</string>
     <string name="share_dialog_episode_website_label">Episode webpage</string>
     <string name="share_dialog_for_social">Social message</string>

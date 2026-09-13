@@ -4,6 +4,7 @@ import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.TranscriptMeta
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.isImageFile
@@ -14,6 +15,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import androidx.core.text.HtmlCompat
+import androidx.core.text.parseAsHtml
 import io.ktor.utils.io.streams.inputStream
 import kotlinx.io.Source
 import nl.adaptivity.xmlutil.EventType
@@ -103,6 +105,10 @@ object PodcastHandler {
                                 handler.startDocument()
                             }
                             reader.namespaceContext.forEach { (prefix, uri) -> handler.startPrefixMapping(prefix, uri) }
+//                            Logd(TAG, "START ${reader.namespaceURI} ${reader.localName}")
+//                            for (i in 0 until reader.attributeCount) {
+//                                Logd(TAG, "  ATTR ${reader.getAttributeNamespace(i)}:${reader.getAttributeLocalName(i)}=${reader.getAttributeValue(i)}")
+//                            }
                             handler.startElement(reader.namespaceURI, reader.localName, reader.localName, KmpAttributes(reader))
                         }
                         EventType.TEXT, EventType.CDSECT -> {
@@ -239,7 +245,7 @@ object PodcastHandler {
         override fun startPrefixMapping(prefix: String, uri: String) {
             // Find the right namespace
             if (!state.namespaces.containsKey(uri)) {
-//                Logd(TAG, "startPrefixMapping prefix: $prefix uri: [$uri]")
+                Logd(TAG, "startPrefixMapping prefix: $prefix uri: [$uri]")
                 when {
                     uri == "" -> state.namespaces[uri] = Rss20()
                     uri == Atom.NSURI -> {
@@ -253,7 +259,7 @@ object PodcastHandler {
                     uri == SimpleChapters.NSURI && prefix.matches(SimpleChapters.NSTAG.toRegex()) -> state.namespaces[uri] = SimpleChapters()
                     uri == Media.NSURI && prefix == Media.NSTAG -> state.namespaces[uri] = Media()
                     uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> state.namespaces[uri] = DublinCore()
-                    uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> state.namespaces[uri] = PodcastIndex()
+                    (uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2) && prefix == PodcastIndex.NSTAG -> state.namespaces[uri] = PodcastIndex()
                     else -> {
 //                        Logd(TAG, "startPrefixMapping can not handle prefix: $prefix uri: $uri")
                     }
@@ -331,7 +337,7 @@ object PodcastHandler {
             /** Processes the content according to the type and returns it.  */
             get() = when (type) {
                 null -> content
-                TYPE_HTML -> HtmlCompat.fromHtml(content!!, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+                TYPE_HTML -> content!!.parseAsHtml().toString()
                 TYPE_XHTML -> content
                 // Handle as text by default
                 else -> content
@@ -561,7 +567,7 @@ object PodcastHandler {
 
 //            Logd(TAG, "Itunes handleElementEnd localName: $localName content $content")
             when (localName) {
-                AUTHOR if state.tagstack.size <= 3 -> state.feed.author = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                AUTHOR if state.tagstack.size <= 3 -> state.feed.author = content.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                 DURATION -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) { Logs(NSTAG, e, "Duration $content could not be parsed") }
                 SUBTITLE -> {
                     when {
@@ -744,6 +750,14 @@ object PodcastHandler {
                     val href: String? = attributes.getValue(URL)
                     if (state.currentItem != null && !href.isNullOrEmpty()) state.currentItem!!.podcastIndexChapterUrl = href
                 }
+                TRANSCRIPT -> {
+                    val item = state.currentItem
+                    val url = attributes.getValue(URL)
+                    if (item != null && !url.isNullOrEmpty()) {
+//                        Logd(TAG, "handleElementStart adding caption: $url")
+                        item.transcriptMetas.add(TranscriptMeta(url = url, type = attributes.getValue(TYPE), language = attributes.getValue(LANGUAGE), rel = attributes.getValue(REL)))
+                    }
+                }
             }
             return SyndElement(localName, this)
         }
@@ -759,8 +773,12 @@ object PodcastHandler {
             const val NSURI: String = "https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md"
             const val NSURI2: String = "https://podcastindex.org/namespace/1.0"
             private const val URL = "url"
+            private const val TYPE = "type"
+            private const val LANGUAGE = "language"
+            private const val REL = "rel"
             private const val FUNDING = "funding"
             private const val CHAPTERS = "chapters"
+            private const val TRANSCRIPT = "transcript"
         }
     }
 
@@ -773,16 +791,14 @@ object PodcastHandler {
                     state.items.add(state.currentItem!!)
                 }
                 ENCLOSURE if ITEM == state.tagstack.lastOrNull()?.name -> {
-                    val url: String? = attributes.getValue(ENC_URL)
-                    val mimeType: String? = getMimeType(attributes.getValue(ENC_TYPE), url)
-                    val validUrl = !url.isNullOrBlank()
-                    if (isMediaFile(mimeType) && validUrl) {
-                        var size: Long = 0
-                        try {
-                            size = attributes.getValue(ENC_LEN)?.toLong() ?: 0 // less than 16kb is suspicious, check manually
-                            if (size < 16384) size = 0
-                        } catch (e: NumberFormatException) { Logs(TAG, e, "Length attribute could not be parsed.") }
-                        state.currentItem?.fillMedia(url, size, mimeType)
+                    val url = attributes.getValue(ENC_URL)
+                    if (!url.isNullOrBlank()) {
+                        val declaredType = attributes.getValue(ENC_TYPE)
+                        val mimeType = getMimeType(declaredType, url)
+                        if (isMediaFile(mimeType) || declaredType?.startsWith("audio/") == true) {
+                            val size = attributes.getValue(ENC_LEN)?.toLongOrNull()?.takeIf { it >= 16384 } ?: 0L
+                            state.currentItem?.fillMedia(url, size, mimeType ?: declaredType)
+                        }
                     }
                 }
                 else -> {
@@ -793,66 +809,49 @@ object PodcastHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//            Logd(TAG, "Rss20 handleElementEnd $localName")
             when {
                 ITEM == localName -> {
-//                    Logd(TAG, "Rss20 handleElementEnd state.currentItem: ${state.currentItem?.title}")
-                    if (state.currentItem != null) {
-                        val currentItem = state.currentItem!!
-//                        Logd(TAG, "Rss20 handleElementEnd currentItem ${currentItem.title}")
-                        // the title tag is optional in RSS 2.0. The description is used
-                        // as a title if the item has no title-tag.
+                    state.currentItem?.let { currentItem ->
                         if (currentItem.title == null) currentItem.title = currentItem.description
-
-                        if (state.tempObjects.containsKey(Itunes.DURATION)) {
-                            val duration = state.tempObjects[Itunes.DURATION] as? Int
-                            if (duration != null) currentItem.duration = duration
-//                            Logd(TAG, "Rss20 handleElementEnd duration: $duration")
-                            state.tempObjects.remove(Itunes.DURATION)
-                        }
+                        (state.tempObjects[Itunes.DURATION] as? Int)?.let { currentItem.duration = it }
+                        state.tempObjects.remove(Itunes.DURATION)
                     }
                     state.currentItem = null
                 }
+
                 state.tagstack.size >= 2 && state.contentBuf != null -> {
                     val contentRaw = state.contentBuf.toString()
                     val content = contentRaw.trim { it.isWhitespace() }
-                    val topElement = state.tagstack.last()
-                    val top = topElement.name
-                    val secondElement = state.secondTag
-                    val second = secondElement.name
-                    var third: String? = null
-                    if (state.tagstack.size >= 3) third = state.thirdTag.name
+                    val top = state.tagstack.last().name
+                    val second = state.secondTag.name
+                    val third = if (state.tagstack.size >= 3) state.thirdTag.name else null
 
                     when {
-                        // some feed creators include an empty or non-standard guid-element in their feed,
-                        // which should be ignored
                         GUID == top && ITEM == second -> if (contentRaw.isNotEmpty() && state.currentItem != null) state.currentItem!!.identifier = contentRaw
                         TITLE == top -> {
-                            val contentFromHtml = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            val contentFromHtml = content.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             when (second) {
-                                ITEM if state.currentItem != null -> state.currentItem!!.title = contentFromHtml
+                                ITEM -> state.currentItem?.title = contentFromHtml
                                 CHANNEL -> state.feed.title = contentFromHtml
                             }
                         }
                         LINK == top -> {
                             when (second) {
                                 CHANNEL -> state.feed.link = content
-                                ITEM if state.currentItem != null -> state.currentItem!!.link = content
+                                ITEM -> state.currentItem?.link = content
                             }
                         }
-                        PUBDATE == top && ITEM == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
-                        // prefer itunes:image
+                        PUBDATE == top && ITEM == second -> state.currentItem?.pubDate = parseOrNullIfFuture(content)?.toEpochMilliseconds() ?: 0
                         URL == top && IMAGE == second && CHANNEL == third -> if (state.feed.imageUrl == null) state.feed.imageUrl = content
-                        DESCR == localName -> {
+                        DESCR == top -> {
                             when (second) {
-                                CHANNEL -> state.feed.description = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                                ITEM if state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(content) // fromHtml here breaks \n when not html
+                                CHANNEL -> state.feed.description = content.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                                ITEM -> state.currentItem?.setDescriptionIfLonger(content)
                             }
                         }
-                        LANGUAGE == localName -> state.feed.langSet.add(content.lowercase())
+                        LANGUAGE == top -> state.feed.langSet.add(content.lowercase())
                     }
                 }
-                else -> { Logd(TAG, "handleElementEnd unhandled localName: $localName")}
             }
         }
 
@@ -902,7 +901,7 @@ object PodcastHandler {
                         try {
                             val start= parseTimeString(attributes.getValue(START))
                             val title: String? = attributes.getValue(TITLE)
-                            Logd(TAG, "handleElementStart got chapter: $start $title")
+//                            Logd(TAG, "handleElementStart got chapter: $start $title")
                             val link: String? = attributes.getValue(HREF)
                             val imageUrl: String? = attributes.getValue(IMAGE)
                             val chapter = Chapter(start, title, link, imageUrl)

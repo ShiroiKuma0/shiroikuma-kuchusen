@@ -301,11 +301,7 @@ class Feed : RealmObject {
 
     var queueId: Long = 0L
         private set
-
     // ============= Queue ==============
-
-    // TODO: not used?
-    var episodesDownloadable: Boolean = false
 
     // ============ auto-download/enqueue ==============
     var autoDownload: Boolean = false
@@ -318,7 +314,6 @@ class Feed : RealmObject {
     var enabledSecondDLEQ: Boolean = false
 
     var autoDLEQs: RealmList<AutoDLEQ> = realmListOf()
-
     // ============ auto-download/enqueue ==============
 
 
@@ -381,7 +376,6 @@ class Feed : RealmObject {
         if (other.description != null) description = other.description
         if (other.author != null) author = other.author
         if (other.paymentLinkList.isNotEmpty()) paymentLinkList = other.paymentLinkList
-        episodesDownloadable = other.episodesDownloadable
 
         // this feed's nextPage might already point to a higher page, so we only update the nextPage value
         // if this feed is not paged and the other feed is.
@@ -492,7 +486,6 @@ class Feed : RealmObject {
         if (audioQuality != other.audioQuality) return false
         if (videoQuality != other.videoQuality) return false
         if (prefStreamOverDownload != other.prefStreamOverDownload) return false
-        if (episodesDownloadable != other.episodesDownloadable) return false
         if (enabledSecondDLEQ != other.enabledSecondDLEQ) return false
         if (autoDLSoon != other.autoDLSoon) return false
         if (autoDLMaxEpisodes != other.autoDLMaxEpisodes) return false
@@ -565,7 +558,6 @@ class Feed : RealmObject {
         result = 31 * result + audioQuality
         result = 31 * result + videoQuality
         result = 31 * result + prefStreamOverDownload.hashCode()
-        result = 31 * result + episodesDownloadable.hashCode()
         result = 31 * result + enabledSecondDLEQ.hashCode()
         result = 31 * result + autoDLSoon.hashCode()
         result = 31 * result + autoDLMaxEpisodes
@@ -736,7 +728,6 @@ fun FeedIPC.toFeed(): Feed {
     feed.downloadUrl = this.downloadUrl
     feed.hasVideoMedia = this.hasVideoMedia
     feed.prefStreamOverDownload = this.prefStreamOverDownload
-    feed.episodesDownloadable = this.episodesDownloadable
     feed.autoDownload = this.autoDownload
     feed.description = this.description
     feed.author = this.author
@@ -755,7 +746,6 @@ fun Feed.toIPC(): FeedIPC {
     feed.downloadUrl = this.downloadUrl
     feed.hasVideoMedia = this.hasVideoMedia
     feed.prefStreamOverDownload = this.prefStreamOverDownload
-    feed.episodesDownloadable = this.episodesDownloadable
     feed.autoDownload = this.autoDownload
     feed.description = this.description
     feed.author = this.author

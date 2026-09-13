@@ -19,10 +19,15 @@ import com.fleeksoft.ksoup.network.parseGetRequest
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.request.header
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlin.math.min
@@ -37,12 +42,31 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
     suspend fun buildPodcast(url: String, username: String?, password: String?, handleFeed: suspend (Feed, Map<String, String>)->Unit) {
         Logd(TAG, "buildPodcast: $url")
         suspend fun detectPodcastFeedType(url: String): String? {
-            return try {
-                val response = getKtorClient().get(url) {
-                    expectSuccess = false
-                    header(HttpHeaders.Range, "bytes=0-1024")
+            suspend fun fetchContentType(url: String): String? {
+                suspend fun extractType(block: suspend () -> HttpResponse): String? {
+                    return runCatching {
+                        val response = block()
+                        try {
+                            if (response.status.isSuccess()) {
+                                val rawType = response.contentType()?.withoutParameters()?.toString()?.lowercase()
+                                if (!rawType.isNullOrBlank() && rawType != "application/octet-stream") rawType else null
+                            } else null
+                        } finally { response.cancel() }
+                    }.getOrNull()
                 }
-                val type = response.contentType()?.withoutParameters()?.toString()?.lowercase()
+                val client = getKtorClient()
+                extractType { client.head(url) { expectSuccess = false } }?.let { return it }
+                extractType {
+                    client.get(url) {
+                        expectSuccess = false
+                        header(HttpHeaders.Range, "bytes=0-1024")
+                    }
+                }?.let { return it }
+                extractType { client.get(url) { expectSuccess = false } }?.let { return it }
+                return null
+            }
+            return try {
+                val type = fetchContentType(url)
                 Logd(TAG, "Feed content type: $type")
                 when {
                     type == null -> null
@@ -87,7 +111,6 @@ class FeedBuilder(val showError: (String?, String)->Unit) {
                 val feed = Feed(selectedDownloadUrl, null)
                 feed.isBuilding = true
                 val result = PodcastHandler.parseFeed(source, feed)
-                feed.episodesDownloadable = true
                 feed.isBuilding = false
                 if (result != null) withContext(Dispatchers.Main) { handleFeed(result.feed, result.alternateFeedUrls) }
             }

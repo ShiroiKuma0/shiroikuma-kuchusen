@@ -1,12 +1,13 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sourcing.feed.FeedUpdater
+import ac.mdiq.podcini.playback.base.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.base.theatres
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sourcing.SourceGatewayClient
 import ac.mdiq.podcini.sourcing.clientByFeed
 import ac.mdiq.podcini.sourcing.clientsHaveMultiQ
+import ac.mdiq.podcini.sourcing.feed.FeedUpdater
 import ac.mdiq.podcini.sourcing.typeClientMap
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.prefStreamOverDownload
@@ -473,7 +474,13 @@ fun FeedsSettingsScreen() {
                                             att.preferredLnaguages.clear()
                                             att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
                                         } } }
-                                        if (theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) { forcePlaybackReset = true }
+                                        val player0 = theatres[0].mPlayerFlow.value
+                                        val episode0 = player0?.curMediaFlow?.value
+                                        if (episode0?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) {
+                                            player0?.pause(false)
+                                            getCache().removeResource(episode0!!.id.toString())
+                                            player0.startPlaying(episode0)
+                                        }
                                     }
                                     showIcon =  false
                                 }))

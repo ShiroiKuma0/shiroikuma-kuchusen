@@ -1,3 +1,21 @@
+# 12.10.0
+
+* added support of Podcasting 2.0 transcripts, options are persisted at time of subscription or update
+* added support of youtube captions (via ut.urn), options are only obtained when the media is played
+* transcript options can be shown and selected in PlayerDetailed or EpisodeInfo
+* in PlayerDetailed, the selected transcript can be shown as captions
+	* 3 captions (previous, current and next) can be shown, seekable on click
+* transcript or joined captions can be shown on a popup from PlayerDetailed or EpisodeInfo
+* consolidated episode share into ShareDialog, added share transcript and captions (if available)
+* in player pipeline, user agent is set to resolve some redirect rejections
+* tuned player reaction when preferred languages are changed in a feed
+* added auto-reconnect mechanism for external source clients
+* fixed some podcast url type not properly detected when adding podcast
+* improved mp4 media chapters fetcher
+* upped PodciniLib to 1.1.4, external apps (if used) need to be updated for compatibility
+* some dependencies update
+* some code refactoring and modernization
+
 # 12.9.5
 
 * ensure cleanup when an external client disconnects/dies

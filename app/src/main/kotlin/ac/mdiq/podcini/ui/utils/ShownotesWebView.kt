@@ -8,7 +8,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.isCallable
 import ac.mdiq.podcini.utils.openInSystemDefault
-import ac.mdiq.podcini.utils.shareLink
+import ac.mdiq.podcini.utils.shareText
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -110,7 +110,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         val itemId = item.itemId
         when (itemId) {
             R.id.open_in_browser_item -> openInSystemDefault(selectedUrl!!)
-            R.id.share_url_item -> shareLink(context, selectedUrl!!)
+            R.id.share_url_item -> context.shareText(selectedUrl!!, R.string.share_url_label)
             R.id.copy_url_item -> {
                 val clipData: ClipData = ClipData.newPlainText(selectedUrl, selectedUrl)
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager

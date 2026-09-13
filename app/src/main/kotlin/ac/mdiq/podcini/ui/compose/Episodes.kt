@@ -6,22 +6,19 @@ import ac.mdiq.podcini.automation.cancel
 import ac.mdiq.podcini.automation.cancelTimer
 import ac.mdiq.podcini.automation.playEpisodeAtTime
 import ac.mdiq.podcini.automation.reset
-import ac.mdiq.podcini.sourcing.download.RequestType
-import ac.mdiq.podcini.sync.SynchronizationSettings.isSyncProviderConnected
-import ac.mdiq.podcini.sync.model.EpisodeAction
-import ac.mdiq.podcini.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.sourcing.DiscoveredReceiver
-import ac.mdiq.podcini.sourcing.listenForUDPBroadcasts
-import ac.mdiq.podcini.sourcing.sendEpisodes
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.actQueueFlow
 import ac.mdiq.podcini.playback.base.theatres
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sourcing.DiscoveredReceiver
 import ac.mdiq.podcini.sourcing.clientByEpisode
 import ac.mdiq.podcini.sourcing.clientByFeed
-import ac.mdiq.podcini.sourcing.clientshaveLikeCounts
-import ac.mdiq.podcini.sourcing.clientshaveViewCounts
+import ac.mdiq.podcini.sourcing.clientsHaveLikeCounts
+import ac.mdiq.podcini.sourcing.clientsHaveViewCounts
+import ac.mdiq.podcini.sourcing.download.RequestType
+import ac.mdiq.podcini.sourcing.listenForUDPBroadcasts
+import ac.mdiq.podcini.sourcing.sendEpisodes
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allFeeds
@@ -57,9 +54,13 @@ import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.durationStringShort
 import ac.mdiq.podcini.storage.utils.loadChapters
 import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.sync.SynchronizationSettings.isSyncProviderConnected
+import ac.mdiq.podcini.sync.model.EpisodeAction
+import ac.mdiq.podcini.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
 import ac.mdiq.podcini.ui.utils.SearchAlgo
+import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -67,12 +68,11 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.LogtFor
-import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.sessionLogsFlow
-import ac.mdiq.podcini.utils.shareLink
+import ac.mdiq.podcini.utils.shareFile
+import ac.mdiq.podcini.utils.shareText
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
@@ -105,6 +105,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
@@ -159,8 +160,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import androidx.core.app.ShareCompat
 import androidx.core.content.FileProvider
+import androidx.core.text.HtmlCompat
+import androidx.core.text.parseAsHtml
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
@@ -191,14 +193,11 @@ private const val TAG = "ComposeEpisodes"
 
 @Composable
 fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
-    val hasMedia = remember { true }
-    val downloaded = remember { hasMedia && item.downloaded }
-    val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
+    val context = LocalContext.current
 
     var option by remember { mutableIntStateOf(1) }
     var withPosition by remember { mutableStateOf(false) }
-    val ctx = LocalContext.current
-
+    var withComment by remember { mutableStateOf(false) }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
@@ -207,18 +206,35 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                     RadioButton(selected = option == 1, onClick = { option = 1 })
                     Text(stringResource(R.string.share_dialog_for_social))
                 }
-                if (hasDownloadUrl) Row(verticalAlignment = Alignment.CenterVertically) {
+                if (option == 1) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp)) {
+                        Checkbox(checked = withPosition, onCheckedChange = { withPosition = it })
+                        Text(stringResource(R.string.share_playback_position_dialog_label))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp)) {
+                        Checkbox(checked = withComment, onCheckedChange = { withComment = it })
+                        Text(stringResource(R.string.include_comment))
+                    }
+                }
+                if (!item.downloadUrl.isNullOrBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = option == 2, onClick = { option = 2 })
                     Text(stringResource(R.string.share_dialog_media_address))
                 }
-                if (downloaded) Row(verticalAlignment = Alignment.CenterVertically) {
+                if (item.downloaded) Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = option == 3, onClick = { option = 3 })
                     Text(stringResource(R.string.share_dialog_media_file_label))
                 }
-                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = withPosition, onCheckedChange = { withPosition = it })
-                    Text(stringResource(R.string.share_playback_position_dialog_label))
+                if (!item.description.isNullOrBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = option == 4, onClick = { option = 4 })
+                    Text(stringResource(R.string.share_notes_label))
+                }
+                if (!item.transcript.isNullOrBlank()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = option == 5, onClick = { option = 5 })
+                    Text(stringResource(R.string.share_transcript))
+                }
+                if (item.captionCues.isNotEmpty()) Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = option == 6, onClick = { option = 6 })
+                    Text(stringResource(R.string.share_captions))
                 }
             }
         },
@@ -228,6 +244,9 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                 when (option) {
                     1 -> {
                         var text: String? = item.feed?.title + ": " + item.title
+                        if (withComment) text += """
+                            ${item.comment}
+                        """.trimIndent()
                         val context = getAppContext()
                         var pos = 0
                         if (withPosition) {
@@ -237,7 +256,6 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                             """.trimIndent()
                             pos = item.position
                         }
-
                         val link = item.linkOrFeedlink
                         if (link != null) {
                             text += """
@@ -246,7 +264,6 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                             ${context.getString(R.string.share_dialog_episode_website_label)}: $link
                             """.trimIndent()
                         }
-
                         if (item.downloadUrl != null) {
                             text += """
                 
@@ -255,20 +272,23 @@ fun ShareDialog(item: Episode, onDismiss: () -> Unit) {
                             """.trimIndent()
                             if (withPosition) text += "#t=" + pos / 1000
                         }
-                        shareLink(ctx, text!!)
+                        context.shareText(text!!, R.string.share_url_label)
                     }
-                    2 -> {
-                        if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
-                        else LogtFor(TAG, item.id, "Episode download url is not valid, ignored.")
-                    }
+                    2 -> context.shareText(item.downloadUrl!!, R.string.share_url_label)
                     3 -> {
-                        val lurl = item.fileUrl
-                        if (!lurl.isNullOrEmpty()) {
-                            val fileUri = FileProvider.getUriForFile(ctx, authorityText, File(lurl))
-                            ShareCompat.IntentBuilder(ctx).setType(item.mimeType).addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
-                            Logd(TAG, "shareFeedItemFile called")
+                        val furl = item.fileUrl
+                        if (!furl.isNullOrEmpty()) {
+                            val fileUri = FileProvider.getUriForFile(context, authorityText, File(furl))
+                            if (fileUri != null) context.shareFile(fileUri, item.mimeType?:"", R.string.share_file_label)
+                            else Loge(TAG, "Share file failed: fileUri is null")
                         }
                     }
+                    4 -> {
+                        val shareText = item.description!!.parseAsHtml(HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                        context.shareText(shareText, R.string.share_notes_label)
+                    }
+                    5 -> context.shareText(item.transcript!!, R.string.share_transcript)
+                    6 -> context.shareText(item.joinCaptions(), R.string.share_captions)
                 }
                 onDismiss()
             }) { Text(text = "OK") }
@@ -297,8 +317,20 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     var showTagsSettingDialog by remember { mutableStateOf(false) }
     var showTodoDialog by remember { mutableStateOf(false) }
     var onTodo by remember { mutableStateOf<Todo?>(null) }
+    var showTranscript by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { if (fetchChapters) withContext(Dispatchers.IO) { loadChapters(episode, false) }}
+    LaunchedEffect(Unit) { if (fetchChapters) withContext(Dispatchers.IO) { loadChapters(episode, false) }}  // TODO: test
+
+    if (showTranscript) CommonPopupCard(onDismiss = { showTranscript = false}) {
+        val scrollState = rememberScrollState()
+        SelectionContainer {
+            if (!episode.transcript.isNullOrBlank()) Text(episode.transcript!!, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.verticalScroll(scrollState))
+            else if (episode.captionCues.isNotEmpty()) {
+                val transcript = remember(episode.captionCues.size) { episode.joinCaptions() }
+                Text(transcript, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.verticalScroll(scrollState))
+            }
+        }
+    }
 
     if (showEditComment) {
         var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
@@ -361,6 +393,38 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             val playTimeText = remember(episode.lastPlayedTime) { formatDateTimeFlex(episode.lastPlayedTime) }
             Text(stringResource(R.string.last_played_date) + ": " + playTimeText, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         }
+        if (episode.transcriptMetas.isNotEmpty()) {
+            var showOptions by remember { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.caption_selections), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
+                Spacer(Modifier.width(20.dp))
+                Checkbox(checked = showOptions, onCheckedChange = { showOptions = it })
+                Spacer(Modifier.width(20.dp))
+                if (episode.captionCues.isNotEmpty() || !episode.transcript.isNullOrBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_description_24), contentDescription = "transcript", modifier = Modifier.clickable { showTranscript = true })
+            }
+            if (showOptions) {
+                var transIndex by remember { mutableIntStateOf(if (episode.captionCues.isNotEmpty()) episode.transcriptIndex else -1) }
+                for (i in episode.transcriptMetas.indices) {
+                    val t = episode.transcriptMetas[i]
+                    Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = transIndex == i, onCheckedChange = {
+                                transIndex = if (transIndex != i) i else -1
+                                if (transIndex >= 0 && (transIndex != episode.transcriptIndex || episode.captionCues.isEmpty())) runOnIOScope { episode.fetchCaption(transIndex) }
+                            })
+                            Spacer(Modifier.width(20.dp))
+                            Text(text = t.type ?: "No type", style = MaterialTheme.typography.bodyMedium)
+                            if (!t.language.isNullOrBlank()) {
+                                Spacer(Modifier.width(20.dp))
+                                Text(text = t.language ?: "No language", style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                        Text(text = t.url ?: "No url", style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {})
+                    }
+                }
+            }
+        }
+
         if (episode.todos.isNotEmpty()) {
             var showTodos by remember { mutableStateOf(false) }
             var showDone by remember { mutableStateOf(false) }
@@ -513,6 +577,20 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 }
             }
         }
+        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
+        AndroidView(modifier = Modifier.fillMaxSize(),
+            factory = {
+                ShownotesWebView(activity).apply {
+                    setTimecodeSelectedListener { time: Int -> theatres[0].mPlayerFlow.value?.seekTo(time) }
+                    setPageFinishedListener { postDelayed({ }, 50) }
+                } },
+            update = { view ->
+                val currentTag = view.tag as? String
+                if (currentTag != webviewData) {
+                    view.tag = webviewData
+                    view.loadDataWithBaseURL("about:blank", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank")
+                }
+        })
         if (dlLogs.isNotEmpty() || playerLogs.isNotEmpty()) {
             var showLogs by remember { mutableStateOf(false) }
             Text(stringResource(R.string.logs), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 16.dp, bottom = 4.dp).clickable { showLogs = !showLogs})
@@ -534,20 +612,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                 for (log in playerLogs) Text(log.replace(episode.id.toString(), ""))
             }
         }
-        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
-        AndroidView(modifier = Modifier.fillMaxSize(),
-            factory = {
-                ShownotesWebView(activity).apply {
-                    setTimecodeSelectedListener { time: Int -> theatres[0].mPlayerFlow.value?.seekTo(time) }
-                    setPageFinishedListener { postDelayed({ }, 50) }
-                } },
-            update = { view ->
-                val currentTag = view.tag as? String
-                if (currentTag != webviewData) {
-                    view.tag = webviewData
-                    view.loadDataWithBaseURL("about:blank", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank")
-                }
-        })
     }
 }
 
@@ -1247,7 +1311,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<Epi
     val likeCounts = remember { listOf(EpisodeSortOrder.LIKES_ASC, EpisodeSortOrder.LIKES_DESC) }
     val client = remember { if (feed != null) clientByFeed(feed) else null }
     val ordersOnFeed: List<EpisodeSortOrder> = remember { if (feed != null && client != null) { if (client.attributes?.hasViewCount == true) viewCounts else listOf<EpisodeSortOrder>() + if (client.attributes?.hasLikeCount == true) likeCounts else listOf() } else listOf() }
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ordersOnFeed || (feed == null && order in ((if (clientshaveViewCounts()) viewCounts else listOf()) + (if (clientshaveLikeCounts()) likeCounts else listOf())) ) ) } }
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, order -> index % 2 != 0 && (!order.conditional || order in includeConditionals || order in ordersOnFeed || (feed == null && order in ((if (clientsHaveViewCounts()) viewCounts else listOf()) + (if (clientsHaveLikeCounts()) likeCounts else listOf())) ) ) } }
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismiss() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider

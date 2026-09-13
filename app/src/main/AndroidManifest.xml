@@ -33,8 +33,7 @@
         android:name="android.hardware.touchscreen"
         android:required="false"/>
 
-<!--    this is now taken out from application -->
-<!--    android:usesCleartextTraffic="true"-->
+    <!--        android:usesCleartextTraffic="true"-->
 
     <application
         android:name="ac.mdiq.podcini.PodciniApp"

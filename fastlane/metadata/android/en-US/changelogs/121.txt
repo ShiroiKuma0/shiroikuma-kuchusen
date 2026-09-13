@@ -1,0 +1,7 @@
+* added support of Podcasting 2.0 transcripts and youtube captions (via ut.urn)
+* in PlayerDetailed, the selected transcript can be shown as captions
+* consolidated episode share into ShareDialog
+* in player pipeline, user agent is set to resolve some redirect rejections
+* added auto-reconnect mechanism for external source clients
+* fixed some podcast url type not properly detected when adding podcast
+* upped PodciniLib to 1.1.4, external apps (if used) need to be updated for compatibility

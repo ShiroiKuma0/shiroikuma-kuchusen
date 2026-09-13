@@ -3,11 +3,12 @@ package ac.mdiq.podcini.utils
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.utils.toSafeUri
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import androidx.core.app.ShareCompat.IntentBuilder
+import android.net.Uri
 
 
 private const val TAG: String = "IntentUtils"
@@ -29,11 +30,23 @@ fun openInSystemDefault(url: String) {
     } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.pref_no_browser_found)) }
 }
 
-fun shareLink(context: Context, text: String) {
-    val intent = IntentBuilder(context)
-        .setType("text/plain")
-        .setText(text)
-        .setChooserTitle(R.string.share_url_label)
-        .createChooserIntent()
-    context.startActivity(intent)
+fun Context.shareText(text: String, titleRes: Int? = null) {
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+        titleRes?.let { putExtra(Intent.EXTRA_TITLE, getString(it)) }
+    }
+    val chooserIntent = Intent.createChooser(sendIntent, titleRes?.let { getString(it) } ?: "")
+    if (this !is Activity) chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    startActivity(chooserIntent)
+}
+
+fun Context.shareFile(uri: Uri, mimeType: String, titleRes: Int? = null) {
+    val sendIntent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooserIntent = Intent.createChooser(sendIntent, titleRes?.let { getString(it) } ?: "").apply { if (this@shareFile !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+    startActivity(chooserIntent)
 }

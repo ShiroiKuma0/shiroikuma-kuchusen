@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 120
-        versionName = "12.9.5"
+        versionCode = 121
+        versionName = "12.10.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -221,6 +221,7 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation-layout")
+    implementation("androidx.media3:media3-datasource-okhttp:1.11.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-tooling-preview")
 
@@ -242,13 +243,13 @@ dependencies {
 
     implementation("androidx.glance:glance-appwidget:1.2.0")
 
-    implementation("androidx.media3:media3-exoplayer:1.11.0")
-    implementation("androidx.media3:media3-ui:1.11.0")
-    implementation("androidx.media3:media3-ui-compose:1.11.0")
-    implementation("androidx.media3:media3-common:1.11.0")
-    implementation("androidx.media3:media3-session:1.11.0")
-    implementation("androidx.media3:media3-exoplayer-hls:1.11.0")
-    implementation("androidx.media3:media3-datasource-cronet:1.11.0") {
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
+    implementation("androidx.media3:media3-ui-compose:1.11.1")
+    implementation("androidx.media3:media3-common:1.11.1")
+    implementation("androidx.media3:media3-session:1.11.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.11.1")
+    implementation("androidx.media3:media3-datasource-cronet:1.11.1") {
         exclude(group = "com.google.android.gms", module = "play-services-cronet")
     }
 
@@ -263,11 +264,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
-    implementation("com.github.XilinJia:PodciniLib:1.1.2")
+    implementation("com.github.XilinJia:PodciniLib:1.1.4")
     implementation("io.github.xilinjia.krdb:library-base:${project.property("krdb_version")}")
 
-    implementation("io.coil-kt.coil3:coil-compose:3.6.1")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.6.1")
+    implementation("io.coil-kt.coil3:coil-compose:3.6.2")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.6.2")
 
     implementation("io.ktor:ktor-http:3.5.2")
     implementation("io.ktor:ktor-client-core:3.5.2")
@@ -282,7 +283,7 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:core-android:1.0.2.1")
 
     implementation("com.squareup.okhttp3:okhttp:5.5.0")
-    implementation("com.squareup.okio:okio:3.18.1")
+    implementation("com.squareup.okio:okio:3.18.2")
 
     implementation("net.dankito.readability4j:readability4j:1.0.8")
 

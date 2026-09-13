@@ -47,6 +47,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.dateStampFilename
+import ac.mdiq.podcini.utils.shareFile
 import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -93,7 +94,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -144,7 +144,10 @@ fun ImportExportScreen() {
             message = "",
             confirmRes = R.string.share_label,
             cancelRes = R.string.no,
-            onConfirm = { IntentBuilder(context).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() }))
+            onConfirm = {
+                if (uri != null) context.shareFile(uri, mimeType?:"", R.string.share_file_label)
+                else Loge(TAG, "Share file failed: uri is null")
+            }))
     }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }

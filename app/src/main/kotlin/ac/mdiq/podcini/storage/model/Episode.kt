@@ -17,17 +17,22 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.clipsDir
 import ac.mdiq.podcini.storage.utils.div
+import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.storage.utils.generateFileName
 import ac.mdiq.podcini.storage.utils.guessFileName
 import ac.mdiq.podcini.storage.utils.mediaDir
+import ac.mdiq.podcini.storage.utils.parseHTMLCaptions
+import ac.mdiq.podcini.storage.utils.parseJsonCaptions
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
@@ -35,8 +40,11 @@ import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import io.ktor.client.plugins.expectSuccess
+import io.ktor.client.request.get
 import io.ktor.client.request.head
 import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CancellationException
@@ -44,6 +52,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import ac.mdiq.podcini.storage.utils.parseSrt
+import ac.mdiq.podcini.storage.utils.parseTTMLCaptions
+import ac.mdiq.podcini.storage.utils.parseWebVtt
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
@@ -77,6 +88,11 @@ class Episode : RealmObject {
     var description: String? = null
 
     var transcript: String? = null
+
+    var transcriptIndex: Int = -1
+    var transcriptMetas: RealmList<TranscriptMeta> = realmListOf()
+
+    var captionCues: RealmList<CaptionCue> = realmListOf()
 
     var link: String? = null
     @Ignore
@@ -466,6 +482,48 @@ class Episode : RealmObject {
         startTime = nowInMillis()
     }
 
+    suspend fun fetchCaption(index: Int) {
+        if (index < 0 || index >= transcriptMetas.size) return
+        val trans = transcriptMetas[index]
+        if (trans.url.isNullOrBlank()) return
+        val text = try {
+            getKtorClient().get(trans.url!!) { expectSuccess = true }.bodyAsText()
+        } catch (e: Exception) {
+            Loge(TAG, e, "Failed to fetch transcript: ${trans.url}")
+            null
+        } ?: return
+
+        Logd(TAG, "fetchCaption trans.type: ${trans.type}")
+//        Logd(TAG, "fetchCaption text: $text")
+
+        upsert(this) {
+            it.transcript = null
+            it.captionCues = realmListOf()
+            it.transcriptIndex = index
+            when (trans.type?.lowercase()) {
+                "text/vtt" -> it.captionCues = parseWebVtt(text).toRealmList()
+                "application/x-subrip", "text/srt", "application/srt" -> it.captionCues = parseSrt(text).toRealmList()
+                "text/html" -> it.captionCues = parseHTMLCaptions(text).toRealmList()
+                "application/json" -> it.captionCues = parseJsonCaptions(text).toRealmList()
+                "application/ttml+xml" -> it.captionCues = parseTTMLCaptions(text).toRealmList()
+                else -> it.transcript = text
+            }
+        }
+    }
+
+    fun joinCaptions(): String {
+        return buildString {
+            for (t in captionCues) {
+                if (isNotEmpty()) append('\n')
+                append(durationStringAdapt(t.startMs.toInt()))
+                append("| ")
+                append(t.speaker)
+                append(": ")
+                append(t.text)
+            }
+        }
+    }
+
     fun setChapters(chapters_: List<Chapter>) {
         for (c in chapters_) Logd(TAG, "chapter: ${c.title}")
         chapters.clear()
@@ -555,6 +613,10 @@ class Episode : RealmObject {
         if (clips.size != other.clips.size) return false
         if (marks.size != other.marks.size) return false
         if (chapters.size != other.chapters.size) return false
+        if (transcript?.length != other.transcript?.length) return false
+        if (captionCues.size != other.captionCues.size) return false
+        if (transcriptIndex != other.transcriptIndex) return false
+        if (transcriptMetas.size != other.transcriptMetas.size) return false
         if (comment != other.comment) return false
         if (todos != other.todos) return false
         if (fileUrl != other.fileUrl) return false
@@ -595,11 +657,15 @@ class Episode : RealmObject {
         result = 31 * result + (identifier?.hashCode() ?: 0)
         result = 31 * result + (title?.hashCode() ?: 0)
         result = 31 * result + (parentTitle?.hashCode() ?: 0)
+        result = 31 * result + chapters.size
+        result = 31 * result + transcriptIndex
+        result = 31 * result + transcriptMetas.size
+        result = 31 * result + captionCues.size
+        result = 31 * result + transcript.hashCode()
         result = 31 * result + related.size
         result = 31 * result + tags.size
         result = 31 * result + clips.size
         result = 31 * result + marks.size
-        result = 31 * result + chapters.size
         result = 31 * result + comment.hashCode()
         result = 31 * result + todos.hashCode()
         result = 31 * result + (fileUrl?.hashCode() ?: 0)

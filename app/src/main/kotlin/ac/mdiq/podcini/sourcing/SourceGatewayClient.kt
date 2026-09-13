@@ -35,6 +35,7 @@ import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -87,12 +88,12 @@ fun clientsHaveSeprateAVs(): Boolean {
     return false
 }
 
-fun clientshaveViewCounts(): Boolean {
+fun clientsHaveViewCounts(): Boolean {
     for (client in sourceClients) if (client.attributes?.hasViewCount == true) return true
     return false
 }
 
-fun clientshaveLikeCounts(): Boolean {
+fun clientsHaveLikeCounts(): Boolean {
     for (client in sourceClients) if (client.attributes?.hasLikeCount == true) return true
     return false
 }
@@ -110,6 +111,7 @@ object AppGatewayRegistry {
     @Volatile
     private var readyDeferred = CompletableDeferred<List<SourceGatewayClient>>()
     private val mutex = Mutex()
+    private val reconnectMutex = Mutex()
     private var isInitializing = false
 
     fun initialize(loadExternal: Boolean, scope: CoroutineScope) {
@@ -174,6 +176,28 @@ object AppGatewayRegistry {
         val clients = mutableListOf<SourceGatewayClient>()
 
         suspend fun bindSingleClient(explicitIntent: Intent): SourceGatewayClient? = suspendCancellableCoroutine { continuation ->
+            fun removeClient(client_: SourceGatewayClient) {
+                PodcastSearcherRegistry.searcherInfos.clear()
+                sourceClients.remove(client_)
+                typeClientMap.values.remove(client_)
+                clients.remove(client_)
+                PodciniApp.appIOScope.launch { client_.disconnect() }
+            }
+            fun reconnectClient(intent: Intent) {
+                PodciniApp.appIOScope.launch {
+                    var delayMs = 1_000L
+                    repeat(5) {
+                        val newClient = bindSingleClient(intent)
+                        if (newClient != null) {
+                            clients.add(newClient)
+                            return@launch
+                        }
+                        delay(delayMs.milliseconds)
+                        delayMs = (delayMs * 2).coerceAtMost(30_000L)
+                    }
+                    Logd(TAG, "reconnectClient Unable to reconnect gateway")
+                }
+            }
             val client = SourceGatewayClient()
             val connection = object : ServiceConnection {
                 override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -194,49 +218,38 @@ object AppGatewayRegistry {
                             if (aidlMediaSearcher != null) client.mediaSearcher = GatewayMediaSearcherAdapter(aidlMediaSearcher)
                             typeClientMap[attr.feedType] = client
                             Logt(TAG, "External service ${attr.name} connected")
+                            if (continuation.isActive) continuation.resumeWith(Result.success(client))
                         } else {
                             if (recognized) Loge(TAG, "External service ${attr.name} is not a compatible version, rejected.")
                             else Loge(TAG, "External service ${attr.name} not qualified, rejected.")
                             clients.remove(client)
+                            runCatching { context.unbindService(this) }
                         }
                     } catch (e: Exception) {
                         Loge(TAG, e, "External service bind error")
                         clients.remove(client)
                         typeClientMap.values.remove(client)
                     }
-                    if (continuation.isActive) continuation.resumeWith(Result.success(client))
                 }
-
                 override fun onServiceDisconnected(name: ComponentName?) {
                     Logt(TAG, "Service ${client.attributes?.name} disconnected")
-                    PodcastSearcherRegistry.searcherInfos.clear()
-                    sourceClients.remove(client)
-                    typeClientMap.values.remove(client)
-                    PodciniApp.appIOScope.launch { client.disconnect() }
-                    clients.remove(client)
+                    removeClient(client)
+                    reconnectClient(explicitIntent)
                 }
-
                 override fun onBindingDied(name: ComponentName?) {
                     Logt(TAG, "${client.attributes?.name} binding died, trying to rebind service")
-                    PodcastSearcherRegistry.searcherInfos.clear()
-                    sourceClients.remove(client)
-                    typeClientMap.values.remove(client)
-                    PodciniApp.appIOScope.launch { client.disconnect() }
-                    clients.remove(client)
+                    removeClient(client)
                     if (continuation.isActive) continuation.resumeWith(Result.success(null))
                     runCatching { context.unbindService(this) }
+                    reconnectClient(explicitIntent)
                 }
-
                 override fun onNullBinding(name: ComponentName?) {
                     Logt(TAG, "Service ${client.attributes?.name} not bond: null binding, trying to rebind")
-                    PodcastSearcherRegistry.searcherInfos.clear()
-                    sourceClients.remove(client)
-                    typeClientMap.values.remove(client)
-                    PodciniApp.appIOScope.launch { client.disconnect() }
-                    clients.remove(client)
+                    removeClient(client)
                     if (continuation.isActive) continuation.resumeWith(Result.success(null))
                 }
             }
+
             Logd(TAG, "bindSingleClient before bind")
             val success = try {
                 context.bindService(explicitIntent, connection, Context.BIND_AUTO_CREATE or Context.BIND_IMPORTANT)
