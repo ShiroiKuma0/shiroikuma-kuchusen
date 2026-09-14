@@ -9,12 +9,28 @@ import kotlinx.serialization.json.Json
 
 private const val TAG = "CaptionUtils"
 
-private val VTT_TIMING = Regex("""^\s*(\d{2,}):(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2,}):(\d{2}):(\d{2})\.(\d{3})(?:\s+.*)?$""")
+private val VTT_TIMING = Regex("""^\s*(\d+):(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d+):(\d{2}):(\d{2})\.(\d{3})(?:\s+.*)?$""")
 private val VTT_TIMING_SHORT = Regex("""^\s*(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(\d{2}):(\d{2})\.(\d{3})(?:\s+.*)?$""")
+private val VTT_SPEAKER = Regex("""<v(?:\s+([^>]*))?>""")
 
 fun parseWebVtt(input: String): List<CaptionCue> {
+    fun isNotControlBlock(line: String): Boolean = !line.startsWith("NOTE") && !line.startsWith("STYLE") && !line.startsWith("REGION")
+    fun parseVttTiming(line: String): Pair<Long, Long>? {
+        VTT_TIMING.matchEntire(line)?.let { m ->
+            val start = hmsToMs( m.groupValues[1], m.groupValues[2], m.groupValues[3], m.groupValues[4] )
+            val end = hmsToMs( m.groupValues[5], m.groupValues[6], m.groupValues[7], m.groupValues[8] )
+            return start to end
+        }
+        VTT_TIMING_SHORT.matchEntire(line)?.let { m ->
+            val start = msToMs( m.groupValues[1], m.groupValues[2], m.groupValues[3] )
+            val end = msToMs( m.groupValues[4], m.groupValues[5], m.groupValues[6] )
+            return start to end
+        }
+        return null
+    }
+
     val lines = input.replace("\r\n", "\n").replace('\r', '\n').split('\n')
-    val result = mutableListOf<CaptionCue>()
+    val cues = mutableListOf<CaptionCue>()
     var i = 0
     while (i < lines.size) {
         val line = lines[i].trim()
@@ -22,6 +38,7 @@ fun parseWebVtt(input: String): List<CaptionCue> {
             i++
             continue
         }
+//        Logd(TAG, "parseWebVtt $i $line")
         val timingLine: String
         when {
             line.contains("-->") -> timingLine = line
@@ -35,13 +52,14 @@ fun parseWebVtt(input: String): List<CaptionCue> {
             }
         }
         val timing = parseVttTiming(timingLine)
+//        Logd(TAG, "parseWebVtt $i ${timing?.first}")
         if (timing == null) {
             i++
             continue
         }
         val (startMs, endMs) = timing
         i++
-        val text = buildString {
+        val rawText = buildString {
             while (i < lines.size && lines[i].isNotEmpty()) {
                 if (isNotControlBlock(lines[i])) {
                     if (isNotEmpty()) append('\n')
@@ -50,41 +68,30 @@ fun parseWebVtt(input: String): List<CaptionCue> {
                 i++
             }
         }.trim()
-        if (text.isNotEmpty() && endMs > startMs) result += CaptionCue(startMs = startMs, endMs = endMs, text = text)
+        if (rawText.isNotEmpty() && endMs > startMs) {
+            val speaker = VTT_SPEAKER.find(rawText)?.groupValues?.getOrNull(1)?.trim()
+            val text = rawText.replace(VTT_SPEAKER, "").trim()
+            if (text.isNotEmpty()) cues += CaptionCue(startMs = startMs, endMs = endMs, text = text, speaker = speaker ?: "")
+        }
         i++
     }
-    return result.sortedBy { it.startMs }
-}
-
-private fun parseVttTiming(line: String): Pair<Long, Long>? {
-    VTT_TIMING.matchEntire(line)?.let { m ->
-        val start = hmsToMs( m.groupValues[1], m.groupValues[2], m.groupValues[3], m.groupValues[4] )
-        val end = hmsToMs( m.groupValues[5], m.groupValues[6], m.groupValues[7], m.groupValues[8] )
-        return start to end
-    }
-    VTT_TIMING_SHORT.matchEntire(line)?.let { m ->
-        val start = msToMs( m.groupValues[1], m.groupValues[2], m.groupValues[3] )
-        val end = msToMs( m.groupValues[4], m.groupValues[5], m.groupValues[6] )
-        return start to end
-    }
-    return null
+    return cues.sortedBy { it.startMs }
 }
 
 private fun hmsToMs(hours: String, minutes: String, seconds: String, millis: String ): Long = hours.toLong() * 3_600_000 + minutes.toLong() * 60_000 + seconds.toLong() * 1_000 + millis.toLong()
 
 private fun msToMs(minutes: String, seconds: String, millis: String ): Long = minutes.toLong() * 60_000 + seconds.toLong() * 1_000 + millis.toLong()
 
-private fun isNotControlBlock(line: String): Boolean = !line.startsWith("NOTE") && !line.startsWith("STYLE") && !line.startsWith("REGION")
-
 private val SRT_TIMING = Regex("""^\s*(\d{2}):(\d{2}):(\d{2})[,\.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,\.](\d{3})(?:\s+.*)?$""")
+private val SRT_SPEAKER = Regex("""^([^:\r\n]+):\s*""")
 
 fun parseSrt(input: String): List<CaptionCue> {
     val lines = input.replace("\r\n", "\n").replace('\r', '\n').split('\n')
-    val result = mutableListOf<CaptionCue>()
+    val cues = mutableListOf<CaptionCue>()
     var i = 0
     while (i < lines.size) {
         val line = lines[i].trim()
-        Logd(TAG, "parseSrt line: $line")
+//        Logd(TAG, "parseSrt line: $line")
         if (line.isEmpty() || line.toIntOrNull() != null) {
             i++
             continue
@@ -94,11 +101,9 @@ fun parseSrt(input: String): List<CaptionCue> {
             i++
             continue
         }
-
         val startMs = hmsToMs(match.groupValues[1], match.groupValues[2], match.groupValues[3], match.groupValues[4])
         val endMs = hmsToMs(match.groupValues[5], match.groupValues[6], match.groupValues[7], match.groupValues[8])
         i++
-
         val text = buildString {
             while (i < lines.size && lines[i].isNotEmpty()) {
                 if (isNotEmpty()) append('\n')
@@ -106,10 +111,15 @@ fun parseSrt(input: String): List<CaptionCue> {
                 i++
             }
         }.trim()
-        if (text.isNotEmpty() && endMs > startMs) result += CaptionCue(startMs = startMs, endMs = endMs, text = text)
+        if (text.isNotEmpty() && endMs > startMs) {
+            val speakerMatch = SRT_SPEAKER.find(text)
+            val speaker = speakerMatch?.groupValues?.get(1)?.trim() ?:""
+            val cleanText = if (speakerMatch != null) text.removeRange(speakerMatch.range).trim() else text
+            if (cleanText.isNotEmpty()) cues += CaptionCue(startMs = startMs, endMs = endMs, text = cleanText, speaker = speaker)
+        }
         i++
     }
-    return result.sortedBy { it.startMs }
+    return cues.sortedBy { it.startMs }
 }
 
 fun parseHTMLCaptions(html: String, durationMs: Long = 0L): List<CaptionCue> {
@@ -156,6 +166,7 @@ fun parseHTMLCaptions(html: String, durationMs: Long = 0L): List<CaptionCue> {
             }
         }
     }
+    cues.sortBy { it.startMs }
     cues.forEachIndexed { index, cue -> cue.endMs = cues.getOrNull(index + 1)?.startMs ?: durationMs }
     return cues
 }
@@ -180,7 +191,7 @@ private const val MAX_GAP_MS = 1_000L
 
 fun parseJsonCaptions(json: String): List<CaptionCue> {
     val transcript = Json.decodeFromString<TranscriptJson>(json)
-    val result = mutableListOf<CaptionCue>()
+    val cues = mutableListOf<CaptionCue>()
     var current: CaptionCue? = null
     for (segment in transcript.segments) {
         val startMs = (segment.startTime * 1000).toLong()
@@ -208,7 +219,7 @@ fun parseJsonCaptions(json: String): List<CaptionCue> {
             cue.text += " $text"
             cue.endMs = endMs
         } else {
-            result += cue
+            cues += cue
             current = CaptionCue().apply {
                 this.startMs = startMs
                 this.endMs = endMs
@@ -217,13 +228,16 @@ fun parseJsonCaptions(json: String): List<CaptionCue> {
             }
         }
     }
-    current?.let(result::add)
-    return result
+    current?.let(cues::add)
+    return cues.sortedBy { it.startMs }
 }
 
-fun parseTTMLCaptions0(xml: String): List<CaptionCue> {
+fun parseTextCaptions(text: String, durationMs: Long = 0L): List<CaptionCue> {
+    val timestampRegex = Regex("""(?m)^\s*(\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?)\s*$""")
+    val matches = timestampRegex.findAll(text).toList()
+    if (matches.isEmpty()) return emptyList()
     fun parseTimestampMs(value: String): Long? {
-        val parts = value.trim().split(':')
+        val parts = value.replace(',', '.').split(':')
         return try {
             when (parts.size) {
                 2 -> ((parts[0].toLong() * 60 + parts[1].toDouble()) * 1000).toLong()
@@ -233,18 +247,34 @@ fun parseTTMLCaptions0(xml: String): List<CaptionCue> {
         } catch (_: NumberFormatException) { null }
     }
 
-    val document = Ksoup.parse(xml)
-    return document.select("p").mapNotNull { p ->
-        val startMs = p.attr("begin").let(::parseTimestampMs) ?: return@mapNotNull null
-        val endMs = p.attr("end").let(::parseTimestampMs) ?: return@mapNotNull null
-        val text = p.text().trim()
-        if (text.isEmpty()) return@mapNotNull null
-        CaptionCue().apply {
+    val cues = mutableListOf<CaptionCue>()
+    matches.forEachIndexed { index, match ->
+        val startMs = parseTimestampMs(match.groupValues[1]) ?: return@forEachIndexed
+        val contentStart = match.range.last + 1
+        val contentEnd = matches.getOrNull(index + 1)?.range?.first ?: text.length
+        val content = text.substring(contentStart, contentEnd).trim()
+        if (content.isEmpty()) return@forEachIndexed
+        val speakerMatch = Regex("""^([^:\r\n]+):\s*(.*)$""", RegexOption.DOT_MATCHES_ALL).matchEntire(content)
+        val speaker: String
+        val captionText: String
+        if (speakerMatch != null) {
+            speaker = speakerMatch.groupValues[1].trim()
+            captionText = speakerMatch.groupValues[2].trim()
+        } else {
+            speaker = ""
+            captionText = content
+        }
+        if (captionText.isEmpty()) return@forEachIndexed
+        cues += CaptionCue().apply {
             this.startMs = startMs
-            this.endMs = endMs
-            this.text = text
+            this.endMs = durationMs
+            this.speaker = speaker
+            this.text = captionText
         }
     }
+    cues.sortBy { it.startMs }
+    cues.forEachIndexed { index, cue -> if (index + 1 < cues.size) cue.endMs = cues[index + 1].startMs }
+    return cues
 }
 
 fun parseTTMLCaptions(xml: String): List<CaptionCue> {
@@ -277,7 +307,7 @@ fun parseTTMLCaptions(xml: String): List<CaptionCue> {
             }
         }
         result += current
-        return result
+        return result.sortedBy { it.startMs }
     }
 
     val document = Ksoup.parse(xml, parser = Parser.xmlParser())

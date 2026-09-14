@@ -6,8 +6,10 @@ import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.LogeFor
 import android.net.Uri
+import android.os.SystemClock
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,21 +34,22 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
     private var bitrate: Int = 0
 
     private var isOpen = false
-    override fun open(dataSpec: DataSpec): Long {
-        currentDataSpec = dataSpec
-//        mediaId = dataSpec.key ?: dataSpec.uri.toString()
-        Logd(TAG, "open cacheKey=${dataSpec.key}")
-//        val existingSpans = getCache().getCachedSpans(mediaId)
-//        Logd(TAG, "open Before listener: mediaId=[$mediaId] spans=${existingSpans.size}, totalBytes=${existingSpans.sumOf { it.length }}")
-        Logd(TAG, "open uri=${dataSpec.uri}")
-        Logd(TAG, "open scheme=${dataSpec.uri.scheme}")
-        Logd(TAG, "open key=${dataSpec.key}")
-        Logd(TAG, "open position=${dataSpec.position} length=${dataSpec.length}")
 
-        val bytesToRead = cacheDataSource.open(dataSpec)
-        Logd(TAG, "Open: position=${dataSpec.position}, length=$bytesToRead")
-        isOpen = true
-        return bytesToRead
+    override fun open(dataSpec: DataSpec): Long {
+        close()
+        currentDataSpec = dataSpec
+        val t0 = SystemClock.elapsedRealtime()
+        val byteToRead = try {
+            cacheDataSource.open(dataSpec).also { isOpen = true }
+        } catch (e: Throwable) {
+            isOpen = false
+            try { cacheDataSource.close() } catch (_: Exception) { }
+            throw e
+        }
+        val t1 = SystemClock.elapsedRealtime()
+//        Logd(TAG, "open requested=${dataSpec.uri} resolved=${cacheDataSource.uri}")
+        Logd(TAG, "open ${t1 - t0}ms requested=${dataSpec.uri} resolved=${cacheDataSource.uri}")
+        return byteToRead
     }
 
     private var readCalls = 0L
@@ -68,8 +71,12 @@ class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : Da
     }
 
     override fun close() {
-//        Logd(TAG, "closing")
-        try { if (isOpen) cacheDataSource.close() } finally { isOpen = false }
+        if (!isOpen) return
+        try { cacheDataSource.close()
+        } finally {
+            isOpen = false
+            currentDataSpec = null
+        }
     }
 
     fun startRecording(startPositionMs: Long, bitrate: Int, tmpDir: UnifiedFile) {

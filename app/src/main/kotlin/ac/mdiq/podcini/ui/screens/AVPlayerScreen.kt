@@ -42,6 +42,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.SleepTimerDialog
+import ac.mdiq.podcini.ui.compose.TranscriptDialog
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.distinctColorOf
@@ -734,6 +735,10 @@ fun AVPlayerScreen() {
     var showSpeedDialog by remember { mutableStateOf(false) }
     if (showSpeedDialog) PlaybackSpeedFullDialog(vms[actPlayerId].playerId, indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
 
+    var cueIndex by remember { mutableIntStateOf(-1) }
+    var showTransDialog by remember { mutableStateOf(false) }
+    if (showTransDialog && curMedia != null) TranscriptDialog(curMedia, player, cueIndex) { showTransDialog = false }
+
     @Composable
     fun PlayerUI(vm: AVPlayerVM, modifier: Modifier) {
         val player by theatres[vm.playerId].mPlayerFlow.collectAsStateWithLifecycle()
@@ -768,6 +773,7 @@ fun AVPlayerScreen() {
                 Text(text = episode.title?:"", fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(text = episode.feed?.title?:"", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else {
+                if (episode.captionCues.isNotEmpty()) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_description_24), contentDescription = "transcript", modifier = Modifier.clickable { showTransDialog = true })
                 if (client?.attributes?.hasSeparateAVs == true) IconButton(onClick = {
                     val media = upsertBlk(episode) { it.forceVideo = false }
                     vm.forceVideo = false
@@ -839,6 +845,7 @@ fun AVPlayerScreen() {
         val client = remember(episode.id) { clientByEpisode(episode) }
         Row(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { psState = PSState.PartiallyExpanded })
+            if (episode.captionCues.isNotEmpty()) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_description_24), contentDescription = "transcript", modifier = Modifier.clickable { showTransDialog = true })
             if (mediaType == MediaType.VIDEO && client?.attributes?.hasSeparateAVs == true) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     val media = upsertBlk(episode) { it.forceVideo = true }
@@ -1132,7 +1139,14 @@ fun AVPlayerScreen() {
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.weight(0.1f))
                 if (episode.captionCues.isNotEmpty()) Icon(imageVector = if (showCaption) Icons.Default.CheckCircle else ImageVector.vectorResource(androidx.media3.session.R.drawable.media3_icon_closed_captions),
-                    contentDescription = "caption", tint = if (showCaption) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable { showCaption = !showCaption })
+                    contentDescription = "caption", tint = if (showCaption) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.combinedClickable(
+                        onClick = { showCaption = !showCaption },
+                        onLongClick = {
+                            val pos = player?.getPosition()?:0
+                            runOnIOScope { upsert(episode) { it.transcriptStartPos = pos } }
+                            Logt(TAG, "transcript start position is offset to ${durationStringAdapt(pos)}")
+                        }
+                    ) )
                 Spacer(modifier = Modifier.weight(0.2f))
                 val episodeDate = remember(episode.pubDate) { formatDateTimeFlex(episode.pubDate).trim() }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -1145,7 +1159,6 @@ fun AVPlayerScreen() {
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             if (episode.captionCues.isNotEmpty()) {
-                var cueIndex by remember { mutableIntStateOf(-1) }
                 val captionPrev = remember(cueIndex) { if (cueIndex>0) episode.captionCues[cueIndex-1] else null }
                 val captionNow = remember(cueIndex) { if (cueIndex>=0) episode.captionCues[cueIndex] else null }
                 val captionNext = remember(cueIndex) { if (cueIndex>=0 && cueIndex<episode.captionCues.size-1) episode.captionCues[cueIndex+1] else null }
@@ -1169,7 +1182,7 @@ fun AVPlayerScreen() {
                         }
                     }
                     while (isActive && showCaption) {
-                        val pos = player?.getPosition() ?: 0
+                        val pos = (player?.getPosition() ?: 0 ) - episode.transcriptStartPos
                         cueAt(pos.toLong()+500)
                         delay(500.milliseconds)
                     }
@@ -1188,7 +1201,7 @@ fun AVPlayerScreen() {
                     })
                 }
             }
-            EpisodeDetails(episode, psState == PSState.Expanded, true)
+            EpisodeDetails(episode, player = player, cueIndex = cueIndex, fetchWebdata =  psState == PSState.Expanded, fetchChapters = true)
             val imgLarge = remember(episode.id, displayedChapterIndex) {
                 if (displayedChapterIndex == -1 || episode.chapters.isEmpty() || episode.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) episode.imageUrl ?: episode.feed?.imageUrl
                 else EmbeddedChapterImage.getModelFor(episode, displayedChapterIndex)?.toString()

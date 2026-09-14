@@ -186,6 +186,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
     var showTimetableDialog by remember { mutableStateOf(false) }
     var onTimer by remember { mutableStateOf(Timer()) }
     var showEditTimerDialog by remember { mutableStateOf(false) }
+    var showTransDialog by remember { mutableStateOf(false) }
 
     val appAttribs by appAttribsFlow!!.collectAsStateWithLifecycle()
 
@@ -205,6 +206,8 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             onTimer = it
             showEditTimerDialog = true
         }
+
+        if (showTransDialog) TranscriptDialog(episode) { showTransDialog = false }
     }
 
     OpenDialogs()
@@ -238,6 +241,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                 Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (showClose) Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { episodeForInfo = null })
                     Spacer(Modifier.weight(1f))
+                    if (episode.captionCues.isNotEmpty()) IconButton(onClick = { showTransDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_description_24), contentDescription = "transcript") }
                     if (allowOpenFeed && episodeFeed != null) IconButton(onClick = {
                         navTo(FeedDetails(feedId = episodeFeed.id))
                         episodeForInfo = null
@@ -484,7 +488,6 @@ fun EpisodeWebView(episode: Episode) {
         return "#$red$green$blue"
     }
 
-    //        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
     Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(3.dp), border = BorderStroke(3.dp, borderColor)) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
             Toolbar()

@@ -1,3 +1,19 @@
+# 12.10.1
+
+* in Player onPostPlayback, ensure to persist status and clear external source media transcript meta data
+* in Player pipeline, tuned to ensure cached data source not open multiple times on url redirect
+* the url in transcript options is truncated to one line, click on it copies the full url to clipboard
+* fixed parsing some vtt transcript timing
+* extracted speaker in vtt and srt transcripts
+* added plain text transcript parser
+* show-transcript icon is moved to the top bar of PlayerDetailed and EpisodeInfo
+* the caption icon in PlayerDetailed can be long-clicked to set current player position as transcript start
+	* useful when an intro is added to the start of media after the transcript was produced, causing a position mismatch, iHeart is notorious on this?
+	* added helper toast when selecting a transcript
+* amended and tidied up transcript popup
+	* ensured proper actions on text selection 
+	* if shown from PlayerDetailed and caption is switched on, current caption is highlighted, every caption is seekable on click
+
 # 12.10.0
 
 * added support of Podcasting 2.0 transcripts, options are persisted at time of subscription or update

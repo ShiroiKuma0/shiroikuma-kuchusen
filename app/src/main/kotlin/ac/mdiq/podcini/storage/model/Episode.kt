@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.utils.guessFileName
 import ac.mdiq.podcini.storage.utils.mediaDir
 import ac.mdiq.podcini.storage.utils.parseHTMLCaptions
 import ac.mdiq.podcini.storage.utils.parseJsonCaptions
+import ac.mdiq.podcini.storage.utils.parseTextCaptions
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.utils.Logd
@@ -89,6 +90,7 @@ class Episode : RealmObject {
 
     var transcript: String? = null
 
+    var transcriptStartPos: Int = 0
     var transcriptIndex: Int = -1
     var transcriptMetas: RealmList<TranscriptMeta> = realmListOf()
 
@@ -486,6 +488,7 @@ class Episode : RealmObject {
         if (index < 0 || index >= transcriptMetas.size) return
         val trans = transcriptMetas[index]
         if (trans.url.isNullOrBlank()) return
+        Logd(TAG, "fetchCaption url: ${trans.url}")
         val text = try {
             getKtorClient().get(trans.url!!) { expectSuccess = true }.bodyAsText()
         } catch (e: Exception) {
@@ -505,6 +508,7 @@ class Episode : RealmObject {
                 "application/x-subrip", "text/srt", "application/srt" -> it.captionCues = parseSrt(text).toRealmList()
                 "text/html" -> it.captionCues = parseHTMLCaptions(text).toRealmList()
                 "application/json" -> it.captionCues = parseJsonCaptions(text).toRealmList()
+                "text/plain" -> it.captionCues = parseTextCaptions(text).toRealmList()
                 "application/ttml+xml" -> it.captionCues = parseTTMLCaptions(text).toRealmList()
                 else -> it.transcript = text
             }

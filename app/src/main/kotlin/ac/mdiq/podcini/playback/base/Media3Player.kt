@@ -3,6 +3,7 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.SegmentSavingDataSource
 import ac.mdiq.podcini.playback.SegmentSavingDataSourceFactory
+import ac.mdiq.podcini.playback.base.OKHTTP.getOKHttpClient
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer.buildCastPlayer
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -87,6 +88,7 @@ import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.cronet.CronetDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
@@ -631,22 +633,11 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         val httpDataSourceFactory =
             if (httpEngine != null) HttpEngineDataSource.Factory(httpEngine!!, networkExecutor).setConnectionTimeoutMs(8_000).setReadTimeoutMs(8_000)
             else CronetDataSource.Factory(cronetEngine!!, networkExecutor).setConnectionTimeoutMs(8_000).setReadTimeoutMs(8_000)
-
         val upstreamFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
         val cacheDataSourceFactory = CacheDataSource.Factory()
             .setCache(getCache())
             .setUpstreamDataSourceFactory(upstreamFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-        cacheDataSourceFactory.setEventListener(
-            object : CacheDataSource.EventListener {
-                override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
-                    Logd(TAG, "CacheDataSource onCachedBytesRead cachedBytes=$cachedBytesRead cacheSize=$cacheSizeBytes")
-                }
-                override fun onCacheIgnored(reason: Int) {
-                    Logd(TAG, "CacheDataSource onCacheIgnored ignored=$reason")
-                }
-            }
-        )
         recordingFactory = SegmentSavingDataSourceFactory(cacheDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(context, extractorsFactory).setDataSourceFactory(recordingFactory!!)
 
@@ -683,7 +674,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         exoPlayer?.stop()
 //        castPlayer?.seekTo(0L)
 //        castPlayer?.clearMediaItems()
-//        bufferingUpdater = null
     }
 
     fun mediaSourceFromClient(needVideo: Boolean, sameMedia: Boolean = false): MediaSource? {
@@ -954,7 +944,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
     override fun shutdown() {
         Logd(TAG, "shutdown() called")
         try {
-//            bufferingUpdater = { }
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { LogsFor(TAG, curMediaFlow.value?.id, e) }
         release()
@@ -1199,7 +1188,6 @@ class Media3Player(playerId: Int, val lr: Int) : MediaPlayerBase() {
         exoplayerOffloadListener?.let { exoPlayer?.removeAudioOffloadListener(it) }
         exoplayerListener = null
         exoplayerOffloadListener = null
-//        bufferingUpdater = null
         loudnessEnhancer = null
 //        httpDataSourceFactory = null
 

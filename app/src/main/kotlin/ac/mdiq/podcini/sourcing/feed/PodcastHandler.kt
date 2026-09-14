@@ -245,7 +245,7 @@ object PodcastHandler {
         override fun startPrefixMapping(prefix: String, uri: String) {
             // Find the right namespace
             if (!state.namespaces.containsKey(uri)) {
-                Logd(TAG, "startPrefixMapping prefix: $prefix uri: [$uri]")
+//                Logd(TAG, "startPrefixMapping prefix: $prefix uri: [$uri]")
                 when {
                     uri == "" -> state.namespaces[uri] = Rss20()
                     uri == Atom.NSURI -> {

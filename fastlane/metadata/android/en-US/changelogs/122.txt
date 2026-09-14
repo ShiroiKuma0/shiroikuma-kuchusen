@@ -1,0 +1,7 @@
+* in Player pipeline, tuned to ensure cached data source not open multiple times on url redirect
+* fixed parsing some vtt transcript timing
+* extracted speaker in vtt and srt transcripts
+* added plain text transcript parser
+* show-transcript icon is moved to the top bar of PlayerDetailed and EpisodeInfo
+* the caption icon in PlayerDetailed can be long-clicked to set current player position as transcript start
+* amended and tidied up transcript popup
