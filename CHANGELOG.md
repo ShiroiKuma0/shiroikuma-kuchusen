@@ -2,6 +2,88 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.10.1+001 (versionCode 1220001) — 2026-09-15
+
+Rebased onto upstream **v12.10.1** (versionCode 122), released 2026-09-14 — a single upstream commit
+this time, the follow-up that finishes the transcript work 12.10.0 started. A tracking release: **no
+new fork features**, the custom layer replayed onto the new base and the build counter reset to
+`+001`.
+
+> **Take a fresh backup after installing.** The Realm schema moves **161 → 162**: upstream adds one
+> field, `transcriptStartPos`, to every episode. The change is additive and needs no migration step,
+> your existing database carries forward on first launch, and a backup taken with 12.10.0+001 still
+> restores here — but a backup taken *after* this build carries schema 162 and will not go back into
+> a 12.10.0 install. The one-way migration warning from `12.6.0+001` still applies to anyone arriving
+> from a 12.5.x build.
+
+> **Size**: 36.68 MiB, 648 bytes larger than 12.10.0+001 — a one-commit upstream release changes
+> nothing measurable.
+
+### Fork layer
+
+- **Nothing removed, nothing changed.** Live theming, the one-file category backup with the database
+  snapshot, the self-verifying export, the token-gated headless export, the data door and the
+  black-yellow identity all carry over untouched.
+- **No porting fix needed**, for the second rebase running. Nothing the fork patches was touched in a
+  way our code reads, and the release compiles clean with no warning of ours.
+- **One collision, the routine one.** `app/build.gradle.kts` conflicted on the version literals alone
+  — upstream reasserts `122` / `"12.10.1"` where the fork derives them from `forkVersionCode` /
+  `forkVersionName`, so ours stands. Our 87 added strings merged alongside upstream's `strings.xml`
+  edit without a hunk touching, and `README.md` did not conflict at all.
+- **Version base moved to 12.10.1 / 122**, so this line's codes (`1220001`, `1220002`, …) all exceed
+  the 12.10.0 line's (`1210001`, …) and upgrades stay monotonic. Nothing upstream was skipped.
+
+### Inherited from upstream 12.10.1
+
+14 files, 204 insertions, 111 deletions — one commit, and nearly all of it transcripts.
+
+**The transcript parsers, corrected.** `CaptionUtils.kt` takes the bulk of the release (116 lines).
+
+- **Fixed: WebVTT timings with a single-digit hour did not parse at all.** The timing pattern
+  demanded two or more digits in the hour field, so a cue written `1:02:03.000` was silently skipped
+  — and with every cue skipped, the transcript came back empty.
+- **Speakers are extracted and shown separately.** WebVTT's `<v Name>` markup and SubRip's leading
+  `Name:` convention are both recognised, pulled out of the cue text and stored on the cue, so the
+  caption reads as speech rather than as a line that repeats the speaker's name inside it.
+- **Plain-text transcripts parse now.** A new parser keys on bare timestamp lines and runs each cue
+  up to the next one's start, so `text/plain` joins WebVTT, SubRip, HTML, JSON and TTML as a format
+  that yields real cues instead of an undifferentiated wall of text. It replaces an unused earlier
+  TTML routine.
+- **Every parser returns its cues in time order.** Several did not sort at all, leaving cues in file
+  order — fine for a tidy file, wrong for one that isn't.
+
+**The transcript, as something you read.** The popup is rebuilt as its own dialog rather than living
+inside the episode-details panel.
+
+- **Text selection works properly in it**, every cue is prefixed with its timestamp and speaker, and
+  **clicking a cue seeks the player to it**.
+- **When it is opened from PlayerDetailed with captions on, the current cue is highlighted**, so the
+  list tracks what is being said.
+- **The show-transcript icon moved to the top bar** of both PlayerDetailed and EpisodeInfo, where it
+  is reachable without first opening the transcript-options section. A helper toast explains the
+  offset trick when you pick a transcript.
+
+**Fixed: a transcript that runs ahead of the audio.** Long-press the caption icon in PlayerDetailed
+and the current player position is stored as the transcript's start; the caption follower subtracts
+it from then on. This is the fix for a show that prepends an intro to the media after the transcript
+was produced — iHeart being upstream's named culprit — which otherwise leaves every caption early by
+the length of the intro.
+
+**Playback.**
+
+- **Fixed: the cached data source could be opened more than once on a URL redirect.** The recording
+  data source now closes before it opens, returns early from a close when it is not open, and closes
+  the cache source before rethrowing when an open fails.
+- **Post-playback bookkeeping now runs on every path out of playback.** Persisting the status and
+  resetting the start time and position had been sitting inside the mark-as-played branch, so they
+  were skipped whenever an episode was left unplayed; they are now unconditional, and external-source
+  episodes have their transcript metadata cleared on the way out.
+
+**Elsewhere.** Transcript selections are relabelled from "Caption selections", the transcript URL in
+the options list is truncated to one line with a click to copy the full URL, and two noisy log lines
+— one per feed namespace during parsing, one per SubRip line — are silenced. No dependency moved in
+this release.
+
 ## 12.10.0+001 (versionCode 1210001) — 2026-09-13
 
 Rebased onto upstream **v12.10.0** (versionCode 121), released 2026-09-13 — taking in **five**
