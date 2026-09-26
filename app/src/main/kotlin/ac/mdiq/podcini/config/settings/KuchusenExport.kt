@@ -173,7 +173,7 @@ object KuchusenExport {
         AppPrefs::OPMLBackup,
         AppPrefs::theme, AppPrefs::themeBlack, AppPrefs::useDynamicThemes, AppPrefs::tintedColors,
         AppPrefs::useEpisodeCover, AppPrefs::showSkip, AppPrefs::showDownloadReport, AppPrefs::defaultPage,
-        AppPrefs::backButtonOpensDrawer, AppPrefs::showErrorToasts, AppPrefs::printDebugLogs,
+        AppPrefs::backButtonOpensDrawer, AppPrefs::showLogLevel,
         AppPrefs::pauseOnHeadsetDisconnect, AppPrefs::unpauseOnHeadsetReconnect, AppPrefs::unpauseOnBluetoothReconnect,
         AppPrefs::hardwareForwardButton, AppPrefs::hardwarePreviousButton,
         AppPrefs::skipKeepsEpisode, AppPrefs::removeFromQueueMarkPlayed, AppPrefs::favoriteKeepsEpisode,
