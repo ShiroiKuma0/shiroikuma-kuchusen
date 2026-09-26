@@ -2,6 +2,137 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.13.1+001 (versionCode 1280001) — 2026-09-26
+
+Rebased onto upstream **v12.13.1** (versionCode 128), released 2026-09-26 — **six upstream releases
+in one jump** (12.11.0, 12.11.1, 12.12.0, 12.12.1, 12.13.0, 12.13.1; nine commits, 271 files, 4626
+insertions, 5891 deletions). A tracking release: **no new fork features**, the custom layer replayed
+onto the new base and the build counter reset to `+001`. It is, however, the most structurally
+invasive upstream jump the fork has taken, and three things below change what you see.
+
+> **⏳ The first start runs a database migration and can take minutes.** The Realm schema moves
+> **162 → 166**, and the step added for 163 walks **every feed and then every episode** in your
+> library. Upstream replaced the splash with a startup screen precisely so this is visible: you get
+> the teaser image, an intro line, and a live `migrating for 163 — episodes <n>` counter underneath.
+> **Let it finish.** Killing the app mid-migration is the one thing worth avoiding here.
+
+> **📸 Take a fresh backup after installing — and keep the old one.** A backup written by this build
+> carries schema 166 and **will not restore into a 12.10.x install**; a backup taken with
+> 12.10.1+001 still restores here (that is what the migration is for). The one-way migration warning
+> from `12.6.0+001` still applies to anyone arriving from a 12.5.x build.
+
+> **🖤 The cold-start splash is gone, and it is no longer ours.** Upstream deleted its Android-12
+> splash theme outright — see below. Where you used to get our yellow glyph pulsing on black, you now
+> get upstream's Compose startup screen with upstream's teaser image on it. Nothing else about the
+> black-yellow identity changed; the launcher icon, menus, dialogs and toasts are exactly as they
+> were. Re-skinning that startup screen is a fork change that has not been made.
+
+> **Size**: 36.81 MiB (38,602,069 bytes), 140.7 KiB larger than 12.10.1+001 — six releases of
+> upstream feature work, plus `androidx.car.app`.
+
+### Fork layer
+
+- **Nothing removed, nothing changed in what the fork does.** Live theming, the one-file category
+  backup with the database snapshot, the self-verifying export, the token-gated headless export, the
+  data door and the black-yellow identity all carry over.
+- **The splash retrace is retired, because its target no longer exists.** Upstream's 12.11.0 deletes
+  `androidx.core:core-splashscreen`, `res/values/styles.xml` (and with it `Theme.Podcini.Splash`),
+  the `launcher_animate` frame animation and its three PNG layers; the manifest now names
+  `Theme.Material3.DayNight.NoActionBar` directly and `MainActivity` draws a Compose startup screen
+  instead. Our retrace — black `windowSplashScreenBackground` plus the glyph at three opacities —
+  had nothing left to attach to, so it is gone from the fork layer, and
+  `graphics/icon/render.sh` + `graphics/README.md` no longer render or document the three splash
+  layers. **The icon itself is untouched**: the generator, the safe-zone fit, the adaptive
+  foreground, the monochrome variant and every raster fallback are exactly as before.
+- **One porting fix, in the export.** Upstream 12.12.0 replaces `AppPrefs.showErrorToasts` and
+  `AppPrefs.printDebugLogs` with a single `showLogLevel: Int`, so `APP_PREF_FIELDS` in
+  `KuchusenExport.kt` now carries `AppPrefs::showLogLevel` in their place. **Consequence for old
+  backups:** the importer walks the current field list and skips keys an archive does not hold, so a
+  backup written by an earlier build restores exactly as before *minus* those two retired log
+  settings — which no longer exist to restore into. Everything else in the App settings category,
+  the automation contract, the Export/Import categories and the 空中線 UI page needed no change.
+- **Two collisions beyond the routine one.** The routine one first: `app/build.gradle.kts` conflicted
+  on the version literals alone — upstream reasserts `128` / `"12.13.1"` where the fork derives them
+  from `forkVersionCode` / `forkVersionName`, so ours stands. Then `NavDrawerScreen.kt`, where our
+  `ic_launcher_sk_foreground` + `ContentScale.Fit` substitutions and the settings-cog long-press into
+  the 空中線 UI page replay onto upstream's new lambda-form `Logd(TAG) { }` and its `imageLoader`
+  import; our `@OptIn(ExperimentalFoundationApi::class)` is dropped as redundant now that upstream
+  calls `combinedClickable` without it. And the modify/delete collision on the splash assets, covered
+  above.
+- **Version base moved to 12.13.1 / 128**, so this line's codes (`1280001`, `1280002`, …) all exceed
+  the 12.10.1 line's (`1220001`, …) and upgrades stay monotonic. Nothing upstream was skipped.
+- **Known issue inherited from upstream, not yet patched here.** Upstream's reworked
+  `res/xml/shortcuts.xml` hardcodes `android:targetPackage="ac.mdiq.podcini"` on three of the
+  launcher shortcuts (Queues, Facets, Library). That is not our app id — and it is not upstream's
+  either (`ac.mdiq.Podcini.A`) — so those three long-press launcher shortcuts point at a package that
+  is not installed. The remaining shortcuts set only `targetClass` and are unaffected. A one-line
+  fork fix is available; it is not in this build.
+
+### Inherited from upstream 12.11.0 → 12.13.1
+
+**The playback package is flattened.** `playback/base/` and `playback/service/` are dissolved into
+`playback/` outright: `MediaPlayerBase.kt` becomes `BasePlayer.kt` (423 lines touched, 67%
+similarity), and `Media3Player`, `OKHTTP`, `PlayerStatus`, `SleepManager`, `TTSEngine`, `Theatres`,
+`PlaybackService` and `QuickSettingsTileService` all move up a level. `ClientConfig.kt` is deleted
+and replaced by `config/AppConfig.kt` — an object with an `isInitialized` StateFlow and a
+synchronized `initialize()` that opens Realm, loads the prefs, registers the source gateways and
+starts the network monitor **off the main thread**, which is what makes the startup screen possible.
+`AudioMediaTools.kt` is deleted entirely, `FeedFunding` moves from `storage/specs` to
+`storage/model`, and `Image`, `CaptionCue` and `TranscriptMeta` become models of their own.
+
+**Android Auto is reworked** — the headline of 12.11.0. `androidx.car.app:app:1.7.0` arrives,
+`res/xml/actions.xml` is retired, and `shortcuts.xml` grows by 116 lines into deep-link shortcuts
+with `capability-binding` / `actions.intent.OPEN_APP_FEATURE` parameter bindings, so Queues, Facets
+and Library are addressable as app features rather than as private intent extras. Two follow-ups
+make sure **no video stream is assembled at all when plugged into Auto** (12.11.1, again in 12.12.0),
+and pressing audio-only in PlayerDetailed now strips the video stream even when the feed is set to
+play video.
+
+**"Show errors" and "print logs" become one log level.** The two switches in Settings → User
+interface are replaced by a four-way segmented control — `Debug · Info · Error · None` — with an
+explanatory line under it. Behind it, `LogLevel(Debug -5, Info 0, Error 5, None 10)` gates both
+logcat output and the error toasts, and `Logd` becomes an **inline function taking a lambda**, so at
+`Info` or above the log string is never built in the first place. That is the "improved release app
+efficiency related to debug logging" line, and it is the change the fork had to port.
+
+**Transcripts keep being amended**, release after release:
+
+- **12.11.0** — captions can be **multi-selected**; a bottom button then adds the selected text into
+  a comment and writes the first cue's start position into the episode's marks. More Podcasting 2.0
+  attributes are supported, and an image-loading rejection on some feeds/episodes is fixed.
+- **12.11.1** — the popup becomes **expandable with auto-scroll**; EpisodeInfo's top bar gains a
+  **fetch-transcript** item (external media only), and transcript metadata for external-source media
+  is cleared when it expires.
+- **12.13.1** — the popup **stays usable while you interact outside it**, and caption index search on
+  seek is improved.
+
+**External media gets a cache and better recovery.** The player keeps the **ten most recent media
+specs from external apps** in memory and expires them automatically (12.13.0); a stream url used past
+its expire time is refetched rather than played; an error on external media now toasts an offer to
+play again or reset the client connection; and certain player errors drop the cached specs. Expire
+timestamps in urls are no longer misread as milliseconds (12.12.1), and the media cache is properly
+cleared.
+
+**Responsiveness work throughout.** The UI hiccup when starting a new media is fixed (12.12.1);
+`getNextMedia`'s database work moves onto the IO dispatcher (12.13.0), and 12.13.1 moves many more
+small writes with it — including every switch on the User interface settings page, which now writes
+through `runOnIOScope`. PlayerDetailed and EpisodeInfo no longer risk building the description
+WebView more than once.
+
+**Smaller upstream items.** The Stream composer in PlayerDetailed is improved, and the change-stream
+dialog no longer hides the bitrate option when there is only one. Clicking a log in the Log screen's
+Session view **copies it to the clipboard**. A full feed refresh now updates episodes' transcript
+metadata and AI content and stops resetting their full descriptions, and updates the feed's medium
+and AI content too (12.13.1). The user-agent string is tweaked and headers are set on the
+http/cronet engines for Media3.
+
+**Toolchain and dependencies.** AGP 9.4.0 → 9.4.1, Kotlin 2.4.0 → 2.4.20, krdb 3.3.4 → 3.3.6, NDK
+29.0.14206865 → 30.0.16248370, compileSdk 37 minor API level 1 → 2, **PodciniLib 1.1.4 → 1.1.5**
+(upstream notes that external source apps need updating for compatibility), navigation3 1.1.7 →
+1.2.0, work-runtime 2.11.2 → 2.12.0, webkit 1.17.0 → 1.17.1, core-ktx 1.19.0 → 1.19.1, annotation
+1.10.0 → 1.11.0, and coil 3.6.2 → 3.6.3 **with its network layer switched from OkHttp to Ktor 3**.
+New: `concurrent-futures-ktx` 1.3.0 and `car.app` 1.7.0. Dropped: `core-splashscreen`.
+
 ## 12.10.1+001 (versionCode 1220001) — 2026-09-15
 
 Rebased onto upstream **v12.10.1** (versionCode 122), released 2026-09-14 — a single upstream commit
