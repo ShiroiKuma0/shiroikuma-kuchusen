@@ -10,7 +10,7 @@ A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additi
 
 Installs **side-by-side** with Podcini.A (app id `shiroikuma.kuchusen`).
 
-**📥 Latest release: [`12.10.1+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
+**📥 Latest release: [`12.13.1+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
 
 </div>
 
@@ -34,7 +34,7 @@ A second, stricter entrance exists for the app that rebuilds a phone from nothin
 
 ## 🖤 Black-yellow identity, everywhere
 
-The launcher icon is the Podcini glyph re-traced as pure-yellow line art on black (adaptive + monochrome), the splash matches, menus and dialogs sit on true black, and toasts follow the house style — black, yellow text, yellow border.
+The launcher icon is the Podcini glyph re-traced as pure-yellow line art on black (adaptive + monochrome), menus and dialogs sit on true black, and toasts follow the house style — black, yellow text, yellow border.
 
 ---
 
@@ -47,7 +47,7 @@ A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) by XilinJia (app id
 ```bash
 git clone git@github.com:ShiroiKuma0/shiroikuma-kuchusen.git
 cd shiroikuma-kuchusen
-# needs JDK 21 and the Android SDK (platform 37, build-tools 37.0.0, NDK 29.0.14206865)
+# needs JDK 21 and the Android SDK (platform 37.2, build-tools 37.0.0, NDK 30.0.16248370)
 JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew buildFork
 ```
 
