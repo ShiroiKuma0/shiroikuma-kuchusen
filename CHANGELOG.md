@@ -2,6 +2,70 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.13.1+003 (versionCode 1280003) — 2026-09-27
+
+Same upstream base as `12.13.1+001` (**v12.13.1**, versionCode 128) — **no rebase, no upstream
+change**. Four fork fixes, all of them closing holes that upstream's 12.11.0 → 12.13.1 rework had
+opened in the fork: the startup screen is ours again, and the launcher shortcuts work. (`+002`
+carried the first two of these and was superseded before it was published; this release is the
+complete set.)
+
+> **Size**: 36.81 MiB (38,602,094 bytes), 25 bytes larger than 12.10.1+001 — this is a logic release.
+
+> **Everything the `12.13.1+001` notes say still applies**, including the Realm **162 → 166**
+> migration on first start and the backup-compatibility warning. If you are coming from 12.10.x you
+> are still making that migration; installing this build instead of `+001` simply means you watch it
+> happen on our startup screen rather than upstream's.
+
+### 🖤 The startup screen is ours
+
+Upstream 12.11.0 deleted its Android-12 splash theme and replaced it with a Compose screen shown
+while `AppConfig.initialize()` opens Realm and any schema migration runs — drawing
+`R.drawable.teaser` on a bare light-or-dark `MaterialTheme`. On a fork whose entire visible identity
+is yellow line-art on black, that meant every cold start opened on upstream's branding; and on this
+upgrade, with a migration that walks every feed and every episode, it is on screen for **minutes**
+rather than an instant.
+
+- **Our glyph, centred, on the house background.** `ic_launcher_sk_foreground` at 55% width, the app
+  name beneath it, the initialization line below that, and the migration counter in the accent
+  colour.
+- **It follows your theming.** The colours come from the 空中線 UI page's own values, not from a
+  hardcoded black-yellow — theme the app blue and the first thing you see on a cold start is blue
+  too. (It reads them from SharedPreferences, which is available before Realm is; the app's normal
+  theme is Realm-backed and therefore unusable at this point in the launch — the reason upstream
+  used a bare theme there in the first place.)
+- **No more empty counter line.** Upstream renders `"<step>: <prog>"` unconditionally, so a launch
+  with no migration to run showed a bare `": "` floating under the text. It now appears only when
+  something is actually being counted.
+
+### 🔗 The launcher shortcuts reach the app again
+
+Upstream's reworked `res/xml/shortcuts.xml` (12.11.0, part of the Android Auto work) carried three
+slips, and all three landed on the fork:
+
+- **The shortcuts pointed at a package that does not exist.**
+  `android:targetPackage="ac.mdiq.podcini"` was hardcoded in five places — the Queues, Facets and
+  Library shortcuts plus the `OPEN_APP_FEATURE` and `GET_THING` capabilities. That string is the code
+  namespace, not an installed package, and not even upstream's own id (`ac.mdiq.Podcini.A`), so the
+  launcher had nothing to start. All five now name `shiroikuma.kuchusen`. `targetClass` stays
+  `ac.mdiq.podcini.activity.MainActivity` — correct, because the fork deliberately keeps upstream's
+  namespace, so the component resolves to a class that genuinely exists in our package.
+- **The Facets shortcut opened Library.** `shortcuts.xml` sends the shortcutId as the
+  `shortcut_route` extra (`FACETS`), while the handler matched the older mixed-case names (`Facets`),
+  so it fell through to the catch-all. Matched case-insensitively now, which accepts both spellings
+  and survives the next time upstream renames one.
+- **The Statistics app action was never recognised.** Its `OPEN_APP_FEATURE` binding sends
+  `page=STATISTICS`; the deeplink branch spelled it `STATISTCS`, so it only ever produced the
+  "app action not found" toast. Spelled correctly, and matched case-insensitively as well. (This
+  entry has no intent or icon of its own — it is an App Actions entity mapping, so it arrives through
+  Assistant rather than the launcher's long-press list.)
+
+### Fork layer, otherwise unchanged
+
+Live theming, the one-file category backup with the database snapshot, the self-verifying export, the
+token-gated headless export, the data door and the black-yellow identity are all as they were in
+`+001`. No upstream code was pulled in, no dependency moved, and the version base stays 12.13.1 / 128.
+
 ## 12.13.1+001 (versionCode 1280001) — 2026-09-26
 
 Rebased onto upstream **v12.13.1** (versionCode 128), released 2026-09-26 — **six upstream releases

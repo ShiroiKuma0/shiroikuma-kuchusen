@@ -10,7 +10,7 @@ A fork of [Podcini.A](https://github.com/XilinJia/Podcini.A) with **major additi
 
 Installs **side-by-side** with Podcini.A (app id `shiroikuma.kuchusen`).
 
-**📥 Latest release: [`12.13.1+001`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
+**📥 Latest release: [`12.13.1+003`](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases/latest)** — [all releases & APK downloads »](https://github.com/ShiroiKuma0/shiroikuma-kuchusen/releases)
 
 </div>
 
@@ -34,7 +34,7 @@ A second, stricter entrance exists for the app that rebuilds a phone from nothin
 
 ## 🖤 Black-yellow identity, everywhere
 
-The launcher icon is the Podcini glyph re-traced as pure-yellow line art on black (adaptive + monochrome), menus and dialogs sit on true black, and toasts follow the house style — black, yellow text, yellow border.
+The launcher icon is the Podcini glyph re-traced as pure-yellow line art on black (adaptive + monochrome), the startup screen shows that same glyph on the house background while the app opens its database, menus and dialogs sit on true black, and toasts follow the house style — black, yellow text, yellow border. The startup screen reads its colours from the UI page too, so theming the app re-skins the very first thing you see.
 
 ---
 
