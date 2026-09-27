@@ -725,9 +725,9 @@ fun AVPlayerScreen() {
 
     var showCaption by remember { mutableStateOf(false) }
 
-    LaunchedEffect(showCaption, player?.status, showTransDialog, curMedia?.id) {
+    LaunchedEffect(showCaption, player?.status, showTransDialog, curMedia?.id, curMedia?.transcriptStartPos) {
         while (isActive && (showCaption || showTransDialog) && player?.isPlaying == true && curMedia != null) {
-            val pos = player.getPosition() - curMedia.transcriptStartPos
+            val pos = player.getPosition() - curMedia.getCaptionStartPos()
             cueIndex = curMedia.captionIndexAt(pos.toLong()+500, cueIndex)
             delay(500.milliseconds)
         }
@@ -1186,15 +1186,15 @@ fun AVPlayerScreen() {
                 val captionNext = remember(cueIndex) { if (cueIndex>=0 && cueIndex<episode.captionCues.size-1) episode.captionCues[cueIndex+1] else null }
                 if (showCaption) {
                     if (captionPrev != null) Text(captionPrev.speaker + ": " + captionPrev.text, color = textColor.copy(alpha = 0.6f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().clickable {
-                        player?.seekTo(captionPrev.startMs.toInt())
+                        player?.seekTo(captionPrev.startMs.toInt() + episode.getCaptionStartPos())
                     })
                     if (captionNow != null) SelectionContainer {
                         Text(captionNow.speaker + ": " + captionNow.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)).clickable {
-                            player?.seekTo(captionNow.startMs.toInt())
+                            player?.seekTo(captionNow.startMs.toInt() + episode.getCaptionStartPos())
                         })
                     }
                     if (captionNext != null) Text(captionNext.speaker + ": " + captionNext.text, color = textColor.copy(alpha = 0.7f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth().clickable {
-                        player?.seekTo(captionNext.startMs.toInt())
+                        player?.seekTo(captionNext.startMs.toInt() + episode.getCaptionStartPos())
                     })
                 }
             }

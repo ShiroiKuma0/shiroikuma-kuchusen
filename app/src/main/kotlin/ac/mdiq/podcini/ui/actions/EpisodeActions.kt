@@ -88,6 +88,7 @@ val episodeActions: List<EpisodeAction> = listOf(
     NoAction(),
     Combo(),
     SetPlaybackState(),
+    ResetPlayedPosition(),
     SetDueDate(),
 
     AddToAssociatedQueue(),
@@ -311,6 +312,23 @@ class RemoveFromCurQueue : EpisodeAction() {
     }
 }
 
+class ResetPlayedPosition : EpisodeAction() {
+    override val id: String
+        get() = "RESET_PLAYED_POSITION"
+    override val title: String
+        get() = getAppContext().getString(R.string.reset_played_position)
+
+    override val iconRes:  Int = R.drawable.outline_reset_tv_24
+    override val color: Color = Color(0xFFDDDD00)
+
+    override fun enabled(): Boolean =  (onEpisode?.position?:0) > 0
+
+    override fun performAction(e: Episode) {
+        super.performAction(e)
+        runOnIOScope { upsert(e) { it.position = 0 } }
+    }
+}
+
 class SetRating : EpisodeAction() {
     override val id: String
         get() = "RATING"
@@ -352,7 +370,7 @@ class AddComment : EpisodeAction() {
     override fun ActionOptions() {
         if (showEditComment) {
             CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = { showEditComment = false },
-                onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, addition = false) } } })
+                onSave = { if (onEpisode != null) onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, addition = false) } })
         }
     }
 }

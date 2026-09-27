@@ -1,17 +1,15 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sourcing.download.DownloadStatus
-import ac.mdiq.podcini.sourcing.download.Downloader.Companion.downloadStatesFlow
-import ac.mdiq.podcini.sourcing.download.EpisodeAdrDLManager
-import ac.mdiq.podcini.utils.NetworkUtils.mobileAllowEpisodeDownload
-import ac.mdiq.podcini.utils.NetworkUtils.networkMonitor
+import ac.mdiq.podcini.playback.PlayerStatusSimple
 import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.playback.theatres
-import ac.mdiq.podcini.playback.PlayerStatusSimple
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.clientByEpisode
+import ac.mdiq.podcini.sourcing.download.DownloadStatus
+import ac.mdiq.podcini.sourcing.download.Downloader.Companion.downloadStatesFlow
+import ac.mdiq.podcini.sourcing.download.EpisodeAdrDLManager
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
@@ -20,7 +18,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.smartRemoveFromQueues
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -41,6 +38,8 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.NetworkUtils.imageLoader
+import ac.mdiq.podcini.utils.NetworkUtils.mobileAllowEpisodeDownload
+import ac.mdiq.podcini.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.formatShortFileSize
@@ -227,7 +226,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
             CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismiss = { showAddCommentDialog = false },
-                onSave = { runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } } })
+                onSave = { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } })
         }
         if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }

@@ -29,7 +29,6 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
@@ -1053,27 +1052,25 @@ fun LibraryScreen() {
                                             val c = episodeStateSort.count { it.value }
                                             allOrNone = c == 0 || c == episodeStateSort.size
                                         }
-                                        fun persistStateSort() {
-                                            runOnIOScope {
-                                                val sb = StringBuilder()
-                                                val playStateCodeSet = mutableSetOf<String>()
-                                                for (i in episodeStateSort.indices) {
-                                                    if (episodeStateSort[i].value) {
-                                                        playStateCodeSet.add(EpisodeState.entries[i].code.toString())
-                                                        if (sb.isNotEmpty()) sb.append(" OR ")
-                                                        sb.append(" playState == ${EpisodeState.entries[i].code} ")
-                                                    }
+                                        suspend fun persistStateSort() {
+                                            val sb = StringBuilder()
+                                            val playStateCodeSet = mutableSetOf<String>()
+                                            for (i in episodeStateSort.indices) {
+                                                if (episodeStateSort[i].value) {
+                                                    playStateCodeSet.add(EpisodeState.entries[i].code.toString())
+                                                    if (sb.isNotEmpty()) sb.append(" OR ")
+                                                    sb.append(" playState == ${EpisodeState.entries[i].code} ")
                                                 }
-                                                vm.playStateQueries = sb.toString()
-                                                upsert(subPrefs) {
-                                                    it.playStateCodeSet.clear()
-                                                    it.playStateCodeSet.addAll(playStateCodeSet)
-                                                }
-                                                when (subPrefs.sortIndex) {
-                                                    FeedSortIndex.Date.code -> vm.prepareDateSort(feedList)
-                                                    FeedSortIndex.Count.code -> vm.prepareCountSort(feedList)
-                                                    else -> {}
-                                                }
+                                            }
+                                            vm.playStateQueries = sb.toString()
+                                            upsert(subPrefs) {
+                                                it.playStateCodeSet.clear()
+                                                it.playStateCodeSet.addAll(playStateCodeSet)
+                                            }
+                                            when (subPrefs.sortIndex) {
+                                                FeedSortIndex.Date.code -> vm.prepareDateSort(feedList)
+                                                FeedSortIndex.Count.code -> vm.prepareCountSort(feedList)
+                                                else -> {}
                                             }
                                         }
 
@@ -1140,7 +1137,7 @@ fun LibraryScreen() {
                                                     episodeStateSort[index].value = !episodeStateSort[index].value
                                                     val c = episodeStateSort.count { it.value }
                                                     allOrNone = c == 0 || c == episodeStateSort.size
-                                                    persistStateSort()
+                                                    runOnIOScope { persistStateSort() }
                                                 },
                                             ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                         }
@@ -1154,26 +1151,24 @@ fun LibraryScreen() {
                                             val c = ratingSort.count { it.value }
                                             allOrNone = c == 0 || c == ratingSort.size
                                         }
-                                        fun persistRatingSort() {
-                                            runOnIOScope {
-                                                val sb = StringBuilder()
-                                                val ratingCodeSet = mutableSetOf<String>()
-                                                for (i in ratingSort.indices) {
-                                                    if (ratingSort[i].value) {
-                                                        ratingCodeSet.add(Rating.entries[i].code.toString())
-                                                        if (sb.isNotEmpty()) sb.append(" OR ")
-                                                        sb.append(" rating == ${Rating.entries[i].code} ")
-                                                    }
+                                        suspend fun persistRatingSort() {
+                                            val sb = StringBuilder()
+                                            val ratingCodeSet = mutableSetOf<String>()
+                                            for (i in ratingSort.indices) {
+                                                if (ratingSort[i].value) {
+                                                    ratingCodeSet.add(Rating.entries[i].code.toString())
+                                                    if (sb.isNotEmpty()) sb.append(" OR ")
+                                                    sb.append(" rating == ${Rating.entries[i].code} ")
                                                 }
-                                                vm.ratingQueries = sb.toString()
-                                                upsert(subPrefs) {
-                                                    it.ratingCodeSet.clear()
-                                                    it.ratingCodeSet.addAll(ratingCodeSet)
-                                                }
-                                                when (subPrefs.sortIndex) {
-                                                    FeedSortIndex.Count.code -> vm.prepareCountSort(feedList)
-                                                    else -> {}
-                                                }
+                                            }
+                                            vm.ratingQueries = sb.toString()
+                                            upsert(subPrefs) {
+                                                it.ratingCodeSet.clear()
+                                                it.ratingCodeSet.addAll(ratingCodeSet)
+                                            }
+                                            when (subPrefs.sortIndex) {
+                                                FeedSortIndex.Count.code -> vm.prepareCountSort(feedList)
+                                                else -> {}
                                             }
                                         }
 
@@ -1241,7 +1236,7 @@ fun LibraryScreen() {
                                                     ratingSort[index].value = !ratingSort[index].value
                                                     val c = ratingSort.count { it.value }
                                                     allOrNone = c == 0 || c == ratingSort.size
-                                                    persistRatingSort()
+                                                    runOnIOScope { persistRatingSort() }
                                                 },
                                             ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                         }

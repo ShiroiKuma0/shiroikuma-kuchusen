@@ -326,12 +326,19 @@ fun Context.findActivity(): Activity? = when (this) {
 @Composable
 fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int = -1, onDismiss: () -> Unit) {
     Popup(alignment = Alignment.Center, onDismissRequest = {  }, properties = PopupProperties(focusable = false, dismissOnClickOutside = false)) {
-        var isExpanded by remember { mutableStateOf(false) }
+        val Levels = remember { listOf(0, 1, 2) }
+        var level by remember { mutableIntStateOf(1) }
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.setGravity(if (isExpanded) Gravity.TOP else Gravity.CENTER)
+        dialogWindowProvider?.window?.setGravity(if (level == 2) Gravity.TOP else Gravity.CENTER)
         Surface(shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, borderColor), modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp).then(
-            if (isExpanded) Modifier.fillMaxHeight(0.80f) else { Modifier.height(300.dp) }
+            when (level) {
+                0 -> Modifier.height(100.dp)
+                1 -> Modifier.height(300.dp)
+                2 -> Modifier.fillMaxHeight(0.80f)
+                else -> Modifier.height(300.dp)
+            }
         )) {
+            var showHelp by remember { mutableStateOf(false) }
             var selectMode by remember { mutableStateOf(false) }
             val selected = remember { mutableStateSetOf<CaptionCue>() }
             Column(Modifier.fillMaxWidth().padding(horizontal = 5.dp)) {
@@ -339,10 +346,25 @@ fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { onDismiss() })
                     Spacer(Modifier.weight(1f))
-                    if (player != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_center_focus_strong_24), tint = if (letScroll) Color.Green else Color.Red, contentDescription = "center", modifier = Modifier.padding(start = 10.dp).clickable { letScroll = !letScroll })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_help_24), contentDescription = "help", modifier = Modifier.padding(7.dp).clickable { showHelp = !showHelp })
+                    Spacer(Modifier.weight(0.2f))
+                    if (player != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_center_focus_strong_24), tint = if (letScroll) Color.Green else Color.Red, contentDescription = "center", modifier = Modifier.padding(start = 10.dp).combinedClickable(
+                        onClick = { letScroll = !letScroll },
+                        onLongClick = {
+                            val pos = player.getPosition()
+                            runOnIOScope { upsert(episode) { it.transcriptStartPos = pos } }
+                            Logt(TAG, "transcript start position is offset to ${durationStringAdapt(pos)}")
+                        }
+                    ))
+                    val startPos = episode.getCaptionStartPos()
+                    if (startPos > 0) {
+                        Spacer(Modifier.weight(0.2f))
+                        Text(durationStringAdapt(startPos), style = MaterialTheme.typography.bodySmall)
+                    }
                     Spacer(Modifier.weight(1f))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_expansion_panels_24), tint = textColor, contentDescription = "expand", modifier = Modifier.padding(end = 10.dp).clickable { isExpanded = !isExpanded })
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_expansion_panels_24), tint = textColor, contentDescription = "expand", modifier = Modifier.padding(end = 10.dp).clickable { level = (level + 1) % Levels.size })
                 }
+                if (showHelp) Text(stringResource(R.string.captions_mismatch_sum))
                 val listState = rememberLazyListState()
                 LaunchedEffect(cueIndex, letScroll) {
                     if (cueIndex < 0 || !letScroll) return@LaunchedEffect
@@ -360,7 +382,7 @@ fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int
                                 if (selectMode) {
                                     if (c in selected) selected.remove(c)
                                     else selected.add(c)
-                                } else player?.seekTo(c.startMs.toInt())
+                                } else player?.seekTo(c.startMs.toInt() + episode.getCaptionStartPos())
                             },
                             onLongClick = {
                                 letScroll = false
@@ -446,7 +468,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
     if (showEditComment) {
         var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
         CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismiss = { showEditComment = false},
-            onSave = { runOnIOScope { upsert(episode) { it.addComment(commentText.text, addition = false) } } })
+            onSave = { upsert(episode) { it.addComment(commentText.text, addition = false) } })
     }
     if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
         runOnIOScope { upsert(episode) {
@@ -505,9 +527,11 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             val expireTime = url?.toUri()?.getQueryParameter("expire")?.toLongOrNull()
 //            Logd(TAG) { "resetting transcriptMetas expireTime: $expireTime ${nowInSeconds()}" }
             if (expireTime != null && expireTime < nowInSeconds()) {
-                upsert(episode) {
-                    it.transcriptMetas = realmListOf()
-                    it.transcriptIndex = -1
+                withContext(Dispatchers.IO) {
+                    upsert(episode) {
+                        it.transcriptMetas = realmListOf()
+                        it.transcriptIndex = -1
+                    }
                 }
             }
         }
@@ -554,7 +578,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = done, onCheckedChange = {
                                 done = it
-                                upsertBlkEmb(todo) { todo -> todo.completed = done }
+                                runOnIOScope { upsertBlkEmb(todo) { todo -> todo.completed = done } }
                             })
                             Text(text = todo.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.clickable {
                                 onTodo = todo

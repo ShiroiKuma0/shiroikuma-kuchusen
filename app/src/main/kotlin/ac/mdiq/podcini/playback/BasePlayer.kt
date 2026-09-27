@@ -961,7 +961,7 @@ abstract class BasePlayer {
         shutdown()
     }
 
-    fun isCurrentlyPlaying(media: Episode?): Boolean {
+    fun isPlaying(media: Episode?): Boolean {
         return media != null && curMediaFlow.value?.id == media.id && PlaybackService.isRunning && isPlaying
     }
 

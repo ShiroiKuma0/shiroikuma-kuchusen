@@ -1350,24 +1350,12 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             val date = Instant.fromEpochMilliseconds(e.pubDate).toLocalDateTime(TimeZone.UTC).date
 
             val builder = MediaMetadata.Builder()
-                .setIsBrowsable(false)
-                .setIsPlayable(true)
-                .setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
-
-                .setTitle(e.title)
-                .setDisplayTitle(e.title)
-                .setSubtitle(e.feed?.title ?: "")
+                .setIsBrowsable(false).setIsPlayable(true).setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST_EPISODE)
+                .setTitle(e.title).setDisplayTitle(e.title).setSubtitle(e.feed?.title ?: "")
                 .setDescription(e.description ?: "")
-
-                .setArtist(e.feed?.title ?: "")
-                .setAlbumArtist(e.feed?.title ?: "")
-                .setAlbumTitle(e.feed?.title ?: "")
-
                 // Release date (expects "YYYY-MM-DD" format)
-                .setRecordingDay(date.day)
-                .setRecordingMonth(date.month.number)
-                .setRecordingYear(date.year)
-
+                .setRecordingDay(date.day).setRecordingMonth(date.month.number).setRecordingYear(date.year)
+                .setArtist(e.feed?.title ?: "").setAlbumArtist(e.feed?.title ?: "").setAlbumTitle(e.feed?.title ?: "")
                 .setArtworkUri(((e.images.firstOrNull() ?: e.feed?.images?.firstOrNull())?.href ?: "").toSafeUri())
             return builder.build()
         }

@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.Media3Player.Companion.getCache
 import ac.mdiq.podcini.playback.theatres
 import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sourcing.SourceGatewayClient
@@ -31,6 +30,7 @@ import ac.mdiq.podcini.storage.specs.FeedAutoDLEQFilter
 import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
@@ -131,11 +131,9 @@ import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "FeedSettingsScreen"
 
@@ -493,7 +491,7 @@ fun FeedsSettingsScreen() {
                     Text(stringResource(R.string.preferred_languages_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            //                    video mode
+                //                    video mode
             if ((feedToSet.id >= MAX_NATURAL_SYNTHETIC_ID && feedToSet.hasVideoMedia) || feedsToSet.size > 1) {
                 Column {
                     Row(Modifier.fillMaxWidth()) {
@@ -777,6 +775,32 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.volume_adaptation), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog.value = true })
                 }
                 Text(text = stringResource(R.string.volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            // transcript start pos
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                Text(stringResource(R.string.transcript_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    var showIcon by remember { mutableStateOf(false) }
+                    val startStrings = remember { durationStringAdapt(feedToSet.transcriptStartPos).split(":") }
+                    var minutes by remember { mutableIntStateOf(if (startStrings.size > 1) startStrings[1].toIntOrNull() ?: 0 else 0) }
+                    var seconds by remember { mutableIntStateOf(if (startStrings.isNotEmpty()) startStrings[0].toIntOrNull() ?: 0 else 0) }
+                    NumberEditor(minutes, stringResource(R.string.minute), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
+                        minutes = it
+                        showIcon = true
+                    }
+                    NumberEditor(seconds, stringResource(R.string.second), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
+                        seconds = it
+                        showIcon = true
+                    }
+                    if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable {
+                        runOnIOScope {
+                            val startms = (minutes * 60 + seconds) * 1000
+                            realm.write { for (f in feedsToSet) findLatest(f)?.let { it.transcriptStartPos = startms } }
+                        }
+                        showIcon = false
+                    })
+                }
+                Text(stringResource(R.string.transcript_start_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
 
             HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)

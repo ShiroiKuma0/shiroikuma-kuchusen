@@ -215,6 +215,8 @@ class Feed : RealmObject {
     var introSkip: Int = 0
     var endingSkip: Int = 0
 
+    var transcriptStartPos: Int = 0
+
     var repeatIntervals: RealmList<Int> = DEFAULT_INTERVALS.toRealmList()     // minutes, hours, days, weeks
 
     @Ignore
@@ -490,6 +492,7 @@ class Feed : RealmObject {
         if (skipSilence != other.skipSilence) return false
         if (introSkip != other.introSkip) return false
         if (endingSkip != other.endingSkip) return false
+        if (transcriptStartPos != other.transcriptStartPos) return false
         if (autoDelete != other.autoDelete) return false
         if (audioType != other.audioType) return false
         if (volumeAdaption != other.volumeAdaption) return false
@@ -564,6 +567,7 @@ class Feed : RealmObject {
         result = 31 * result + (skipSilence?.hashCode() ?: 0)
         result = 31 * result + introSkip
         result = 31 * result + endingSkip
+        result = 31 * result + transcriptStartPos
         result = 31 * result + autoDelete
         result = 31 * result + audioType
         result = 31 * result + volumeAdaption

@@ -128,11 +128,11 @@ fun playerOf(media: Episode?): BasePlayer? {
 }
 
 fun isPlaying(media: Episode?): Boolean {
-    return theatres[0].mPlayerFlow.value?.isCurrentlyPlaying(media) == true || theatres[1].mPlayerFlow.value?.isCurrentlyPlaying(media) == true
+    return theatres[0].mPlayerFlow.value?.isPlaying(media) == true || theatres[1].mPlayerFlow.value?.isPlaying(media) == true
 }
 
 fun isPlaying(media: Episode?, playerId: Int): Boolean {
-    return playerId in listOf(0,1) && theatres[playerId].mPlayerFlow.value?.isCurrentlyPlaying(media) == true
+    return playerId in listOf(0,1) && theatres[playerId].mPlayerFlow.value?.isPlaying(media) == true
 }
 
 fun isCurMedia(media: Episode?): Boolean {

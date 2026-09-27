@@ -4,7 +4,6 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -198,7 +197,7 @@ class StatisticsVM: ViewModel() {
                 val dateFrom = Instant.fromEpochMilliseconds(fromMillis).toLocalDateTime(tz).date
                 val dateTo = Instant.fromEpochMilliseconds(toMillis).toLocalDateTime(tz).date
                 "${dateFrom.formatMMDDYY()} to ${dateTo.formatMMDDYY()}"
-                }
+            }
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
 }

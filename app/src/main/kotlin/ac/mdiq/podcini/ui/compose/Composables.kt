@@ -5,7 +5,6 @@ import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.appAttribsFlow
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.toastMessagesFlow
 import androidx.compose.foundation.BorderStroke
@@ -93,8 +92,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -162,7 +163,7 @@ fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modi
 }
 
 @Composable
-fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismiss: () -> Unit, onSave: () -> Unit) {
+fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismiss: () -> Unit, onSave: suspend () -> Unit) {
     Dialog(onDismissRequest = { onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         var textChanged by remember { mutableStateOf(false) }
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, borderColor)) {
@@ -178,7 +179,7 @@ fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, on
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                     TextButton(onClick = {
-                        onSave()
+                        runOnIOScope { onSave() }
                         textChanged = false
                         onDismiss()
                     }) { Text("Save") }
@@ -188,7 +189,7 @@ fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, on
         LaunchedEffect(Unit) {
             while (autoSave) {
                 delay(10000.milliseconds)
-                if (textChanged) onSave()
+                if (textChanged) withContext(Dispatchers.IO) { onSave() }
                 textChanged = false
             }
         }
@@ -567,17 +568,15 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
                 Button(onClick = {
                     Logd("TagsSettingDialog") { "tags: [${tags.joinToString()}] commonTags: [${existingTags.joinToString()}]" }
                     cb(tags)
-                    if (tagType == TagType.Feed) {
-                        val tagsSet = appAttribs.feedTagSet.toMutableSet() + tags
-                        runOnIOScope {
+                    runOnIOScope {
+                        if (tagType == TagType.Feed) {
+                            val tagsSet = appAttribs.feedTagSet.toMutableSet() + tags
                             upsert(appAttribs) {
                                 it.feedTagSet.clear()
                                 it.feedTagSet.addAll(tagsSet)
                             }
-                        }
-                    } else {
-                        val tagsSet = appAttribs.episodeTagSet.toMutableSet() + tags
-                        runOnIOScope {
+                        } else {
+                            val tagsSet = appAttribs.episodeTagSet.toMutableSet() + tags
                             upsert(appAttribs) {
                                 it.episodeTagSet.clear()
                                 it.episodeTagSet.addAll(tagsSet)

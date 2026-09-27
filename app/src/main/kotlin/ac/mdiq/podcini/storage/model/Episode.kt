@@ -486,10 +486,7 @@ class Episode : RealmObject {
             Loge(TAG, e, "Failed to fetch transcript: ${trans.url}")
             null
         } ?: return
-
         Logd(TAG) { "fetchCaption trans.type: ${trans.type}" }
-//        Logd(TAG) { "fetchCaption text: $text" }
-
         upsert(this) {
             it.transcript = null
             it.captionCues = realmListOf()
@@ -518,6 +515,8 @@ class Episode : RealmObject {
             }
         }
     }
+
+    fun getCaptionStartPos(): Int = transcriptStartPos.takeIf { it>0 }?: feed?.transcriptStartPos ?: 0
 
     fun captionIndexAt(positionMs: Long, actIndex: Int): Int {
         val cues = captionCues
@@ -637,6 +636,7 @@ class Episode : RealmObject {
         if (transcript?.length != other.transcript?.length) return false
         if (captionCues.size != other.captionCues.size) return false
         if (transcriptIndex != other.transcriptIndex) return false
+        if (transcriptStartPos != other.transcriptStartPos) return false
         if (transcriptMetas.size != other.transcriptMetas.size) return false
         if (comment != other.comment) return false
         if (todos != other.todos) return false
@@ -681,6 +681,7 @@ class Episode : RealmObject {
         result = 31 * result + (parentTitle?.hashCode() ?: 0)
         result = 31 * result + chapters.size
         result = 31 * result + transcriptIndex
+        result = 31 * result + transcriptStartPos
         result = 31 * result + transcriptMetas.size
         result = 31 * result + captionCues.size
         result = 31 * result + transcript.hashCode()

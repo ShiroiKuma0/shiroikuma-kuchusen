@@ -20,7 +20,6 @@ import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -556,12 +555,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         var editCommentText by remember { mutableStateOf(TextFieldValue(feed?.comment ?: "")) }
         if (feed != null && showEditComment) CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismiss = {showEditComment = false},
             onSave = {
-                runOnIOScope {
                     upsert(feed!!) {
                         it.comment = editCommentText.text
                         it.commentTime = localTime
                     }
-                }
             })
         var showFeedStats by remember { mutableStateOf(false) }
         if (showFeedStats) FeedStatisticsDialog(feed?.title?: "No title", feed?.id?:0, 0, Long.MAX_VALUE) { showFeedStats = false }

@@ -1,3 +1,16 @@
+# 12.13.2
+
+* on captions popup
+	* added Help icon to show instructions on caption mismatch to Help
+	* show captions start offset value on top
+	* long-press the Focus button sets caption start
+	* height expansion has 3 levels
+* fixed media caption start position not being live updated
+* in FeedSettings, added setting transcript start, used to offest captions when the setting at the media is not set
+* when seeking from captions, ensure start offset is factored in
+* in swipe actions, added "Reset played position"
+* some code refactoring
+
 # 12.13.1
 
 * the captions popup

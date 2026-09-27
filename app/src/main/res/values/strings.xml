@@ -156,10 +156,12 @@
 
     <string name="description_label">Description</string>
     <string name="transcript">Transcript</string>
-
     <string name="transcript_selections">Transcript selections</string>
+    <string name="transcript_fetched">Transcript is fetched. </string>
+    <string name="captions_mismatch_sum">If voice and captions mismatch, play the media and find the transcript start position, pause the player, long-press the Focus icon on the top bar or the Caption icon in PlayerDetailed view. The captions are offset to that as the start.</string>
 
-    <string name="transcript_fetched">Transcript is fetched. If voice and captions mismatch, play the media and find the transcript start position, pause the player, long-press the Caption icon in PlayerDetailed view. The captions are offset to that as the start.</string>
+    <string name="transcript_start">Transcript start</string>
+    <string name="transcript_start_sum">This is used to offest voice and captions mismatch. The position set here is the audio position matching with "00:00" at transcript. If such a value is set at the media, it takes precedence.</string>
 
     <string name="show_all_feeds">Show all feeds</string>
     <string name="show_archived">Show archived</string>
@@ -324,6 +326,8 @@
 
     <string name="remove_from_all_queues">Remove from all queues</string>
     <string name="remove_from_cur_queue">Remove from current queue</string>
+
+    <string name="reset_played_position">Reset played position</string>
 
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
@@ -849,6 +853,7 @@
     <string name="month">Month</string>
     <string name="hour">Hour</string>
     <string name="minute">Minute</string>
+    <string name="second">Second</string>
     <string name="set_due_time">Set due time</string>
     <string name="add_notes">Add notes</string>
     <string name="notify">Notify</string>

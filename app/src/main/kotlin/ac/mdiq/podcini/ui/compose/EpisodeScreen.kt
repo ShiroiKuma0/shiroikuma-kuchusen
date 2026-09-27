@@ -202,9 +202,9 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
 
     val player = playerOf(episode)
     var cueIndex by remember { mutableIntStateOf(-1) }
-    LaunchedEffect(player?.status, showTransDialog, episode.id) {
+    LaunchedEffect(player?.status, showTransDialog, episode.id, episode.transcriptStartPos) {
         while (isActive && showTransDialog && player?.isPlaying == true) {
-            val pos = player.getPosition() - episode.transcriptStartPos
+            val pos = player.getPosition() - episode.getCaptionStartPos()
             cueIndex = episode.captionIndexAt(pos.toLong()+500, cueIndex)
             delay(500.milliseconds)
         }
@@ -231,7 +231,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                 return@CommonPopupCard
             }
             LaunchedEffect(Unit) {
-                runOnIOScope {
+                withContext(Dispatchers.IO) {
                     val captions = client.withProvider { it.getCaptionSpecs(episode.toIPC()) }
                     if (!captions.isNullOrEmpty()) {
                         val tm = captions.map { it.toTranscriptMeta() }.toRealmList()
@@ -323,7 +323,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
                             when {
                                 episode.size > 0 -> txtvSize = formatShortFileSize(episode.size)
                                 isImageDownloadAllowed && canCheckMediaSize(episode) && !episode.isSizeSetUnknown() ->
-                                    runOnIOScope {
+                                    withContext(Dispatchers.IO) {
                                         val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
                                         txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(sizeValue)
                                     }
