@@ -12,7 +12,6 @@ import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
@@ -52,6 +51,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.ktor.http.decodeURLQueryComponent
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.seconds
 
 class ShareReceiverActivity : ComponentActivity() {
     private var sharedText: String? = null
@@ -163,7 +164,11 @@ class ShareReceiverActivity : ComponentActivity() {
                         if (finish) activity.finish()
                     }
                     if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
-                    val client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
+                    var client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
+                    if (client == null) {
+                        delay(2.seconds)
+                        client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
+                    }
                     Logd(TAG) { "receiveShared canHandleUrl==1 client: ${client!= null}" }
                     if (client != null) {
                         val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }

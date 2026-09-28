@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
 
     <string name="progressing_label">Processing</string>
-    <string name="open_podcast">Podcastok megnyitása</string>
+
     <string name="open">Open</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d feliratkozás frissítve.</item>

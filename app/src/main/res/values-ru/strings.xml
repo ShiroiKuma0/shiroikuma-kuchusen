@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Для дальнейшей ссылки вы можете указать причину здесь:</string>
 
     <string name="progressing_label">Обработка</string>
-    <string name="open_podcast">Открыть подкаст</string>
+
     <string name="open">Открыть</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d подписка обновлена.</item>

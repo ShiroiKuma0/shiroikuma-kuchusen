@@ -110,7 +110,7 @@
 
 
 
-    <string name="open_podcast">Abrir podcast</string>
+
 
     <plurals name="updated_feeds_batch_label">
     <item quantity="one">%d assinatura atualizada.</item>

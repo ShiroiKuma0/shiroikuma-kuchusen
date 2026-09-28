@@ -794,7 +794,7 @@ fun AVPlayerScreen() {
                             navTo(Queues(id=actQueueFlow.value.id))
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.open_podcast)) }, onClick = {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.open_feed)) }, onClick = {
                             vm.episodeFeed?.let { navTo(FeedDetails(feedId=it.id)) }
                             expanded = false
                         })

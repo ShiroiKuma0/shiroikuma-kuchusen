@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Для майбутнього довідника ви можете записати причину тут:</string>
 
     <string name="progressing_label">В процесі</string>
-    <string name="open_podcast">Відкрити подкаст</string>
+
     <string name="open">Відкриті</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d підписку оновлено.</item>

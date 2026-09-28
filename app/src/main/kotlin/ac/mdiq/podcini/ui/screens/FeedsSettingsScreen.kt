@@ -777,9 +777,9 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             // transcript start pos
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                Text(stringResource(R.string.transcript_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.caption_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     var showIcon by remember { mutableStateOf(false) }
                     val startStrings = remember { durationStringAdapt(feedToSet.transcriptStartPos).split(":") }
                     var minutes by remember { mutableIntStateOf(if (startStrings.size > 1) startStrings[1].toIntOrNull() ?: 0 else 0) }

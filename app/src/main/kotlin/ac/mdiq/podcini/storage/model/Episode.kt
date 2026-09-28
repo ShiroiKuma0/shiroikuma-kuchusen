@@ -201,8 +201,6 @@ class Episode : RealmObject {
             else -> link
         }
 
-    var fileUrl: String? = null
-
     @Ignore
     var downloaded: Boolean
         get() = fileUrl != null
@@ -210,6 +208,7 @@ class Episode : RealmObject {
             if (value) downloadTime = nowInMillis()
             if (playState == EpisodeState.NEW.code) setPlayState(EpisodeState.UNPLAYED)
         }
+    var fileUrl: String? = null
     var downloadTime: Long = 0
 
     var lastPlayedTime: Long = 0 // Last time this media was played (in ms)

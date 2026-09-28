@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Για μελλοντική αναφορά, μπορείτε να καταγράψετε έναν λόγο εδώ:</string>
 
     <string name="progressing_label">Επεξεργασία</string>
-    <string name="open_podcast">Άνοιγμα podcast</string>
+
     <string name="open">Άνοιγμα</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d η συνδρομή ενημερώθηκε.</item>

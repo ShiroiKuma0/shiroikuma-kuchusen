@@ -109,7 +109,7 @@
 
 
 
-    <string name="open_podcast">Ireki podcasta</string>
+
 
     <plurals name="updated_feeds_batch_label">
     <item quantity="one">%d harpidetza eguneratu da.</item>

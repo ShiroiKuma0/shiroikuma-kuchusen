@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Pro budoucí reference, můžete zde zaznamenat důvod:</string>
 
     <string name="progressing_label">Zpracovávání</string>
-    <string name="open_podcast">Otevřít podcast</string>
+
     <string name="open">Otevřít</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d odběr aktualizován.</item>

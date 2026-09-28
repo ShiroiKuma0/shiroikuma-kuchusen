@@ -172,7 +172,7 @@
     <string name="not_erase_message">只有合成源的剧集才能被擦除。</string>
     <string name="reason_to_delete_msg">为了将来的参考，您可以在此记录一个理由：</string>
     <string name="progressing_label">处理中</string>
-    <string name="open_podcast">打开播客模式</string>
+
     <string name="open">打开</string>
     <string name="content_not_exist">内容已不存在。</string>
     <plurals name="updated_feeds_batch_label">

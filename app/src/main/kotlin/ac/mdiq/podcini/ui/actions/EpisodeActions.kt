@@ -4,6 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sourcing.clientByEpisode
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.appAttribsFlow
@@ -243,7 +244,6 @@ class AddToActiveQueue : EpisodeAction() {
     override val color: Color = Color(0xFF55BBFF)
 
     override fun enabled(): Boolean {
-        if (onEpisode?.feed?.queue != null) return false
         return onEpisode != null && !actQueueFlow.value.contains(onEpisode!!)
     }
 
@@ -284,7 +284,11 @@ class RemoveFromAllQueues : EpisodeAction() {
     override val iconRes:  Int = R.drawable.ic_playlist_remove
     override val color: Color = Color(0xFFDDAAFF)
 
-    override fun enabled(): Boolean = onEpisode != null && actQueueFlow.value.contains(onEpisode!!)
+    override fun enabled(): Boolean {
+        val media = onEpisode ?: return false
+        for (q in queuesLive) if (q.contains(media)) return true
+        return false
+    }
 
     override fun performAction(e: Episode) {
         super.performAction(e)
@@ -301,7 +305,7 @@ class RemoveFromCurQueue : EpisodeAction() {
     override val iconRes:  Int = R.drawable.outline_remove_from_queue_24
     override val color: Color = Color(0xFFDD77FF)
 
-    override fun enabled(): Boolean = onEpisode != null && actQueueFlow.value.contains(onEpisode!!)
+//    override fun enabled(): Boolean = onEpisode != null && actQueueFlow.value.contains(onEpisode!!)
 
     override fun performAction(e: Episode) {
         super.performAction(e)
@@ -477,8 +481,11 @@ class Download : EpisodeAction() {
     override val iconRes:  Int = R.drawable.ic_download
     override val color: Color = Color(0xFF55FF00)
 
-    override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocal
-
+    override fun enabled(): Boolean {
+        val media = onEpisode ?: return false
+        val client = clientByEpisode(media)
+        return client?.attributes?.supportDownload == true || (!media.downloaded && media.feed != null && media.feed?.isLocal != true)
+    }
 
     override fun performAction(e: Episode) {
         super.performAction(e)

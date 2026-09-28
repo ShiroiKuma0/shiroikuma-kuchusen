@@ -128,7 +128,7 @@
     <string name="reason_to_delete_msg">Für zukünftige Referenzen können Sie hier einen Grund feststellen:</string>
 
     <string name="progressing_label">Verarbeitung</string>
-    <string name="open_podcast">Podcast öffnen</string>
+
     <string name="open">Öffnen</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d Abonnement aktualisiert.</item>

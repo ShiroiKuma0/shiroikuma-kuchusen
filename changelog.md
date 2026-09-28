@@ -1,7 +1,19 @@
+# 12.13.3
+
+* on captions popup, help and captions are shown exclusively
+* ensure Download on swipe actions properly filtered
+* in SharedActivity, if first external client is null, added delay for second attempt
+* in Statistics, 
+	* Daily/Monthly episodes opens in the full-featured Custom mode in Facets screen
+	* in FeedDialog, added open episodes in Facets screen
+* FeedDetails no longer access Statistics for all feeds
+* amended availability conditions of some swipe actions
+* corrected title of dates filter dialog
+
 # 12.13.2
 
 * on captions popup
-	* added Help icon to show instructions on caption mismatch to Help
+	* added Help icon to show instructions on caption mismatch
 	* show captions start offset value on top
 	* long-press the Focus button sets caption start
 	* height expansion has 3 levels

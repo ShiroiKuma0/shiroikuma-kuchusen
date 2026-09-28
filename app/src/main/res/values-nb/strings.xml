@@ -106,7 +106,7 @@
 
 
 
-    <string name="open_podcast">Åpne podkast</string>
+
 
     <plurals name="updated_feeds_batch_label">
     <item quantity="one">%d abonnement oppdatert.</item>

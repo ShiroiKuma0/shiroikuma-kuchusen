@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Pentru referințe viitoare, puteți înregistra un motiv aici:</string>
 
     <string name="progressing_label">Prelucrare</string>
-    <string name="open_podcast">Deschide podcast</string>
+
     <string name="open">Deschideți</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d abonament actualizat.</item>

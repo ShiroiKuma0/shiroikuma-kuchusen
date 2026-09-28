@@ -165,8 +165,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     val scope = rememberCoroutineScope()
     var longPressIndex by remember { mutableIntStateOf(-1) }
     val context by rememberUpdatedState(LocalContext.current)
-    
-    
     val localTime = remember { nowInMillis() }
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
@@ -298,7 +296,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val curMedia1 by player1?.curMediaFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
 
         //        Logd(TAG) { "outside of LazyColumn" }
-        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 5.dp, end = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(horizontal = 5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
                 val actionButton by remember(episode.id, preferSingleAction) { mutableStateOf(when {
@@ -346,7 +344,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                     Column {
                         @Composable
                         fun TitleColumn(modifier: Modifier) {
-                            Column(modifier.padding(start = 6.dp, end = 6.dp).combinedClickable(
+                            Column(modifier.padding(horizontal = 5.dp).combinedClickable(
                                 onClick = {
                                     Logd(TAG) { "clicked: ${episode.title}" }
                                     if (selectMode) toggleSelected(episode)

@@ -106,7 +106,7 @@
 
 
 
-    <string name="open_podcast">Obre el pòdcast</string>
+
 
     <plurals name="updated_feeds_batch_label">
     <item quantity="one">%d subscripció actualizada.</item>

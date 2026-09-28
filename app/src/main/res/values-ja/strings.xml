@@ -127,7 +127,7 @@
     <string name="reason_to_delete_msg">今後の参照では、理由を記録することができます:</string>
 
     <string name="progressing_label">処理中</string>
-    <string name="open_podcast">ポッドキャストを開く</string>
+
     <string name="open">開く</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="other">%d 個の購読を更新しました。</item>

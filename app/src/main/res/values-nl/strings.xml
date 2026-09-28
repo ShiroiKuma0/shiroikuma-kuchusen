@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Voor toekomstige referenties kunt u hier een reden opnemen:</string>
 
     <string name="progressing_label">Verwerken</string>
-    <string name="open_podcast">Podcast openen</string>
+
     <string name="open">Open</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d aflevering bijgewerkt.</item>

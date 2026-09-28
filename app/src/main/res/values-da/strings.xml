@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">For fremtidig reference, kan du registrere en grund her:</string>
 
     <string name="progressing_label">Behandler</string>
-    <string name="open_podcast">Åbn podcast</string>
+
     <string name="open">Åbn</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d abonnement opdateret.</item>

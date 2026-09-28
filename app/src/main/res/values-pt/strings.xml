@@ -127,7 +127,7 @@
     <string name="reason_to_delete_msg">Para referência futura, você pode gravar um motivo aqui:</string>
 
     <string name="progressing_label">Processando</string>
-    <string name="open_podcast">Abrir podcast</string>
+
     <string name="open">Abertas</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d subscrição atualizada</item>

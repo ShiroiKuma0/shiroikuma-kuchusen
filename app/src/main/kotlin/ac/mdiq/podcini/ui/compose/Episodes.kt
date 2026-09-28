@@ -330,7 +330,7 @@ fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int
         var level by remember { mutableIntStateOf(1) }
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(if (level == 2) Gravity.TOP else Gravity.CENTER)
-        Surface(shape = RoundedCornerShape(4.dp), border = BorderStroke(1.dp, borderColor), modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp).then(
+        Surface(shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, borderColor), modifier = Modifier.fillMaxWidth(0.95f).then(
             when (level) {
                 0 -> Modifier.height(100.dp)
                 1 -> Modifier.height(300.dp)
@@ -365,57 +365,62 @@ fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_expansion_panels_24), tint = textColor, contentDescription = "expand", modifier = Modifier.padding(end = 10.dp).clickable { level = (level + 1) % Levels.size })
                 }
                 if (showHelp) Text(stringResource(R.string.captions_mismatch_sum))
-                val listState = rememberLazyListState()
-                LaunchedEffect(cueIndex, letScroll) {
-                    if (cueIndex < 0 || !letScroll) return@LaunchedEffect
-                    val viewportHeight = listState.layoutInfo.viewportSize.height
-                    if (viewportHeight == 0) return@LaunchedEffect
-                    listState.animateScrollToItem(index = cueIndex, scrollOffset = 2 * (-viewportHeight) / 5)
-                }
-                LaunchedEffect(listState) { listState.interactionSource.interactions.collect { interaction -> when (interaction) {is DragInteraction.Start -> letScroll = false } } }
-                LazyColumn(state = listState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    itemsIndexed(episode.captionCues) { i, c ->
-                        val color = if (cueIndex == -1 || i == cueIndex) textColor else textColor.copy(alpha = 0.75f)
-                        var isSelected by remember(i,  selectMode, selected.size) { mutableStateOf( selectMode && c in selected ) }
-                        Text("${durationStringAdapt(c.startMs.toInt())}| ${c.speaker}: ${c.text}", color = color, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.then(if (i == cueIndex) Modifier.border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)) else Modifier).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(
-                            onClick = {
+                else {
+                    val listState = rememberLazyListState()
+                    LaunchedEffect(cueIndex, letScroll) {
+                        if (cueIndex < 0 || !letScroll) return@LaunchedEffect
+                        val viewportHeight = listState.layoutInfo.viewportSize.height
+                        if (viewportHeight == 0) return@LaunchedEffect
+                        listState.animateScrollToItem(index = cueIndex, scrollOffset = 2 * (-viewportHeight) / 5)
+                    }
+                    LaunchedEffect(listState) {
+                        listState.interactionSource.interactions.collect { interaction ->
+                            when (interaction) {
+                                is DragInteraction.Start -> letScroll = false
+                            }
+                        }
+                    }
+                    LazyColumn(state = listState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        itemsIndexed(episode.captionCues) { i, c ->
+                            val color = if (cueIndex == -1 || i == cueIndex) textColor else textColor.copy(alpha = 0.75f)
+                            var isSelected by remember(i, selectMode, selected.size) { mutableStateOf(selectMode && c in selected) }
+                            Text("${durationStringAdapt(c.startMs.toInt())}| ${c.speaker}: ${c.text}", color = color, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.then(if (i == cueIndex) Modifier.border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)) else Modifier).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(onClick = {
                                 if (selectMode) {
                                     if (c in selected) selected.remove(c)
                                     else selected.add(c)
                                 } else player?.seekTo(c.startMs.toInt() + episode.getCaptionStartPos())
-                            },
-                            onLongClick = {
+                            }, onLongClick = {
                                 letScroll = false
                                 selectMode = !selectMode
                                 if (selectMode) selected.add(c)
                                 else selected.clear()
-                            }
-                        ) )
+                            }))
+                        }
                     }
-                }
-                if (selected.isNotEmpty()) {
-                    HorizontalDivider()
-                    TextButton(modifier = Modifier.align(Alignment.End), onClick = {
-                        val selList = selected.sortedBy { it.startMs }
-                        runOnIOScope {
-                            val commentText = buildString {
-                                for (t in selList) {
-                                    if (isNotEmpty()) append('\n')
-                                    append(durationStringAdapt(t.startMs.toInt()))
-                                    append("| ")
-                                    append(t.speaker)
-                                    append(": ")
-                                    append(t.text)
+                    if (selected.isNotEmpty()) {
+                        HorizontalDivider()
+                        TextButton(modifier = Modifier.align(Alignment.End), onClick = {
+                            val selList = selected.sortedBy { it.startMs }
+                            runOnIOScope {
+                                val commentText = buildString {
+                                    for (t in selList) {
+                                        if (isNotEmpty()) append('\n')
+                                        append(durationStringAdapt(t.startMs.toInt()))
+                                        append("| ")
+                                        append(t.speaker)
+                                        append(": ")
+                                        append(t.text)
+                                    }
+                                }
+                                upsert(episode) {
+                                    it.marks.add(selList[0].startMs)
+                                    it.addComment(commentText)
                                 }
                             }
-                            upsert(episode) {
-                                it.marks.add(selList[0].startMs)
-                                it.addComment(commentText)
-                            }
-                        }
-                        selected.clear()
-                        selectMode = false
-                    }) { Text(text = stringResource(R.string.save)) }
+                            selected.clear()
+                            selectMode = false
+                        }) { Text(text = stringResource(R.string.save)) }
+                    }
                 }
             }
         }
@@ -1498,10 +1503,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
         val regex = Regex("^(0[1-9]|1[0-2])/\\d{4}$")
         if (!regex.matches(monthYear)) return null
         val (month, year) = monthYear.split("/").map { it.toInt() }
-        val localDate = if (start) LocalDate(year, month, 1) else {
-            val firstOfMonth = LocalDate(year, month, 1)
-            firstOfMonth.plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
-        }
+        val localDate = if (start) LocalDate(year, month, 1) else LocalDate(year, month, 1).plus(DatePeriod(months = 1)).minus(DatePeriod(days = 1))
         return localDate.atTime(0, 0).toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
     }
     fun convertUnixTimeToMonthYear(unixTime: Long): String {
@@ -1520,7 +1522,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
     val timeFrom = remember(timeFilterFrom) { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom }
     val timeTo = remember(timeFilterTo) { if (timeFilterTo == Long.MAX_VALUE) nowInMillis() else timeFilterTo }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },
-        title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
+        title = { Text(stringResource(R.string.dates_filter), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
                 if (!useAllTime) {

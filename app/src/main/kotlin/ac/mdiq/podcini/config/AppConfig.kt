@@ -1,11 +1,9 @@
 package ac.mdiq.podcini.config
 
-import ac.mdiq.podcini.sourcing.ssl.SslProviderInstaller
-import ac.mdiq.podcini.utils.NetworkUtils.networkChangedDetected
-import ac.mdiq.podcini.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.playback.releaseAController
 import ac.mdiq.podcini.shared.PodciniHttpClient.configProxy
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.ssl.SslProviderInstaller
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
@@ -18,6 +16,8 @@ import ac.mdiq.podcini.storage.database.proxyConfig
 import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
 import ac.mdiq.podcini.storage.model.monitorVolumes
 import ac.mdiq.podcini.storage.utils.setupStorage
+import ac.mdiq.podcini.utils.NetworkUtils.networkChangedDetected
+import ac.mdiq.podcini.utils.NetworkUtils.networkMonitor
 import ac.mdiq.podcini.utils.timeIt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +48,7 @@ object AppConfig {
 //                AppGatewayRegistry.initialize(appPrefsFlow!!.value.loadExternalApp, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
 //            return
 //        }
+
         try {
             getRealmInstance()
             initAppPrefs()

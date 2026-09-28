@@ -125,7 +125,7 @@
     <string name="reason_to_delete_msg">Tulevaisuuden viitteeksi voit tallentaa syyn täältä:</string>
 
     <string name="progressing_label">Käsitellään</string>
-    <string name="open_podcast">Avaa podcast</string>
+
     <string name="open">Avaa</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d tilaus päivitetty.</item>

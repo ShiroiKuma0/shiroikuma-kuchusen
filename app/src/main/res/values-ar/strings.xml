@@ -126,7 +126,7 @@
     <string name="reason_to_delete_msg">للحصول على مرجع في المستقبل، يمكنك تسجيل سبب هنا:</string>
 
     <string name="progressing_label">معالجة</string>
-    <string name="open_podcast">افتح البودكاست</string>
+
     <string name="open">فتح</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="zero">تم تحديث %d اشتراك</item>
