@@ -53,6 +53,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -389,35 +390,33 @@ fun FeedsSettingsScreen() {
             // feed type
             Column {
                 var feedType by remember { mutableStateOf(FeedType.fromName(feedToSet.type)) }
-                if (feedToSet.isSynthetic()) {
-                    var showDialog by remember { mutableStateOf(false) }
-                    if (showDialog) CommonPopupCard(onDismiss = { showDialog = false }) {
-                        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            for (type in FeedType.entries + listOf(null)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
-                                    Text(text = type?.name ?: "null", style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                                }
-                            }
-                            Row {
-                                Button({ showDialog = false }) { Text(stringResource(R.string.cancel_label)) }
-                                Spacer(Modifier.weight(1f))
-                                Button({
-                                    runOnIOScope { upsert(feedToSet) { it.type = feedType?.name} }
-                                    showDialog = false
-                                }) { Text(stringResource(R.string.confirm_label)) }
+                var showDialog by remember { mutableStateOf(false) }
+                if (showDialog) CommonPopupCard(onDismiss = { showDialog = false }) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        for (type in FeedType.entries + listOf(null)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = type == feedType, onCheckedChange = { feedType = type })
+                                Text(text = type?.name ?: "null", style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                             }
                         }
+                        Row {
+                            Button({ showDialog = false }) { Text(stringResource(R.string.cancel_label)) }
+                            Spacer(Modifier.weight(1f))
+                            Button({
+                                runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.type = feedType?.name } } }
+                                showDialog = false
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
                     }
+                }
+                if (feedToSet.isSynthetic()) {
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.outline_square_dot_24), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.pref_feed_type), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable {
-                            showDialog = true
-                        })
+                        Text(text = stringResource(R.string.pref_feed_type), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable { showDialog = true })
                     }
                 }
-                Text(text = (feedType?.name?:"null") + " : " + stringResource(R.string.pref_feed_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                Text(text = (feedType?.name?:"null") + " : " + stringResource(R.string.pref_feed_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.combinedClickable(onClick = {}, onLongClick = { showDialog = true }))
             }
 
             // audio type
@@ -458,34 +457,37 @@ fun FeedsSettingsScreen() {
             }
             // preferred language
             if (feedToSet.langSet.size > 1 || feedsToSet.size > 1) {
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                    Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    var showIcon by remember { mutableStateOf(false) }
-                    var newName by remember { mutableStateOf(feedToSet.preferredLnaguages.joinToString(", ")) }
-                    TextField(value = newName, singleLine = true, label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) },
-                        onValueChange = {
+                Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                        var showIcon by remember { mutableStateOf(false) }
+                        var newName by remember { mutableStateOf(feedToSet.preferredLnaguages.joinToString(", ")) }
+                        TextField(value = newName, singleLine = true, label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) }, onValueChange = {
                             newName = it
-                            showIcon =  true
-                        },
-                        trailingIcon = {
-                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(
-                                onClick = {
-                                    runOnIOScope {
-                                        realm.write { for (f in feedsToSet) { findLatest(f)?.let { att ->
-                                            att.preferredLnaguages.clear()
-                                            att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
-                                        } } }
-                                        val player0 = theatres[0].mPlayerFlow.value
-                                        val episode0 = player0?.curMediaFlow?.value
-                                        if (episode0?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) {
-                                            player0?.pause(false)
-                                            player0?.clearFromCache(episode0!!.id.toString())
-                                            player0?.startPlaying(episode0)
+                            showIcon = true
+                        }, trailingIcon = {
+                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable(onClick = {
+                                runOnIOScope {
+                                    realm.write {
+                                        for (f in feedsToSet) {
+                                            findLatest(f)?.let { att ->
+                                                att.preferredLnaguages.clear()
+                                                att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+                                            }
                                         }
                                     }
-                                    showIcon =  false
-                                }))
+                                    val player0 = theatres[0].mPlayerFlow.value
+                                    val episode0 = player0?.curMediaFlow?.value
+                                    if (episode0?.feedId in feedsToSet.map { it.id }) withContext(Dispatchers.Main) {
+                                        player0?.pause(false)
+                                        player0?.clearFromCache(episode0!!.id.toString())
+                                        player0?.startPlaying(episode0)
+                                    }
+                                }
+                                showIcon = false
+                            }))
                         })
+                    }
                     val langs = remember { feedToSet.langSet.joinToString(", ") }
                     Text("Candidates: $langs", color = textColor, style = MaterialTheme.typography.bodySmall)
                     Text(stringResource(R.string.preferred_languages_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -779,7 +781,7 @@ fun FeedsSettingsScreen() {
             // transcript start pos
             Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.caption_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.caption_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f))
                     var showIcon by remember { mutableStateOf(false) }
                     val startStrings = remember { durationStringAdapt(feedToSet.transcriptStartPos).split(":") }
                     var minutes by remember { mutableIntStateOf(if (startStrings.size > 1) startStrings[1].toIntOrNull() ?: 0 else 0) }

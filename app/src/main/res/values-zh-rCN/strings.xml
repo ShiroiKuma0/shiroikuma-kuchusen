@@ -604,7 +604,7 @@
     <string name="import_export_error_label">导入/导出错误</string>
     <string name="export_success_title">导出成功</string>
     <string name="successful_import_label">导入成功</string>
-    <string name="import_ok">请按“确定”以重启 Podcini</string>
+    <string name="press_to_restart">请按“确定”以重启 Podcini</string>
     <string name="favorites_export_label">收藏夹导出</string>
     <string name="favorites_export_summary">导出保存的收藏夹到文件</string>
     <string name="restore_subscriptions_label">还原订阅</string>

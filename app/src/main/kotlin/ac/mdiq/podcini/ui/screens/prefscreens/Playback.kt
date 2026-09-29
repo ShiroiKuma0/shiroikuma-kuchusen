@@ -10,10 +10,10 @@ import ac.mdiq.podcini.storage.database.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.specs.AVQuality
 import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.SetAVQuality
@@ -106,6 +106,9 @@ fun PlaybackScreen() {
         }
     }
 
+    val showCacheChangedDialog = remember { mutableStateOf(false) }
+    ConfirmDialog(titleRes = R.string.cache_changed, message = stringResource(R.string.press_to_restart), showDialog = showCacheChangedDialog, cancellable = false) { forceRestart() }
+
     val appAttribs by appAttribsFlow!!.collectAsStateWithLifecycle()
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
@@ -184,7 +187,7 @@ fun PlaybackScreen() {
                 Text(stringResource(R.string.pref_stream_cache), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 NumberEditor(streamingCacheSizeMB, label = "MD", modifier = Modifier.weight(0.6f)) {
                     streamingCacheSizeMB = it
-                    forceRestart()
+                    showCacheChangedDialog.value = true
                 }
             }
             Text(stringResource(R.string.pref_stream_cache_sum), color = textColor, style = MaterialTheme.typography.bodySmall)

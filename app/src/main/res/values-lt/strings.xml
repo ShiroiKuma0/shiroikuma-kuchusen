@@ -267,7 +267,7 @@
     <string name="import_export_error_label">Eksporto klaida</string>
   <string name="export_success_title">Sėkmingai eksportuota</string>
     <string name="successful_import_label">Sėkmingai importuota</string>
-  <string name="import_ok">Spauskite „OK“, kad paleisti „Podcini“ iš naujo</string>
+  <string name="press_to_restart">Spauskite „OK“, kad paleisti „Podcini“ iš naujo</string>
 
   <string name="favorites_export_label">Mėgstamųjų eksportas</string>
   <string name="favorites_export_summary">Mėgstamieji išsaugoti faile</string>

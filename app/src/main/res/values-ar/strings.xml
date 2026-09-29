@@ -502,7 +502,7 @@
     <string name="import_export_error_label">حدث خطأ أثناء التصدير</string>
     <string name="export_success_title">تم التصدير بنجاح</string>
     <string name="successful_import_label">استيراد ناجح</string>
-    <string name="import_ok">الرجاء الضغط على \"حسناً\" لإعادة تشغيل Podcini</string>
+    <string name="press_to_restart">الرجاء الضغط على \"حسناً\" لإعادة تشغيل Podcini</string>
     <string name="favorites_export_label">تصدير الحلقات المفضلة</string>
     <string name="favorites_export_summary">تصدير الحلقات المفضلة لملف</string>
     <string name="restore_subscriptions_label">استعادة الاشتراكات</string>

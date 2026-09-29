@@ -306,7 +306,7 @@
     <string name="import_export_error_label">Fazi ezporzhiañ</string>
   <string name="export_success_title">Ezporzhiet gant berzh</string>
     <string name="successful_import_label">Enporzhiet gant berzh</string>
-  <string name="import_ok">Pouezit war OK evit adloc\'hañ Podcini</string>
+  <string name="press_to_restart">Pouezit war OK evit adloc\'hañ Podcini</string>
 
   <string name="favorites_export_label">Ezporzhiañ ar sinedoù</string>
   <string name="favorites_export_summary">Ezporzhiañ ar sinedoù en ur restr</string>

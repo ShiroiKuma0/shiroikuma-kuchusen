@@ -1,0 +1,7 @@
+* in OnlineFeed, improved routine for checking existing feed
+* ensure stream/play buttons react promptly
+* in YT captions meta list, kind is shown
+* amended captions overlay, when expanded, added a search bar to search and jump to the caption
+* ensure keyboard closes on complete or cancel
+* in Settings->Playback, when changing cache size, pop up confirmation for app restart
+* in MediaPlayer, on Access denied (403) error, prompt to try again

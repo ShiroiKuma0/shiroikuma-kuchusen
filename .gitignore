@@ -53,3 +53,5 @@ libs
 
 # Since Kotlin 2.0.0, folder named ".kotlin" is created at compile time
 .kotlin
+
+*.hprof

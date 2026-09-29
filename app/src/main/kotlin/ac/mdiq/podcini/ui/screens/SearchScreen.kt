@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.sourcing.searcher.AppleMediaSearcher
 import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.MediaSearcher
 import ac.mdiq.podcini.shared.getEntityId
 import ac.mdiq.podcini.sourcing.clientBySearcher
+import ac.mdiq.podcini.sourcing.searcher.AppleMediaSearcher
 import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribsFlow
 import ac.mdiq.podcini.storage.database.queueToVirtual

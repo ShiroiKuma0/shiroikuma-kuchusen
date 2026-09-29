@@ -1,9 +1,8 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.PlayerStatusSimple
-import ac.mdiq.podcini.playback.playerOf
 import ac.mdiq.podcini.playback.isPlaying
+import ac.mdiq.podcini.playback.playerOf
 import ac.mdiq.podcini.playback.theatres
 import ac.mdiq.podcini.sourcing.clientByEpisode
 import ac.mdiq.podcini.sourcing.download.DownloadStatus
@@ -128,7 +127,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
 import java.util.Locale
-import kotlin.collections.map
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val TAG: String = "EpisodeScreen"
@@ -224,7 +222,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             showEditTimerDialog = true
         }
 
-        if (showTransDialog) TranscriptPopup(episode, player, cueIndex) { showTransDialog = false }
+//        if (showTransDialog) TranscriptPopup(episode, player, cueIndex) { showTransDialog = false }
         if (showTransMetaDialog) CommonPopupCard(onDismiss = { showTransMetaDialog = false }) {
             if (client == null) {
                 Logt(TAG, "can not find service app for episode")
@@ -250,9 +248,9 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
     if (showAltActionsDialog) actionButton?.AltActionsDialog(onDismiss = { showAltActionsDialog = false })
     val player0 by theatres[0].mPlayerFlow.collectAsStateWithLifecycle()
     val player1 by theatres[1].mPlayerFlow.collectAsStateWithLifecycle()
-    val status0 by player0?.statusSimpleFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf( PlayerStatusSimple.OTHER) }
-    val status1 by player1?.statusSimpleFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(PlayerStatusSimple.OTHER) }
-    LaunchedEffect(key1 = status0, status1, episode) {
+    val playWhenReady0 by player0?.playWhenReadyFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf( false) }
+    val playWhenReady1 by player1?.playWhenReadyFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf( false) }
+    LaunchedEffect(key1 = playWhenReady0, playWhenReady1, episode) {
         actionButton = ActionButton(episode)
         actionButton?.type = when {
             isPlaying(episode) -> ButtonTypes.PAUSE
@@ -361,20 +359,20 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
 
     if (showHomeScreen) EpisodeWebView(episode)
     else {
-        Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(3.dp), border = BorderStroke(3.dp, borderColor)) {
-            Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
-                TopBar()
-                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp)) {
-                    EpisodeDetails(episode)
-                    AsyncImage(model = ImageRequest.Builder(context).data((episode.images.firstOrNull() ?: episodeFeed?.images?.firstOrNull())?.href).memoryCachePolicy(CachePolicy.ENABLED).build(), imageLoader = imageLoader, placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
-                    Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(
-                        onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) },
-                        onLongClick = { if (!episode.link.isNullOrBlank()) context.shareText(episode.link!!, R.string.share_url_label) }
-                    ) )
-                    Text("Time spent: " + durationStringShort(episode.timeSpent, true))
-                    Text("Played duration: " + durationStringShort(episode.playedDuration.toLong(), true))
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(3.dp), border = BorderStroke(3.dp, borderColor)) {
+                Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
+                    TopBar()
+                    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 50.dp)) {
+                        EpisodeDetails(episode)
+                        AsyncImage(model = ImageRequest.Builder(context).data((episode.images.firstOrNull() ?: episodeFeed?.images?.firstOrNull())?.href).memoryCachePolicy(CachePolicy.ENABLED).build(), imageLoader = imageLoader, placeholder = painterResource(R.drawable.ic_launcher_foreground), error = painterResource(R.drawable.ic_launcher_foreground), contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(10.dp))
+                        Text(episode.link ?: "Link not included", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 15.dp).combinedClickable(onClick = { if (!episode.link.isNullOrBlank()) openInSystemDefault(episode.link!!) }, onLongClick = { if (!episode.link.isNullOrBlank()) context.shareText(episode.link!!, R.string.share_url_label) }))
+                        Text("Time spent: " + durationStringShort(episode.timeSpent, true))
+                        Text("Played duration: " + durationStringShort(episode.playedDuration.toLong(), true))
+                    }
                 }
             }
+            if (showTransDialog) TranscriptOverlay(episode, player, cueIndex) { showTransDialog = false }
         }
     }
 }

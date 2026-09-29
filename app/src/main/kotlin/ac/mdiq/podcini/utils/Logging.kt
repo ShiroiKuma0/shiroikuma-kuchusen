@@ -15,6 +15,7 @@ import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.code
 
 val toastMessagesFlow = MutableStateFlow<List<ToastMessage>>(emptyList())
 data class ToastMessage(
@@ -22,6 +23,8 @@ data class ToastMessage(
     val t: String,
     val m: String
 )
+private val level: Int
+    get() = appPrefsFlow?.value?.showLogLevel ?: LogLevel.Info.code
 
 enum class LogLevel(val code: Int) { Debug(-5), Info(0), Error(5), None(10) }
 
@@ -33,91 +36,92 @@ private suspend fun trimSessionLogs() {
 }
 
 inline fun Logd(t: String, crossinline m: () -> String) {
-    if (BuildConfig.DEBUG || (appPrefsFlow?.value?.showLogLevel ?: LogLevel.Info.code) <= LogLevel.Debug.code) Log.d(t, m())
+    val level = appPrefsFlow?.value?.showLogLevel ?: LogLevel.Info.code
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.d(t, m())
 }
 
 fun Loge(t: String, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m)
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: Error: $m" }
     }
 }
 
 fun Loge(t: String, e: Throwable, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message)
     val me = e.message
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m: $me")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m: $me")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: Error: $m: $me" }
     }
 }
 
 fun LogeFor(t: String, episodeId: Long?, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m)
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $episodeId Error: $m" }
     }
 }
 
 fun Logs(t: String, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m)
     showStackTrace()
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m ")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m ")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: Error: $m " }
     }
 }
 
 fun LogsFor(t: String, episodeId: Long?, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m)
     showStackTrace()
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m ")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "Error: $m ")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $episodeId Error: $m " }
     }
 }
 
 fun Logs(t: String, e: Throwable, m: String = "") {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
     val me = e.message
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "$m Error: $me")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "$m Error: $me")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $m Error: $me" }
     }
 }
 
 fun LogsFor(t: String, episodeId: Long?, e: Throwable, m: String = "") {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.e(t, m + ": "+ e.message + "\n" + Log.getStackTraceString(e))
     val me = e.message
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "$m Error: $me")) }
+        if (level <= LogLevel.Error.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = "$m Error: $me")) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $episodeId $m Error: $me" }
     }
 }
 
 fun Logt(t: String, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.d(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.d(t, m)
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Info.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = m)) }
+        if (level <= LogLevel.Info.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = m)) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $m" }
     }
 }
 
 fun LogtFor(t: String, episodeId: Long?, m: String) {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) Log.d(t, m)
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) Log.d(t, m)
     appMainScope.launch {
         trimSessionLogs()
-        if (appPrefsFlow!!.value.showLogLevel <= LogLevel.Info.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = m)) }
+        if (level <= LogLevel.Info.code) toastMessagesFlow.update { it + (ToastMessage(t = t, m = m)) }
         sessionLogsFlow.update { it + "${fullDateTimeString()} $t: $episodeId $m" }
     }
 }
@@ -129,14 +133,14 @@ fun LogFor(t: String, feed: Feed, success: Boolean, message: String, reason:  Do
 }
 
 fun showStackTrace() {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) {
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) {
         val stackTraceElements = Thread.currentThread().stackTrace
         stackTraceElements.forEach { element -> Log.w("showStackTrace", element.toString()) }
     }
 }
 
 fun stackTraceShort() {
-    if (BuildConfig.DEBUG || appPrefsFlow!!.value.showLogLevel <= LogLevel.Debug.code) {
+    if (BuildConfig.DEBUG || level <= LogLevel.Debug.code) {
         val stackTrace = Thread.currentThread().stackTrace
         val caller = if (stackTrace.size > 4) stackTrace[4] else null
         Log.d("stackTraceShort", "${caller?.className}.${caller?.methodName}")

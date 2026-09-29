@@ -90,6 +90,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
@@ -156,8 +157,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -172,8 +175,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -324,13 +325,14 @@ fun Context.findActivity(): Activity? = when (this) {
 }
 
 @Composable
-fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int = -1, onDismiss: () -> Unit) {
-    Popup(alignment = Alignment.Center, onDismissRequest = {  }, properties = PopupProperties(focusable = false, dismissOnClickOutside = false)) {
-        val Levels = remember { listOf(0, 1, 2) }
-        var level by remember { mutableIntStateOf(1) }
-        val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.setGravity(if (level == 2) Gravity.TOP else Gravity.CENTER)
-        Surface(shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, borderColor), modifier = Modifier.fillMaxWidth(0.95f).then(
+fun TranscriptOverlay(episode: Episode, player:  BasePlayer? = null, cueIndex: Int = -1, onDismiss: () -> Unit) {
+    val Levels = remember { listOf(0, 1, 2) }
+    var level by remember { mutableIntStateOf(1) }
+    val focusManager = LocalFocusManager.current
+    val playWhenReady by player?.playWhenReadyFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf( false) }
+    Surface(shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, borderColor), shadowElevation = 5.dp, modifier = Modifier.fillMaxWidth(0.95f)
+        .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+        .then(
             when (level) {
                 0 -> Modifier.height(100.dp)
                 1 -> Modifier.height(300.dp)
@@ -338,89 +340,122 @@ fun TranscriptPopup(episode: Episode, player:  BasePlayer? = null, cueIndex: Int
                 else -> Modifier.height(300.dp)
             }
         )) {
-            var showHelp by remember { mutableStateOf(false) }
-            var selectMode by remember { mutableStateOf(false) }
-            val selected = remember { mutableStateSetOf<CaptionCue>() }
-            Column(Modifier.fillMaxWidth().padding(horizontal = 5.dp)) {
-                var letScroll by remember { mutableStateOf(player != null) }
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { onDismiss() })
-                    Spacer(Modifier.weight(1f))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_help_24), contentDescription = "help", modifier = Modifier.padding(7.dp).clickable { showHelp = !showHelp })
+        var showHelp by remember { mutableStateOf(false) }
+        var selectMode by remember { mutableStateOf(false) }
+        val selected = remember { mutableStateSetOf<CaptionCue>() }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 5.dp)) {
+            var letScroll by remember(playWhenReady) { mutableStateOf(playWhenReady) }
+            var jumpTo by remember { mutableIntStateOf(-1) }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Close, contentDescription = "close", modifier = Modifier.padding(7.dp).clickable { onDismiss() })
+                Spacer(Modifier.weight(1f))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_help_24), contentDescription = "help", modifier = Modifier.padding(7.dp).clickable { showHelp = !showHelp })
+                Spacer(Modifier.weight(0.2f))
+                if (player != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_center_focus_strong_24), tint = if (letScroll) Color.Green else Color.Red, contentDescription = "center", modifier = Modifier.padding(start = 10.dp).combinedClickable(
+                    onClick = {
+                        letScroll = !letScroll
+                        if (letScroll) jumpTo = -1
+                    },
+                    onLongClick = {
+                        val pos = player.getPosition()
+                        runOnIOScope { upsert(episode) { it.transcriptStartPos = pos } }
+                        Logt(TAG, "transcript start position is offset to ${durationStringAdapt(pos)}")
+                    }
+                ))
+                val startPos = episode.getCaptionStartPos()
+                if (startPos > 0) {
                     Spacer(Modifier.weight(0.2f))
-                    if (player != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_center_focus_strong_24), tint = if (letScroll) Color.Green else Color.Red, contentDescription = "center", modifier = Modifier.padding(start = 10.dp).combinedClickable(
-                        onClick = { letScroll = !letScroll },
-                        onLongClick = {
-                            val pos = player.getPosition()
-                            runOnIOScope { upsert(episode) { it.transcriptStartPos = pos } }
-                            Logt(TAG, "transcript start position is offset to ${durationStringAdapt(pos)}")
-                        }
-                    ))
-                    val startPos = episode.getCaptionStartPos()
-                    if (startPos > 0) {
-                        Spacer(Modifier.weight(0.2f))
-                        Text(durationStringAdapt(startPos), style = MaterialTheme.typography.bodySmall)
-                    }
-                    Spacer(Modifier.weight(1f))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_expansion_panels_24), tint = textColor, contentDescription = "expand", modifier = Modifier.padding(end = 10.dp).clickable { level = (level + 1) % Levels.size })
+                    Text(durationStringAdapt(startPos), style = MaterialTheme.typography.bodySmall)
                 }
-                if (showHelp) Text(stringResource(R.string.captions_mismatch_sum))
-                else {
-                    val listState = rememberLazyListState()
-                    LaunchedEffect(cueIndex, letScroll) {
-                        if (cueIndex < 0 || !letScroll) return@LaunchedEffect
-                        val viewportHeight = listState.layoutInfo.viewportSize.height
-                        if (viewportHeight == 0) return@LaunchedEffect
-                        listState.animateScrollToItem(index = cueIndex, scrollOffset = 2 * (-viewportHeight) / 5)
-                    }
-                    LaunchedEffect(listState) {
-                        listState.interactionSource.interactions.collect { interaction ->
-                            when (interaction) {
-                                is DragInteraction.Start -> letScroll = false
-                            }
-                        }
-                    }
-                    LazyColumn(state = listState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                        itemsIndexed(episode.captionCues) { i, c ->
-                            val color = if (cueIndex == -1 || i == cueIndex) textColor else textColor.copy(alpha = 0.75f)
-                            var isSelected by remember(i, selectMode, selected.size) { mutableStateOf(selectMode && c in selected) }
-                            Text("${durationStringAdapt(c.startMs.toInt())}| ${c.speaker}: ${c.text}", color = color, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.then(if (i == cueIndex) Modifier.border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)) else Modifier).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(onClick = {
-                                if (selectMode) {
-                                    if (c in selected) selected.remove(c)
-                                    else selected.add(c)
-                                } else player?.seekTo(c.startMs.toInt() + episode.getCaptionStartPos())
-                            }, onLongClick = {
+                Spacer(Modifier.weight(1f))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_expansion_panels_24), tint = textColor, contentDescription = "expand", modifier = Modifier.padding(end = 10.dp).clickable {
+                    level = (level + 1) % Levels.size
+                    jumpTo = -1
+                })
+            }
+            if (showHelp) Text(stringResource(R.string.captions_mismatch_sum))
+            else {
+                val listState = rememberLazyListState()
+                LaunchedEffect(cueIndex, letScroll) {
+                    if (cueIndex < 0 || !letScroll) return@LaunchedEffect
+                    val viewportHeight = listState.layoutInfo.viewportSize.height
+                    if (viewportHeight == 0) return@LaunchedEffect
+                    listState.animateScrollToItem(index = cueIndex, scrollOffset = 2 * (-viewportHeight) / 5)
+                }
+                LaunchedEffect(jumpTo, letScroll) {
+                    Logd(TAG) { "LaunchedEffect(jumpTo) $jumpTo $letScroll"}
+                    if (jumpTo < 0 || letScroll) return@LaunchedEffect
+                    listState.animateScrollToItem(index = jumpTo)
+                }
+                LaunchedEffect(listState) {
+                    listState.interactionSource.interactions.collect { interaction ->
+                        when (interaction) {
+                            is DragInteraction.Start -> {
                                 letScroll = false
-                                selectMode = !selectMode
-                                if (selectMode) selected.add(c)
-                                else selected.clear()
-                            }))
+                                jumpTo = -1
+                            }
                         }
                     }
-                    if (selected.isNotEmpty()) {
-                        HorizontalDivider()
-                        TextButton(modifier = Modifier.align(Alignment.End), onClick = {
-                            val selList = selected.sortedBy { it.startMs }
-                            runOnIOScope {
-                                val commentText = buildString {
-                                    for (t in selList) {
-                                        if (isNotEmpty()) append('\n')
-                                        append(durationStringAdapt(t.startMs.toInt()))
-                                        append("| ")
-                                        append(t.speaker)
-                                        append(": ")
-                                        append(t.text)
-                                    }
-                                }
-                                upsert(episode) {
-                                    it.marks.add(selList[0].startMs)
-                                    it.addComment(commentText)
+                }
+                if (level == 2) SearchBarRow(R.string.search_captions_hint, defaultText = "", modifier = Modifier.fillMaxWidth()) { str ->
+                    if (str.isBlank()) return@SearchBarRow
+                    Logd(TAG) { "searching str: $str"}
+                    val iStart = (jumpTo.takeIf { it >= 0 } ?: cueIndex.takeIf { it >= 0 }?: -1) + 1
+                    val caps = episode.captionCues
+                    for (i in iStart..<caps.size) {
+                        Logd(TAG) { "$i in caps: ${caps[i].text}"}
+                        if (str in caps[i].text) {
+                            letScroll = false
+                            jumpTo = i
+                            return@SearchBarRow
+                        }
+                    }
+                    Logt(TAG, "Text $str not found in captions")
+                }
+                LazyColumn(state = listState, modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    itemsIndexed(episode.captionCues) { i, c ->
+                        val color = if ((cueIndex == -1 && jumpTo == -1) || i == cueIndex || i == jumpTo) textColor else textColor.copy(alpha = 0.75f)
+                        var isSelected by remember(i, selectMode, selected.size) { mutableStateOf(selectMode && c in selected) }
+                        Text("${durationStringAdapt(c.startMs.toInt())}| ${c.speaker}: ${c.text}", color = color, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.then(if (i == cueIndex) Modifier.border(width = 1.dp, color = borderColor.copy(alpha = 0.5f)) else Modifier).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(onClick = {
+                            if (selectMode) {
+                                if (c in selected) selected.remove(c)
+                                else selected.add(c)
+                            } else {
+                                jumpTo = -1
+                                player?.seekTo(c.startMs.toInt() + episode.getCaptionStartPos())
+                            }
+                        }, onLongClick = {
+                            letScroll = false
+                            jumpTo = -1
+                            selectMode = !selectMode
+                            if (selectMode) selected.add(c)
+                            else selected.clear()
+                        }))
+                    }
+                }
+                if (selected.isNotEmpty()) {
+                    HorizontalDivider()
+                    TextButton(modifier = Modifier.align(Alignment.End), onClick = {
+                        val selList = selected.sortedBy { it.startMs }
+                        runOnIOScope {
+                            val commentText = buildString {
+                                for (t in selList) {
+                                    if (isNotEmpty()) append('\n')
+                                    append(durationStringAdapt(t.startMs.toInt()))
+                                    append("| ")
+                                    append(t.speaker)
+                                    append(": ")
+                                    append(t.text)
                                 }
                             }
-                            selected.clear()
-                            selectMode = false
-                        }) { Text(text = stringResource(R.string.save)) }
-                    }
+                            upsert(episode) {
+                                it.marks.add(selList[0].startMs)
+                                it.addComment(commentText)
+                            }
+                        }
+                        selected.clear()
+                        selectMode = false
+                    }) { Text(text = stringResource(R.string.save)) }
                 }
             }
         }

@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Exportálási hiba</string>
     <string name="export_success_title">Exportálás sikeres</string>
     <string name="successful_import_label">Importálás sikeres</string>
-    <string name="import_ok">Nyomja meg az OK gombot az Podcini újraindításához</string>
+    <string name="press_to_restart">Nyomja meg az OK gombot az Podcini újraindításához</string>
     <string name="favorites_export_label">Kedvencek exportálása</string>
     <string name="favorites_export_summary">Mentett kedvencek fájlba exportálása</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>

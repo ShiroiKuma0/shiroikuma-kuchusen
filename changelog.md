@@ -1,13 +1,27 @@
+# 12.14.0
+
+* in OnlineFeed, improved routine for checking existing feed
+* ensure stream/play buttons react promptly
+* in YT captions meta list, kind is shown, "asr" is auto-generated
+* amended captions popup into an overlay
+	* when expanded, there is a search bar to search and jump to the caption with the string, repeatable search forward
+* ensure keyboard closes on complete or cancel
+* in FeedSettings, enabled force change feed type by long-click
+* in Settings->Playback, when changing cache size, pop up confirmation for app restart
+* in MediaPlayer, on Access denied (403) error, prompt to try again
+* ensured again to filter properly Download swipe action
+* ensure debug logging can show up in release app
+* some code refactoring
+
 # 12.13.3
 
 * on captions popup, help and captions are shown exclusively
-* ensure Download on swipe actions properly filtered
+* amended availability conditions of some swipe actions
 * in SharedActivity, if first external client is null, added delay for second attempt
 * in Statistics, 
 	* Daily/Monthly episodes opens in the full-featured Custom mode in Facets screen
 	* in FeedDialog, added open episodes in Facets screen
 * FeedDetails no longer access Statistics for all feeds
-* amended availability conditions of some swipe actions
 * corrected title of dates filter dialog
 
 # 12.13.2

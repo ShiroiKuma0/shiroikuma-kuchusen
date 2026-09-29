@@ -413,7 +413,7 @@
     <string name="import_export_error_label">Fallo ao exportar</string>
   <string name="export_success_title">Exportado con éxito</string>
     <string name="successful_import_label">Importación correcta</string>
-  <string name="import_ok">Preme OK para reiniciar Podcini</string>
+  <string name="press_to_restart">Preme OK para reiniciar Podcini</string>
 
   <string name="favorites_export_label">Exportar favoritos</string>
   <string name="favorites_export_summary">Exportar os favoritos a un ficheiro</string>

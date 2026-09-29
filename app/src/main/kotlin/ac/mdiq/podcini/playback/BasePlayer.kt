@@ -7,6 +7,7 @@ import ac.mdiq.podcini.playback.PlaybackService.Companion.isAutoController
 import ac.mdiq.podcini.playback.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.PlaybackService.Companion.serviceIOScope
+import ac.mdiq.podcini.playback.SleepManager.Companion.setIfAutoEnable
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.shared.nowInMillis
@@ -26,7 +27,6 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.sleepPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
@@ -70,12 +70,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.io.IOException
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -91,11 +88,11 @@ abstract class BasePlayer {
 
     var curState: CurrentState = CurrentState()
 
+    val playWhenReadyFlow = MutableStateFlow(false)
+
     private var oldStatus: PlayerStatus? = null
 
     internal var status = PlayerStatus.STOPPED
-
-    val statusSimpleFlow = MutableStateFlow(PlayerStatusSimple.OTHER)
 
     val isPlaying: Boolean
         get() = status == PlayerStatus.PLAYING
@@ -115,6 +112,8 @@ abstract class BasePlayer {
     private var normalSpeed = 1.0f
     var isSpeedForward = false
     var isFallbackSpeed = false
+
+    val isRecordingFlow = MutableStateFlow(false)
 
     open val audioTracks: List<String> = listOf()
 
@@ -254,7 +253,6 @@ abstract class BasePlayer {
                 saveCurState()
             }
         }
-
     }
 
     @Synchronized
@@ -264,7 +262,7 @@ abstract class BasePlayer {
         //        showStackTrace()
         oldStatus = status
         status = newStatus
-        statusSimpleFlow.value = PlayerStatusSimple.fromStatus(status)
+//        playWhenReadyFlow.value = isPlaying
 
         //        currentMediaType = mediaType
         Logd(TAG) { "handlePlayerStatus $status" }
@@ -278,23 +276,7 @@ abstract class BasePlayer {
             isStopped -> {}
             isPlaying -> {
                 saveCurState(status_ = newStatus)
-                // set sleep timer if auto-enabled
-                fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
-                    return when {
-                        from < to -> current in from..<to
-                        from <= current -> true
-                        else -> current < to
-                    }
-                }
-                var autoEnableByTime = true
-                val fromSetting = SleepManager.autoEnableFrom
-                val toSetting = SleepManager.autoEnableTo
-                if (fromSetting != toSetting) autoEnableByTime = isInTimeRange(fromSetting, toSetting, Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour)
-                if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && SleepManager.sleepManager?.isActive != true) {
-                    SleepManager.sleepManager?.setTimer(SleepManager.lastTimerValue.minutes.inWholeMilliseconds)
-                    // TODO: what to do?
-                    //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { sleepManager?.disableSleepTimer() }, context.getString(R.string.undo)))
-                }
+                if (oldStatus != null) setIfAutoEnable()
             }
             isError -> {
                 saveCurState()
@@ -306,15 +288,18 @@ abstract class BasePlayer {
     }
 
     fun saveCurState(episode: Episode? = null, status_: PlayerStatus? = null) {
-        Logd(TAG) { "savePlayerStatus episode ${episode?.id}" }
+        Logd(TAG) { "saveCurState episode ${episode?.id} status ${status_?.name}" }
         when {
             episode == null && status_ != null -> {}
             episode == null || status_ == null -> runOnIOScope { upsert(curState) { it.curMediaId = 0L } }
             else -> {
-                runOnIOScope { upsert(curState) {
-                    it.curIsVideo = episode.mediaType == MediaType.VIDEO
-                    it.curMediaId = episode.id
-                } }
+                if (curState.curMediaId != episode.id || curState.curIsVideo != (episode.mediaType == MediaType.VIDEO))
+                    runOnIOScope {
+                        upsert(curState) {
+                            it.curIsVideo = episode.mediaType == MediaType.VIDEO
+                            it.curMediaId = episode.id
+                        }
+                    }
             }
         }
     }
@@ -436,6 +421,7 @@ abstract class BasePlayer {
     fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, audioOnly: Boolean = false, forceReset: Boolean = false, doPostPlayback: Boolean = true) {
         Logd(TAG) { "prepareMedia statusFlow=${status} stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset doPostPlayback=$doPostPlayback ${playable.titleOrIdv()} " }
 //        showStackTrace()
+        playWhenReadyFlow.value = startWhenPrepared && prepareImmediately
         if (!forceReset && playable.id == prevMedia?.id && isPlaying) {
             Logd(TAG) { "prepareMedia Method call was ignored: media file already playing." }
             return
@@ -520,6 +506,7 @@ abstract class BasePlayer {
         Logd(TAG) { "play(): statusFlow: $status playbackState: ${castPlayer?.playbackState}" }
         if (isPaused || isPrepared) {
             Logd(TAG) { "play() Resuming/Starting playback" }
+            playWhenReadyFlow.value = true
             if (shouldSetSource()) setSourceToPlayer()
             val volAdpFac = if (curMediaFlow.value != null) curMediaFlow.value!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
             setVolume(1.0f, 1.0f, volAdpFac)
@@ -532,8 +519,9 @@ abstract class BasePlayer {
     }
 
     fun pause(reprepare: Boolean) {
-        if (isPlaying || isError) {
+//        if (isPlaying || isError) {
             Logd(TAG) { "Pausing playback $reprepare" }
+            playWhenReadyFlow.value = false
             castPlayer?.pause()
 //            handlePlayerStatus(PlayerStatus.PAUSED, curMediaFlow.value)
             if (isStreaming && reprepare) reprepareMedia()
@@ -541,7 +529,7 @@ abstract class BasePlayer {
             isSpeedForward = false
             isFallbackSpeed = false
 //            if (curMediaFlow.value != null) upsertBlk(curMediaFlow.value!!) { it.forceVideo = false }
-        } else Logd(TAG) { "Ignoring call to pause: Player is in $status state" }
+//        } else Logd(TAG) { "Ignoring call to pause: Player is in $status state" }
     }
 
     abstract suspend fun clearFromCache(key: String?)
@@ -990,6 +978,19 @@ abstract class BasePlayer {
                     break
                 }
             }
+        }
+    }
+
+    enum class PlayerStatus(private val statusValue: Int) {
+        ERROR(-1),
+        STOPPED(5),
+        INITIALIZED(10), // playback service was started, data source of media player was set
+        PREPARED(20),
+        PAUSED(30),
+        PLAYING(40);
+
+        fun isAtLeast(other: PlayerStatus?): Boolean {
+            return other == null || this.statusValue >= other.statusValue
         }
     }
 

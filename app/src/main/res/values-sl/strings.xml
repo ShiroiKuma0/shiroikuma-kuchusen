@@ -497,7 +497,7 @@
     <string name="import_export_error_label">Napaka pri izvozu</string>
     <string name="export_success_title">Izvoz uspešen</string>
     <string name="successful_import_label">Uvoz uspešen</string>
-    <string name="import_ok">Pritisnite OK, da znova zaženete Podcini</string>
+    <string name="press_to_restart">Pritisnite OK, da znova zaženete Podcini</string>
     <string name="favorites_export_label">Priljubljeni izvozi</string>
     <string name="favorites_export_summary">Izvozi shranjene priljubljene v datoteko</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>

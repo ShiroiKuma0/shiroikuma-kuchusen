@@ -496,7 +496,7 @@
     <string name="import_export_error_label">Exportfehler</string>
     <string name="export_success_title">Export erfolgreich</string>
     <string name="successful_import_label">Import erfolgreich</string>
-    <string name="import_ok">Bitte OK drücken, um Podcini neu zu starten</string>
+    <string name="press_to_restart">Bitte OK drücken, um Podcini neu zu starten</string>
     <string name="favorites_export_label">Favoriten exportieren</string>
     <string name="favorites_export_summary">Favoriten in einer Datei speichern</string>
     <string name="restore_subscriptions_label">Abonnements wiederherstellen</string>

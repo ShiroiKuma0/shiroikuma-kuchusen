@@ -302,7 +302,7 @@ fun NetworkStorageScreen() {
     var showProxyDialog by remember { mutableStateOf(false) }
     if (showProxyDialog) ProxyDialog {showProxyDialog = false }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
-    ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
+    ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.press_to_restart), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
     var showProgress by remember { mutableStateOf(false) }
     if (showProgress) {

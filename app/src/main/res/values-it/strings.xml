@@ -496,7 +496,7 @@
     <string name="import_export_error_label">Errore di esportazione</string>
     <string name="export_success_title">Esportazione eseguita</string>
     <string name="successful_import_label">Importazione eseguita</string>
-    <string name="import_ok">Premi OK per riavviare Podcini</string>
+    <string name="press_to_restart">Premi OK per riavviare Podcini</string>
     <string name="favorites_export_label">Esporta preferiti</string>
     <string name="favorites_export_summary">Esporta preferiti su file</string>
     <string name="restore_subscriptions_label">Ripristina sottoscrizioni</string>

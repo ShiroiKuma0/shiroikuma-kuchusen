@@ -234,7 +234,7 @@
     <string name="import_export_error_label">匯出錯誤</string>
   <string name="export_success_title">匯出成功</string>
     <string name="successful_import_label">匯入完畢</string>
-  <string name="import_ok">請按下 OK 重新啟動 Podcini</string>
+  <string name="press_to_restart">請按下 OK 重新啟動 Podcini</string>
 
   <string name="favorites_export_label">匯出我的最愛</string>
   <string name="favorites_export_summary">將儲存的我的最愛清單匯出為檔案</string>

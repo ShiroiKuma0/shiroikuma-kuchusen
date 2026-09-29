@@ -152,7 +152,7 @@ fun ImportExportScreen() {
             }))
     }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
-    ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
+    ConfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.press_to_restart), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
 
     val showImporErrortDialog = remember { mutableStateOf(false) }
     var importErrorMessage by remember { mutableStateOf("") }

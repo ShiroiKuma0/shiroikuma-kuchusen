@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Σφάλμα εισαγωγής/εξαγωγής</string>
     <string name="export_success_title">Επιτυχής εξαγωγή</string>
     <string name="successful_import_label">Επιτυχής εισαγωγή</string>
-    <string name="import_ok">Παρακαλώ πατήστε OK για να επανεκκινήσετε το Podcini</string>
+    <string name="press_to_restart">Παρακαλώ πατήστε OK για να επανεκκινήσετε το Podcini</string>
     <string name="favorites_export_label">Εξαγωγή αγαπημένων</string>
     <string name="favorites_export_summary">Εξαγωγή αποθηκευμένων αγαπημένων σε αρχείο</string>
     <string name="restore_subscriptions_label">Επαναφορά συνδρομών</string>

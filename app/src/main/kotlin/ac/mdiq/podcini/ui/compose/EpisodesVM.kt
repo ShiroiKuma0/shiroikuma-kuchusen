@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.PlayerStatusSimple
 import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.playback.theatres
 import ac.mdiq.podcini.shared.getEntityId
@@ -290,8 +289,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val downloadStates by downloadStatesFlow.collectAsStateWithLifecycle()
         val player0 by theatres[0].mPlayerFlow.collectAsStateWithLifecycle()
         val player1 by theatres[1].mPlayerFlow.collectAsStateWithLifecycle()
-        val statusSimple0 by player0?.statusSimpleFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(PlayerStatusSimple.OTHER) }
-        val statusSimple1 by player1?.statusSimpleFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(PlayerStatusSimple.OTHER) }
+        val playWhenReady0 by player0?.playWhenReadyFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+        val playWhenReady1 by player1?.playWhenReadyFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
         val curMedia0 by player0?.curMediaFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
         val curMedia1 by player1?.curMediaFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
 
@@ -507,16 +506,16 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                         }
                                     }
                                     LaunchedEffect(episode.fileUrl) { actionButton.update(episode) }
-                                    LaunchedEffect(statusSimple0, curMedia0?.id, statusSimple1, curMedia1?.id, actionButton.speaking) {
+                                    LaunchedEffect(playWhenReady0, curMedia0?.id, playWhenReady1, curMedia1?.id, actionButton.speaking) {
                                         when {
                                             episode.id == curMedia0?.id -> {
-                                                Logd(TAG) { "playerStat: $statusSimple0 episode: ${episode.title}" }
-                                                if (statusSimple0 == PlayerStatusSimple.PLAYING) actionButton.type = ButtonTypes.PAUSE
+                                                Logd(TAG) { "playerStat: $playWhenReady0 episode: ${episode.title}" }
+                                                if (playWhenReady0) actionButton.type = ButtonTypes.PAUSE
                                                 else actionButton.update(episode)
                                             }
                                             episode.id == curMedia1?.id -> {
-                                                Logd(TAG) { "playerStat: $statusSimple1 episode: ${episode.title}" }
-                                                if (statusSimple1 == PlayerStatusSimple.PLAYING) actionButton.type = ButtonTypes.PAUSE
+                                                Logd(TAG) { "playerStat: $playWhenReady1 episode: ${episode.title}" }
+                                                if (playWhenReady1) actionButton.type = ButtonTypes.PAUSE
                                                 else actionButton.update(episode)
                                             }
                                             actionButton.speaking.value -> actionButton.type = ButtonTypes.PAUSE

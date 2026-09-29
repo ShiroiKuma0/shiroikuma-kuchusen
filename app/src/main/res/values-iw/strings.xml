@@ -417,7 +417,7 @@
     <string name="import_export_error_label">שגיאת ייצוא</string>
   <string name="export_success_title">הייצוא הצליח</string>
     <string name="successful_import_label">הייבוא הצליח</string>
-  <string name="import_ok">נא ללחוץ על אישור כדי להפעיל את אנטנה־פּוֹד מחדש</string>
+  <string name="press_to_restart">נא ללחוץ על אישור כדי להפעיל את אנטנה־פּוֹד מחדש</string>
 
   <string name="favorites_export_label">ייצוא מועדפים</string>
   <string name="favorites_export_summary">ייצור המועדפים השמורים לקובץ</string>

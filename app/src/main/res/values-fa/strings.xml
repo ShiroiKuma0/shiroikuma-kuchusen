@@ -493,7 +493,7 @@
     <string name="import_export_error_label">خطا در خارج کردن</string>
     <string name="export_success_title">خارج کردن موفقیت آمیز</string>
     <string name="successful_import_label">وارد کردن موفقیت آمیز</string>
-    <string name="import_ok">لطفاً OK را فشار دهید تا آنتن پاد دوباره راه اندازی شود</string>
+    <string name="press_to_restart">لطفاً OK را فشار دهید تا آنتن پاد دوباره راه اندازی شود</string>
     <string name="favorites_export_label">خارج کردن علاقه مندی ها</string>
     <string name="favorites_export_summary">محبوب‌های ذخیره شده در پرونده برون‌ریخته شدند</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>

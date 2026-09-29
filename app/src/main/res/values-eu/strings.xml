@@ -365,7 +365,7 @@
     <string name="import_export_error_label">Errorea esportatzean</string>
   <string name="export_success_title">Esportatzea ongi burutu da</string>
     <string name="successful_import_label">Inportate arrakastatsua</string>
-  <string name="import_ok">Sakatu OK Podcini berrabiarazteko</string>
+  <string name="press_to_restart">Sakatu OK Podcini berrabiarazteko</string>
 
   <string name="favorites_export_label">Gogokoak esportatu</string>
   <string name="favorites_export_summary">Esportatu gordetako gogokoak fitxategian</string>

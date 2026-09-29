@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Eksportfejl</string>
     <string name="export_success_title">Eksport lykkedes</string>
     <string name="successful_import_label">Importeret</string>
-    <string name="import_ok">Tryk venligst OK for at genstarte Podcini</string>
+    <string name="press_to_restart">Tryk venligst OK for at genstarte Podcini</string>
     <string name="favorites_export_label">Eksport af favoritter</string>
     <string name="favorites_export_summary">Eksportér gemte favoritter til fil</string>
     <string name="restore_subscriptions_label">Gendan abonnementer</string>

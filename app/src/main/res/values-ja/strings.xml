@@ -493,7 +493,7 @@
     <string name="import_export_error_label">エクスポートエラー</string>
     <string name="export_success_title">エクスポートしました</string>
     <string name="successful_import_label">インポートしました</string>
-    <string name="import_ok">OKを押してPodciniを再起動してください</string>
+    <string name="press_to_restart">OKを押してPodciniを再起動してください</string>
     <string name="favorites_export_label">お気に入り エクスポート</string>
     <string name="favorites_export_summary">保存したお気に入りをファイルにエクスポートする</string>
     <string name="restore_subscriptions_label">サブスクリプションを復元</string>

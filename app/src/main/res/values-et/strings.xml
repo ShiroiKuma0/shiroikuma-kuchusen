@@ -293,7 +293,7 @@
     <string name="import_export_error_label">Viga eksportimisel</string>
   <string name="export_success_title">Eksportimine edukas</string>
     <string name="successful_import_label">Importimine oli edukas</string>
-  <string name="import_ok">Vajuta OK, et Podcini taaskäivitada</string>
+  <string name="press_to_restart">Vajuta OK, et Podcini taaskäivitada</string>
 
   <string name="favorites_export_label">Lemmikute eksport</string>
   <string name="favorites_export_summary">Ekspordi salvestatud lemmikud faili</string>

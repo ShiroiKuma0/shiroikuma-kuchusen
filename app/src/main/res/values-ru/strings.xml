@@ -497,7 +497,7 @@
     <string name="import_export_error_label">Ошибка экспорта</string>
     <string name="export_success_title">Экспорт выполнен</string>
     <string name="successful_import_label">Импорт успешен</string>
-    <string name="import_ok">Нажмите OK, чтобы перезапустить Podcini</string>
+    <string name="press_to_restart">Нажмите OK, чтобы перезапустить Podcini</string>
     <string name="favorites_export_label">Экспорт избранного</string>
     <string name="favorites_export_summary">Экспортировать сохраненное избранное в файл</string>
     <string name="restore_subscriptions_label">Восстановить подписки</string>

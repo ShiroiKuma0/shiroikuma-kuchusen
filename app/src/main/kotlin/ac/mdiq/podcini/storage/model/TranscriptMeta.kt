@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.shared.CaptionSpec
+import ac.mdiq.podcini.utils.Logd
 import io.github.xilinjia.krdb.types.EmbeddedRealmObject
 
 class TranscriptMeta: EmbeddedRealmObject {
@@ -42,5 +43,12 @@ class TranscriptMeta: EmbeddedRealmObject {
 }
 
 fun CaptionSpec.toTranscriptMeta(): TranscriptMeta {
-    return TranscriptMeta(this.url, this.mimeType, this.language, this.suffix)
+    Logd("CaptionSpec") { "toTranscriptMeta $url"}
+    // TODO: this is better in ut.urn
+    val kind = Regex("[?&]kind=([^&]*)").find(url)?.groupValues?.get(1)
+    val source = if ("kind=asr" in url) "auto" else "manual"
+    val translated = "tlang=" in url
+    val summary = if (translated) "$source, translated" else source
+    Logd("CaptionSpec") { "toTranscriptMeta kind=[$kind] $summary"}
+    return TranscriptMeta(this.url, this.mimeType, this.language, kind.takeIf { !it.isNullOrBlank() } ?: this.suffix)
 }

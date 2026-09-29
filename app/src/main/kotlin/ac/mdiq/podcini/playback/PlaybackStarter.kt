@@ -112,7 +112,8 @@ class PlaybackStarter(private val media: Episode) {
                         }
                         sleepManager?.restart()
                     }
-                    player.isStopped -> { //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
+                    player.isStopped -> {
+                        //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
                         player.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = startImmediately, prepareImmediately = true, audioOnly = audioOnly, forceReset = forcePlaybackReset)
                         sleepManager?.restart()
                     } // TODO: test
@@ -121,6 +122,7 @@ class PlaybackStarter(private val media: Episode) {
                         sleepManager?.restart()
                     }
                     else -> {
+                        player.playWhenReadyFlow.value = true
                         player.setAsCurMedia(media_)
                         player.reprepareMedia()
                         sleepManager?.restart()

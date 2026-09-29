@@ -491,7 +491,7 @@
     <string name="import_export_error_label">Kesalahan ekspor</string>
     <string name="export_success_title">Ekspor berhasil</string>
     <string name="successful_import_label">Impor sukses!</string>
-    <string name="import_ok">Tolong tekan OK untuk mengulang kembali Podcini</string>
+    <string name="press_to_restart">Tolong tekan OK untuk mengulang kembali Podcini</string>
     <string name="favorites_export_label">Ekspor Favorit</string>
     <string name="favorites_export_summary">Ekspor favorites disimpan ke file</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>

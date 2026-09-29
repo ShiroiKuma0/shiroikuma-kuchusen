@@ -6,15 +6,12 @@ import ac.mdiq.podcini.activity.MainActivity.Companion.findActivity
 import ac.mdiq.podcini.playback.PlaybackService.Companion.isAutoController
 import ac.mdiq.podcini.playback.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.PlayerStatusSimple
 import ac.mdiq.podcini.playback.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.playback.activeTheatresCount
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.ensureAController
 import ac.mdiq.podcini.playback.forcePlaybackReset
-import ac.mdiq.podcini.playback.isPlaying
-import ac.mdiq.podcini.playback.isRecordingFlow
 import ac.mdiq.podcini.playback.theatres
 import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
@@ -42,7 +39,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.SleepTimerDialog
-import ac.mdiq.podcini.ui.compose.TranscriptPopup
+import ac.mdiq.podcini.ui.compose.TranscriptOverlay
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.buttonColor
 import ac.mdiq.podcini.ui.compose.distinctColorOf
@@ -181,7 +178,6 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -290,11 +286,10 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
                 }
         }
         curStateJob = viewModelScope.launch {
-            theatres[playerId].mPlayerFlow.flatMapLatest { player -> if (player == null) flowOf(null) else combine(player.statusSimpleFlow, player.curMediaFlow) { status, media -> Triple(player, status, media) } }
-                .distinctUntilChanged { old, new -> old?.first == new?.first && old?.second == new?.second && old?.third?.id == new?.third?.id }.collect { value ->
-                    val (_, status, media) = value ?: Triple(null, null, null)
-                    showPlayButton = status != PlayerStatusSimple.PLAYING && isPlaying(media, playerId) != true
-                    Logd(TAG) { "playerId: $playerId status=$status showPlayButton=$showPlayButton" }
+            theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.playWhenReadyFlow ?: flowOf(false) }
+                .collect { playWhenReady ->
+                    showPlayButton = !playWhenReady
+                    Logd(TAG) { "playerId: $playerId playing=$playWhenReady showPlayButton=$showPlayButton" }
                 }
         }
         curSpeedJob = viewModelScope.launch { theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.curPlayerSpeedFlow ?: flowOf(1f) }.distinctUntilChanged().collect { speed ->
@@ -459,7 +454,7 @@ fun ControlUI(vm: AVPlayerVM) {
             Text(formatNumberKmp(vm.curPlaybackSpeed.toDouble()), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Spacer(Modifier.weight(0.1f))
-        val isRecording by isRecordingFlow.collectAsStateWithLifecycle()
+        val isRecording by player?.isRecordingFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
         val recordColor = if (!isRecording) { if (episode != null && player?.isPlaying == true) buttonColor else Color.Gray } else Color.Red
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColor, contentDescription = "record",
             modifier = Modifier.size(buttonSize).combinedClickable(
@@ -496,7 +491,7 @@ fun ControlUI(vm: AVPlayerVM) {
                         player?.recordClip(recordingStartTime!!, (player.getPosition()).toLong())
                         recordingStartTime = null
                     }
-                    Logd(TAG) { "Play button clicked: status: ${player?.statusSimpleFlow?.value} is ready: ${playbackService?.isServiceReady()}" }
+                    Logd(TAG) { "Play button clicked: playing: ${player?.playWhenReadyFlow?.value} is ready: ${playbackService?.isServiceReady()}" }
                     PlaybackStarter(episode!!).shouldStreamThisTime(null).start(vm.playerId)
                     if (episode?.mediaType == MediaType.VIDEO && player?.isPlaying != true && (vm.episodeFeed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                         if (!vm.showPlayButton && psState != PSState.Expanded) psState = PSState.Expanded
@@ -721,7 +716,7 @@ fun AVPlayerScreen() {
 
     var cueIndex by remember { mutableIntStateOf(-1) }
     var showTransDialog by remember { mutableStateOf(false) }
-    if (showTransDialog && curMedia != null) TranscriptPopup(curMedia, player = player, cueIndex = cueIndex) { showTransDialog = false }
+//    if (showTransDialog && curMedia != null) TranscriptPopup(curMedia, player = player, cueIndex = cueIndex) { showTransDialog = false }
 
     var showCaption by remember { mutableStateOf(false) }
 
@@ -1316,7 +1311,10 @@ fun AVPlayerScreen() {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = buttonColor, contentDescription = "feed icon", modifier = Modifier.width(24.dp).height(24.dp))
                 }
-                DetailUI(vms[actPlayerId], modifier = Modifier.fillMaxSize())
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    DetailUI(vms[actPlayerId], modifier = Modifier.fillMaxSize())
+                    if (showTransDialog && curMedia != null) TranscriptOverlay(curMedia, player = player, cueIndex = cueIndex) { showTransDialog = false }
+                }
             }
         }
     }

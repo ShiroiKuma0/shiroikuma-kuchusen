@@ -678,7 +678,7 @@
     <string name="pref_feed_associated_queue">Associated queue</string>
     <string name="pref_feed_associated_queue_sum">The queue to which episodes in the feed will e added by default</string>
     <string name="pref_feed_type">Feed type</string>
-    <string name="pref_feed_type_sum">Feed type is needed for properly accessing some properties of the feed. For generic feed (not handled optimally), type is better set to null. Otherwise, all media in the feed should better be of the same type.</string>
+    <string name="pref_feed_type_sum">Feed type is needed for properly accessing some properties of the feed. For generic feed (not handled optimally), type is better set to null. Otherwise, all media in the feed should better be of the same type. Normally for a non-synthetic feed, this does not need to be changed. To force change, long-click on this.</string>
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
 
@@ -776,6 +776,8 @@
     <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
 
+    <string name="search_captions_hint"></string>
+
     <string name="feeds_online">Feeds online</string>
     <string name="remote_searchers">Remote searchers</string>
     <string name="reserve_all">Reserve all</string>
@@ -829,7 +831,9 @@
     <string name="import_export_error_label">Import/Export error</string>
     <string name="export_success_title">Export successful</string>
     <string name="successful_import_label">Import successful</string>
-    <string name="import_ok">Please press OK to restart Podcini</string>
+    <string name="press_to_restart">Please press OK to restart Podcini</string>
+
+    <string name="cache_changed">Cache is changed</string>
 
     <string name="favorites_export_label">Favorites export</string>
     <string name="favorites_export_summary">Export saved favorites to file</string>
@@ -959,7 +963,6 @@
     <string name="edit_url_confirmation_msg">Changing the RSS address can easily break the playback state and episode listings of the podcast. We do NOT recommend changing it and will NOT provide support if anything goes wrong. This cannot be undone. The broken subscription CANNOT be repaired by simply changing the address back. We suggest creating a backup before continuing.</string>
 
     <!-- PodciniSP -->
-
 
     <string name="search_podcast_hint">Search podcast…</string>
     <string name="search_combined_label">Search all sources</string>

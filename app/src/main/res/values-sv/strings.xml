@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Exporteringsfel</string>
     <string name="export_success_title">Exporten lyckades</string>
     <string name="successful_import_label">Importering lyckades</string>
-    <string name="import_ok">Tryck OK för att starta om Podcini</string>
+    <string name="press_to_restart">Tryck OK för att starta om Podcini</string>
     <string name="favorites_export_label">Favoritexport</string>
     <string name="favorites_export_summary">Exportera sparade favoriter till fil</string>
     <string name="restore_subscriptions_label">Återställ prenumerationer</string>

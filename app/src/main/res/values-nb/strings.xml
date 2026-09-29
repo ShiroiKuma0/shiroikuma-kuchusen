@@ -388,7 +388,7 @@
     <string name="import_export_error_label">Feil ved eksportering</string>
   <string name="export_success_title">Eksportering vellykket!</string>
     <string name="successful_import_label">Eksportering vellykket</string>
-  <string name="import_ok">Trykk OK for å starte Podcini på nytt</string>
+  <string name="press_to_restart">Trykk OK for å starte Podcini på nytt</string>
 
   <string name="favorites_export_label">Favoritt eksportering</string>
   <string name="favorites_export_summary">Eksporter lagret favoritter til en fil</string>

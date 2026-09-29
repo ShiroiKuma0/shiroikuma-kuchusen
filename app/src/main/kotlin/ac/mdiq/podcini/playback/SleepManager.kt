@@ -25,8 +25,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.math.sqrt
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 class SleepManager {
     private var timer: SleepTimer? = null
@@ -186,5 +190,26 @@ class SleepManager {
 
         val autoEnableTo: Int
             get() = sleepPrefs.AutoEnableTo.takeIf { it != 0 } ?: 6
+
+        fun setIfAutoEnable() {
+            // set sleep timer if auto-enabled
+            fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
+                return when {
+                    from < to -> current in from..<to
+                    from <= current -> true
+                    else -> current < to
+                }
+            }
+            var autoEnableByTime = true
+            val fromSetting = autoEnableFrom
+            val toSetting = autoEnableTo
+            if (fromSetting != toSetting) autoEnableByTime = isInTimeRange(fromSetting, toSetting, Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour)
+            if (sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isActive != true) {
+                sleepManager?.setTimer(lastTimerValue.minutes.inWholeMilliseconds)
+                // TODO: what to do?
+                //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { sleepManager?.disableSleepTimer() }, context.getString(R.string.undo)))
+            }
+
+        }
     }
 }

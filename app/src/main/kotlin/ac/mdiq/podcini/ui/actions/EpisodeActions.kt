@@ -483,8 +483,8 @@ class Download : EpisodeAction() {
 
     override fun enabled(): Boolean {
         val media = onEpisode ?: return false
-        val client = clientByEpisode(media)
-        return client?.attributes?.supportDownload == true || (!media.downloaded && media.feed != null && media.feed?.isLocal != true)
+        val client = clientByEpisode(media) ?: return !media.downloaded && media.feed != null && media.feed?.isLocal != true
+        return client.attributes?.supportDownload == true
     }
 
     override fun performAction(e: Episode) {

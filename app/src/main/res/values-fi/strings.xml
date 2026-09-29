@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Vientivirhe</string>
     <string name="export_success_title">Vienti onnistunut</string>
     <string name="successful_import_label">Tuonti onnistui</string>
-    <string name="import_ok">Valitse OK käynnistääksesi Podciniin uudelleen</string>
+    <string name="press_to_restart">Valitse OK käynnistääksesi Podciniin uudelleen</string>
     <string name="favorites_export_label">Suosikkien vienti</string>
     <string name="favorites_export_summary">Vie tallennetut suosikit tiedostoon</string>
     <string name="restore_subscriptions_label">Palauta tilaukset</string>

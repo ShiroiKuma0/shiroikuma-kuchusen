@@ -493,7 +493,7 @@
     <string name="import_export_error_label">Exportfout</string>
     <string name="export_success_title">Geëxporteerd</string>
     <string name="successful_import_label">Importeren voltooid</string>
-    <string name="import_ok">Druk op \'OK\' om Podcini opnieuw te starten.</string>
+    <string name="press_to_restart">Druk op \'OK\' om Podcini opnieuw te starten.</string>
     <string name="favorites_export_label">Favorieten exporteren</string>
     <string name="favorites_export_summary">Exporteer opgeslagen favorieten naar een bestand</string>
     <string name="restore_subscriptions_label">Abonnementen herstellen</string>

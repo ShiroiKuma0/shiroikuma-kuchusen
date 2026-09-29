@@ -10,6 +10,7 @@ import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.PodciniHttpClient.proxyConfig
 import ac.mdiq.podcini.shared.ProxyConfig
 import ac.mdiq.podcini.shared.VideoSpec
+import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -23,6 +24,7 @@ import ac.mdiq.podcini.storage.model.toTranscriptMeta
 import ac.mdiq.podcini.storage.model.toWidget
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.VideoMode
+import ac.mdiq.podcini.storage.utils.UnifiedFile
 import ac.mdiq.podcini.storage.utils.cacheDir
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.durationStringFull
@@ -43,8 +45,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.media.RingtoneManager
 import android.media.audiofx.LoudnessEnhancer
+import android.net.Uri
 import android.net.http.HttpEngine
 import android.os.Build
+import android.os.SystemClock
 import android.os.ext.SdkExtensions
 import android.util.Base64
 import android.util.Pair
@@ -82,9 +86,12 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.audio.BaseAudioProcessor
 import androidx.media3.database.StandaloneDatabaseProvider
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.HttpEngineDataSource
+import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
@@ -126,6 +133,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.json.Json
+import okio.BufferedSink
 import okio.ByteString
 import okio.buffer
 import org.chromium.net.CronetEngine
@@ -233,6 +241,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
                 }
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                     Logd(TAG) { "onPlayWhenReadyChanged value=$playWhenReady reason=$reason state=${exoPlayer?.playbackState} isPlaying=${exoPlayer?.isPlaying}" }
+                    playWhenReadyFlow.value = playWhenReady
                 }
                 override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: Int) {
                     Logd(TAG) { "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason" }
@@ -388,7 +397,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
                                 error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND || (cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 404) -> handleTerminalError("onPlayerError Episode not found on server (404).")
                                 cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode == 403 -> {
                                     curMediaFlow.value?.let { clearSpecs(it) }
-                                    Loge(TAG, "onPlayerError Access denied (403). Check your subscription. headers=${cause.headerFields} ")
+                                    Loge(TAG, "onPlayerError Access denied (403). Try again or check your subscription. headers=${cause.headerFields} ")
                                     Logd(TAG) { "onPlayerError Access denied (403) url: ${cause.dataSpec.uri}" }
 //                                    handleTerminalError("Access denied (403). Check your subscription.")
                                     forcePlaybackReset = true
@@ -868,6 +877,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
 
     override fun setSourceToPlayer() {
         Logd(TAG) { "setSource() called isCasting: $isCasting" }
+        val media = curMediaFlow.value ?: return
         if (mediaSource == null && mediaItem == null) return
         if (needChangeOffload) {
             val enabled = speedEnablesOffload && silenceEnablesOffload
@@ -878,10 +888,10 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             }
             needChangeOffload = false
         }
-        if (isCasting) castPlayer?.setMediaItem(mediaItem!!, curMediaFlow.value!!.position.toLong())
+        if (isCasting) castPlayer?.setMediaItem(mediaItem!!, media.position.toLong())
         else if (!isAutoController || true) {
-            if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, positionWithRewind(curMediaFlow.value!!.position, curMediaFlow.value!!.lastPlayedTime).toLong())
-            else castPlayer?.setMediaItem(mediaItem!!, positionWithRewind(curMediaFlow.value!!.position, curMediaFlow.value!!.lastPlayedTime).toLong())
+            if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, positionWithRewind(media.position, media.lastPlayedTime).toLong())
+            else castPlayer?.setMediaItem(mediaItem!!, positionWithRewind(media.position, media.lastPlayedTime).toLong())
         }
         if (!isAutoController || true) castPlayer?.prepare()
     }
@@ -893,9 +903,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
 
     override fun setPlaybackParams(speed: Float, pitch: Float) {
         if (castPlayer == null) return
-
         resetPosSaverInterval(speed)
-
         if (abs(castPlayer!!.playbackParameters.speed - speed) < 0.01f) return
         Logd(TAG) { "setPlaybackParams speed=$speed pitch=${playbackParameters.pitch}" }
         val wantsOffload = speed == 1f
@@ -904,7 +912,6 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
-
         val basePlaybackMs = 800
         val baseRebufferMs = 2500
         val baseMinBufferMs = 15_000
@@ -998,7 +1005,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
         } catch (e: Exception) { LogsFor(TAG, curMediaFlow.value?.id, e) }
         release()
         status = PlayerStatus.STOPPED
-        statusSimpleFlow.value = PlayerStatusSimple.fromStatus(status)
+        playWhenReadyFlow.value = false
     }
 
     override fun setAudioTrack(track: Int) {
@@ -1056,7 +1063,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
 
     fun isRangeCached(cache:  SimpleCache, key: String, startByte: Long, endByte: Long): Boolean {
         var coveredUntil = startByte
-//        Logd(TAG) { "isRangeCached cache keys=${cache.keys}" }
+        //        Logd(TAG) { "isRangeCached cache keys=${cache.keys}" }
         val spans = cache.getCachedSpans(key).sortedBy { it.position }
         Logd(TAG) { "isRangeCached key: $key spans: ${spans.size}" }
         for (span in spans) {
@@ -1068,6 +1075,105 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             if (coveredUntil >= endByte) return true
         }
         return false
+    }
+
+    inner class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
+        private var currentDataSpec: DataSpec? = null
+        private var mediaId: String = ""
+        private var clipTempFile: UnifiedFile? = null
+        private var clipTempFos: BufferedSink? = null
+        private var clipStartByte: Long = 0L
+        private var clipBytesWritten: Long = 0L
+        private var bitrate: Int = 0
+        private var isOpen = false
+
+        override fun open(dataSpec: DataSpec): Long {
+            close()
+            currentDataSpec = dataSpec
+            val t0 = SystemClock.elapsedRealtime()
+            val byteToRead = try {
+                cacheDataSource.open(dataSpec).also { isOpen = true }
+            } catch (e: Throwable) {
+                isOpen = false
+                try { cacheDataSource.close() } catch (_: Exception) { }
+                throw e
+            }
+            val t1 = SystemClock.elapsedRealtime()
+            //        Logd(TAG) { "open requested=${dataSpec.uri} resolved=${cacheDataSource.uri}" }
+            Logd(TAG) { "open ${t1 - t0}ms requested=${dataSpec.uri} resolved=${cacheDataSource.uri}" }
+            return byteToRead
+        }
+
+        private var readCalls = 0L
+        private var totalBytesRead = 0L
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val bytesRead = cacheDataSource.read(buffer, offset, length)
+            readCalls++
+            if (bytesRead > 0) totalBytesRead += bytesRead
+            if (readCalls % 1000 == 0L) Logd(TAG) { "read readCalls=$readCalls totalBytes=$totalBytesRead" }
+            if (isRecordingFlow.value) {
+                //            if (readCalls % 100 == 0L) Logd(TAG) { "read isRecording readCalls=$readCalls totalBytes=$totalBytesRead" }
+                if (bytesRead > 0) {
+                    clipTempFos?.write(buffer, offset, bytesRead)
+                    clipBytesWritten += bytesRead
+                } else if (bytesRead == -1) clipTempFos?.flush()
+            }
+            return bytesRead
+        }
+
+        override fun close() {
+            if (!isOpen) return
+            try { cacheDataSource.close()
+            } finally {
+                isOpen = false
+                currentDataSpec = null
+            }
+        }
+
+        fun startRecording(startPositionMs: Long, bitrate: Int, tmpDir: UnifiedFile) {
+            if (!isRecordingFlow.value) {
+                isRecordingFlow.value = true
+                this.bitrate = bitrate
+                clipTempFile = tmpDir / "clip_temp_${nowInMillis()}.tmp"
+                clipTempFos = clipTempFile!!.sink().buffer()
+                clipStartByte = (startPositionMs * bitrate / 8 / 1000)
+                clipBytesWritten = 0L
+                Logd(TAG) { "Started recording at byte offset $clipStartByte" }
+            } else LogeFor(TAG, mediaId.toLongOrNull(), "Cannot start recording: tempDir not set or already recording")
+        }
+
+        fun stopRecording(endPositionMs: Long): UnifiedFile? {
+            Logd(TAG) { "stopRecording isRecording: ${isRecordingFlow.value}" }
+            if (isRecordingFlow.value) {
+                isRecordingFlow.value = false
+                clipTempFos?.flush()
+                clipTempFos?.close()
+                val endByte = (endPositionMs * bitrate / 8 / 1000)
+                Logd(TAG) { "stopRecording at byte offset $endByte, written: $clipBytesWritten" }
+                return clipTempFile?.takeIf { runBlocking { it.exists() } && clipBytesWritten > 0 }
+            }
+            return null
+        }
+
+        override fun getUri(): Uri? = cacheDataSource.uri
+        override fun addTransferListener(transferListener: TransferListener) {
+            cacheDataSource.addTransferListener(transferListener)
+        }
+
+        override fun getResponseHeaders(): Map<String, List<String>> {
+            return cacheDataSource.responseHeaders
+        }
+    }
+
+    inner class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+        @Volatile
+        var currentDataSource: SegmentSavingDataSource? = null
+            private set
+
+        override fun createDataSource(): DataSource {
+            return SegmentSavingDataSource(upstreamFactory.createDataSource()).also { currentDataSource = it }
+        }
     }
 
     override fun recordClip(startPositionMs: Long, endPositionMs: Long?) {

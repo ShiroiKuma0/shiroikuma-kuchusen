@@ -599,7 +599,7 @@
     <string name="import_export_error_label">İçe/Dışa Aktarma hatası</string>
     <string name="export_success_title">Dışa aktarma başarılı</string>
     <string name="successful_import_label">İçe aktarma başarılı</string>
-    <string name="import_ok">Podcini\'yi yeniden başlatmak için lütfen Tamam\'a basın</string>
+    <string name="press_to_restart">Podcini\'yi yeniden başlatmak için lütfen Tamam\'a basın</string>
 
     <string name="favorites_export_label">Favorileri dışa aktar</string>
     <string name="favorites_export_summary">Kaydedilen favorileri dosyaya dışa aktar</string>

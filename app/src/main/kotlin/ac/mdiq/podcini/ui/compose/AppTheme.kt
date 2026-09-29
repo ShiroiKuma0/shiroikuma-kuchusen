@@ -4,11 +4,12 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import android.app.Activity
 import android.content.res.Configuration
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -21,9 +22,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -98,10 +103,23 @@ var appTheme: AppThemes
     }
 
 @Composable
+fun FocusClearingLayout(content: @Composable () -> Unit) {
+    val focusManager = LocalFocusManager.current
+    Box(modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                val event = awaitPointerEvent(pass = PointerEventPass.Initial)
+                if (event.changes.any { it.pressed }) focusManager.clearFocus()
+            }
+        }
+    }) { content() }
+}
+
+@Composable
 fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit) {
     val appPrefs by appPrefsFlow!!.collectAsStateWithLifecycle()
 
-    val appThemes: AppThemes = if (forceTheme != null) forceTheme else appTheme
+    val appThemes: AppThemes = forceTheme ?: appTheme
     val isDark = when (appThemes) {
         AppThemes.LIGHT -> false
         AppThemes.DARK, AppThemes.BLACK -> true
@@ -127,7 +145,7 @@ fun PodciniTheme(forceTheme: AppThemes? = null, content: @Composable () -> Unit)
         isDark -> DarkColors
         else -> LightColors
     }
-    MaterialTheme(colorScheme = colorScheme, content = content)
+    MaterialTheme(colorScheme = colorScheme, content = { FocusClearingLayout { content() } })
 }
 
 fun isLightTheme(): Boolean {

@@ -26,7 +26,6 @@ import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.EPISODES_LIMIT
@@ -314,17 +313,21 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
         subButTextRes = textRes
     }
 
-    fun findExisting(feed_: Feed?): Feed? {
-        Logd(TAG) { "checkExisting check for ${feed_?.title} ${feed_?.author}" }
+    fun findExisting(feed_: Feed): Feed? {
+        Logd(TAG) { "checkExisting check for ${feed_.title} [${feed_.author}]" }
+        fun getDomain(url: String): String? = try { URI(url).host?.removePrefix("www.") } catch (e: Exception) { null }
+        val d2 = getDomain(feed_.downloadUrl?:"")
+        val ds2 = feed_.description?.takeCodePoints(100).orEmpty()
+        val title2 = feed_.title?.trim()
+        val author2 = feed_.author
         fun isSameFeed(f: Feed): Boolean {
-            Logd(TAG) { "isSameFeed check with feed: ${f.type} ${f.title} ${f.author}" }
-            fun getDomain(url: String): String? = try { URI(url).host?.removePrefix("www.") } catch (e: Exception) { null }
+            Logd(TAG) { "isSameFeed check with feed: ${f.type} ${f.title} [${f.author}]" }
             val d1 = getDomain(f.downloadUrl?:"")
-            val d2 = getDomain(feed_?.downloadUrl?:"")
             val ds1 = f.description?.takeCodePoints(100).orEmpty()
-            val ds2 = f.description?.takeCodePoints(100).orEmpty()
             Logd(TAG) { "isSameFeed d1: $d1 d2: $d2" }
-            return  (f.title == feed_?.title && f.author == feed_?.author && d1 == d2 && ds1 == ds2)
+            val title1 = f.title?.trim()
+            val author1 = f.author
+            return  (!title1.isNullOrBlank() && !title2.isNullOrBlank() && (title1.startsWith(title2) || title2.startsWith(title1)) && (author1.isNullOrBlank() || author2.isNullOrBlank() || author1 == author2) && d1 == d2 && ds1 == ds2)
         }
         for (f in allFeeds) if (isSameFeed(f)) return f
         return null

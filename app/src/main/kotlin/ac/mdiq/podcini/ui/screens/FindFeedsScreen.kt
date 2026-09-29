@@ -4,25 +4,24 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.config.settings.OpmlTransporter.OpmlElement
-import ac.mdiq.podcini.sourcing.searcher.FeedSearchers
-import ac.mdiq.podcini.sourcing.searcher.PodcastSearcherRegistry.searcherInfos
 import ac.mdiq.podcini.shared.FeedSearchResult
 import ac.mdiq.podcini.shared.prepareUrl
+import ac.mdiq.podcini.sourcing.feed.loadLocalFolder
+import ac.mdiq.podcini.sourcing.searcher.FeedSearchers
+import ac.mdiq.podcini.sourcing.searcher.PodcastSearcherRegistry.searcherInfos
 import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribsFlow
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.feedCountFlow
-import ac.mdiq.podcini.sourcing.feed.loadLocalFolder
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.SearchHistorySize
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.persistedTrees
-import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
@@ -69,7 +68,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -253,7 +255,7 @@ fun FindFeedsScreen() {
         }
     }
 
-    Scaffold(topBar = { TopBar() }) { innerPadding ->
+    Scaffold(topBar = { TopBar() } ) { innerPadding ->
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (controlRow, gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {

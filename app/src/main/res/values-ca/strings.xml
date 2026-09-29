@@ -391,7 +391,7 @@
     <string name="import_export_error_label">Error d\'exportació</string>
   <string name="export_success_title">Exportació correcta</string>
     <string name="successful_import_label">Importació correcta</string>
-  <string name="import_ok">Si us plau, premeu D\'acord per reiniciar Podcini</string>
+  <string name="press_to_restart">Si us plau, premeu D\'acord per reiniciar Podcini</string>
 
   <string name="favorites_export_label">Exportar preferits</string>
   <string name="favorites_export_summary">Exportar episodis favorits a un arxiu</string>

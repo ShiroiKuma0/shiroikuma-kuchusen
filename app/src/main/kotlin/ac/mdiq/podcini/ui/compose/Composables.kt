@@ -75,6 +75,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -406,13 +407,21 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Mod
         }
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
-        TextField(value = queryText, singleLine = true, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            textStyle = TextStyle(fontSize = 14.sp), label = { Text(stringResource(hintTextRes), style = MaterialTheme.typography.bodySmall) },
-            keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
+        val focusManager = LocalFocusManager.current
+        TextField(value = queryText, singleLine = true, textStyle = TextStyle(fontSize = 14.sp), label = { Text(stringResource(hintTextRes), style = MaterialTheme.typography.bodySmall) }, modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+            onValueChange = { queryText = it },
+            keyboardActions = KeyboardActions(onDone = {
+                performSearch(queryText)
+                focusManager.clearFocus()
+            }),
             leadingIcon = if (history.isNotEmpty()) { { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = buttonColor, contentDescription = "history",
                 modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable { showHistory = true }) } } else null,
             trailingIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = buttonColor, contentDescription = "search",
-                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable { performSearch(queryText) }) }
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable {
+                    performSearch(queryText)
+//                    focusManager.clearFocus()
+                }) }
         )
     }
 }
@@ -438,7 +447,7 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
             onValueChange = {
                 if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
                 if (it.toIntOrNull() != null) showSet = true
-                if (instant && showSet) set()
+                if (showSet) set()
             },
         )
     else
@@ -446,9 +455,9 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
             onValueChange = {
                 if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
                 if (it.toIntOrNull() != null) showSet = true
-                if (instant && showSet) set()
+//                if (instant && showSet) set()
             },
-            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable { set() }) }
+            trailingIcon = { if (showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).clickable { set() }) }
         )
 }
 

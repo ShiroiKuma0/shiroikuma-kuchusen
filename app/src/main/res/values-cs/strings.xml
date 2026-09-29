@@ -497,7 +497,7 @@
     <string name="import_export_error_label">Chyba exportu</string>
     <string name="export_success_title">Export úspěšný</string>
     <string name="successful_import_label">Import úspěšný</string>
-    <string name="import_ok">Ťuknutím na OK restartujte AntenaPod</string>
+    <string name="press_to_restart">Ťuknutím na OK restartujte AntenaPod</string>
     <string name="favorites_export_label">Export oblíbených</string>
     <string name="favorites_export_summary">Exportovat oblíbené do souboru</string>
     <string name="restore_subscriptions_label">Obnovit předplatné</string>

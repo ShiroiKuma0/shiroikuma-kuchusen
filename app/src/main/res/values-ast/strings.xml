@@ -197,7 +197,7 @@
   <string name="opml_import_summary">Importa les soscripciones d\'otra aplicación de podcasts</string>
     <string name="export_success_title">La esportación fízose correutamente</string>
   <string name="successful_import_label">La importación fízose correutamente</string>
-  <string name="import_ok">Primi «D\'acuerdu» pa reaniciar Podcini</string>
+  <string name="press_to_restart">Primi «D\'acuerdu» pa reaniciar Podcini</string>
 
   <string name="favorites_export_label">Esportación de los favoritos</string>
   <string name="favorites_export_summary">Esporta los favoritos a un ficheru</string>
