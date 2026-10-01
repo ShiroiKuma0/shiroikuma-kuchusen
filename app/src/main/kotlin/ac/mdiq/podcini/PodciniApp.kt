@@ -52,6 +52,7 @@ class PodciniApp : Application() {
             val intent = Intent(podciniApp, MainActivity::class.java)
             val mainIntent = Intent.makeRestartActivityTask(intent.component)
             AppConfig.destroy()
+            runBlocking(Dispatchers.IO) { sourceClients.forEach { it.disconnect() } }
             realm.close()
             podciniApp.startActivity(mainIntent)
             Runtime.getRuntime().exit(0)

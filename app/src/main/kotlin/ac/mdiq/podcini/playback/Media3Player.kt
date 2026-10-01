@@ -11,6 +11,8 @@ import ac.mdiq.podcini.shared.PodciniHttpClient.proxyConfig
 import ac.mdiq.podcini.shared.ProxyConfig
 import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.clientByEpisode
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.isSkipSilence
@@ -381,7 +383,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
                         PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> handleTerminalError("onPlayerError This device cannot play this file format.")
                         PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED-> {
                             forcePlaybackReset = true
-                            Logt(TAG, "onPlayerError: if media is served by an external app, try play again, or try toggling 'Use external apps' in Settings, and play again.")
+                            Logt(TAG, "onPlayerError: parsing unsupported. If media is served by an external app, try play again, or try toggling 'Use external apps' in Settings, and play again.")
                         }
                         else -> {
                             val cause = error.cause
@@ -718,8 +720,11 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
         videoSpecs = listOf()
     }
 
-    private fun mediaSourceFromClient(needVideo: Boolean): MediaSource? {
+    private suspend fun mediaSourceFromClient(needVideo: Boolean): MediaSource? {
         val media = curMediaFlow.value ?: return null
+
+        if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
+        curClient = clientByEpisode(media)
         if (curClient == null)  return null
 
         if (curClient!!.attributes?.hasTranscripts == true && media.transcriptMetas.isEmpty() && media.captionCues.isEmpty()) runOnIOScope {
@@ -736,8 +741,8 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
 
         playingMuxedVideo = false
 
-        fun setMuxedVideo() {
-            if (muxedSpecs.isEmpty()) muxedSpecs = curClient?.withProviderBlocking { it.getVideoSpecs(media.toIPC()) } ?: listOf()
+        suspend fun setMuxedVideo() {
+            if (muxedSpecs.isEmpty()) muxedSpecs = curClient?.withProvider { it.getVideoSpecs(media.toIPC()) } ?: listOf()
             if (muxedSpecs.isNotEmpty()) {
                 muxedSpecsCache.put(media.id, muxedSpecs)
                 curMuxedSpec = chooseVideoSpec(muxedSpecs, media)
@@ -766,8 +771,8 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             return mSource
         }
 
-        Logd(TAG) { "mediaSourceFromClient audioSpecs ${audioSpecs.size}" }
-        if (audioSpecs.isEmpty()) audioSpecs = curClient?.withProviderBlocking { it.getAudioSpecs(media.toIPC()) } ?: listOf()
+        Logd(TAG) { "mediaSourceFromClient audioSpecs ${audioSpecs.size} url: ${media.downloadUrl}" }
+        if (audioSpecs.isEmpty()) audioSpecs = curClient?.withProvider { it.getAudioSpecs(media.toIPC()) } ?: listOf()
         var aSource: ProgressiveMediaSource? = null
         if (audioSpecs.isNotEmpty()) {
             audioSpecsCache.put(media.id, audioSpecs)
@@ -787,7 +792,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
                 return mSource
             }
             Logd(TAG) { "mediaSourceFromClient videoSpecs ${videoSpecs.size}" }
-            if (videoSpecs.isEmpty()) videoSpecs = curClient?.withProviderBlocking { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
+            if (videoSpecs.isEmpty()) videoSpecs = curClient?.withProvider { it.getVideoOnlySpecs(media.toIPC()) } ?: listOf()
             if (videoSpecs.isNotEmpty()) {
                 Logd(TAG) { "mediaSourceFromClient videoSpecs new ${videoSpecs.size}" }
                 videoSpecsCache.put(media.id, videoSpecs)
@@ -806,7 +811,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    override fun prepareDataSource(audioOnly: Boolean) {
+    override suspend fun prepareDataSource(audioOnly: Boolean) {
         val media = curMediaFlow.value ?: return
         Logd(TAG) { "prepareDataSource called ${media.title}" }
         Logd(TAG) { "prepareDataSource url [${media.downloadUrl}]" }
@@ -966,6 +971,7 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
             val glanceId = manager.getGlanceIds(PodciniWidget::class.java).find { it.toString() == widgetId }
             glanceId?.let { id ->
                 val episodes = actQueueFlow.value.episodesSorted.take(40).map { it.toWidget() }
+                Logd(TAG) { "notifyWidget: episodes: ${episodes.size}" }
                 val json = Json.encodeToString(episodes)
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, id) { prefs ->
                     prefs.toMutablePreferences().apply {
@@ -1035,8 +1041,6 @@ class Media3Player(playerId: Int, val lr: Int) : BasePlayer() {
 
     override fun resetPlayerAttributes() {
         Logd(TAG) { "resetMediaPlayer()" }
-        // TODO: test
-//        if (isCasting) release()
         if (curMediaFlow.value == null) {
             release()
             handlePlayerStatus(PlayerStatus.STOPPED, null)

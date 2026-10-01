@@ -47,12 +47,12 @@ class FeedFilter(vararg properties_: String) {
         }
 
         val typeQuerys = mutableListOf<String>()
-        if (properties.contains(FeedType.Unknown.name)) typeQuerys.add(" (type !=[c] '${FeedType.RSS.name}' AND type !=[c] '${FeedType.ATOM.name}' AND type !=[c] '${FeedType.YouTube.name}' AND type !=[c] '${FeedType.PeerTube.name}' AND type !=[c] '${FeedType.SoundCloud.name}') ")
-        if (properties.contains(FeedType.RSS.name)) typeQuerys.add(" type ==[c] '${FeedType.RSS.name}' ")
-        if (properties.contains(FeedType.ATOM.name)) typeQuerys.add(" type ==[c] '${FeedType.ATOM.name}' ")
-        if (properties.contains(FeedType.YouTube.name)) typeQuerys.add(" type ==[c] '${FeedType.YouTube.name}' ")
-        if (properties.contains(FeedType.PeerTube.name)) typeQuerys.add(" type ==[c] '${FeedType.PeerTube.name}' ")
-        if (properties.contains(FeedType.SoundCloud.name)) typeQuerys.add(" type ==[c] '${FeedType.SoundCloud.name}' ")
+        if (properties.contains(FeedType.Unknown.name)) typeQuerys.add(" (type != '${FeedType.RSS.name}' AND type != '${FeedType.ATOM.name}' AND type != '${FeedType.YouTube.name}' AND type != '${FeedType.PeerTube.name}' AND type != '${FeedType.SoundCloud.name}') ")
+        if (properties.contains(FeedType.RSS.name)) typeQuerys.add(" type == '${FeedType.RSS.name}' ")
+        if (properties.contains(FeedType.ATOM.name)) typeQuerys.add(" type == '${FeedType.ATOM.name}' ")
+        if (properties.contains(FeedType.YouTube.name)) typeQuerys.add(" type == '${FeedType.YouTube.name}' ")
+        if (properties.contains(FeedType.PeerTube.name)) typeQuerys.add(" type == '${FeedType.PeerTube.name}' ")
+        if (properties.contains(FeedType.SoundCloud.name)) typeQuerys.add(" type == '${FeedType.SoundCloud.name}' ")
         if (typeQuerys.isNotEmpty()) {
             val query = StringBuilder(" (" + typeQuerys[0])
             if (typeQuerys.size > 1) for (r in typeQuerys.subList(1, typeQuerys.size)) {

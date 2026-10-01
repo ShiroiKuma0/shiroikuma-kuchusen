@@ -7,6 +7,10 @@ import android.app.NotificationManager
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationChannelGroupCompat
 import androidx.core.app.NotificationManagerCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @Suppress("ClassName", "EnumEntryName")
 enum class CHANNEL_ID {
@@ -37,13 +41,6 @@ object NotificationIds {
 
 fun createNotificationChannels() {
     val c = getAppContext()
-    val mNotificationManager = NotificationManagerCompat.from(c)
-
-    val channelGroups = listOf(
-        NotificationChannelGroupCompat.Builder(GROUP_ID.group_errors.name).setName(c.getString(R.string.notification_group_errors)).build()
-        //            createGroupNews(context)
-    )
-    mNotificationManager.createNotificationChannelGroupsCompat(channelGroups)
 
     fun createChannelUserAction(): NotificationChannelCompat {
         return NotificationChannelCompat.Builder(
@@ -91,19 +88,23 @@ fun createNotificationChannels() {
         return notificationChannel.build()
     }
 
-    val channels = listOf(
-        createChannelUserAction(),
-        createChannelFeedUpdate(),
-        createChannelDownloading(),
-        //            createChannelPlaying(context),
-        createChannelError(),
-        createChannelSyncError()
+    CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
+        val mNotificationManager = NotificationManagerCompat.from(c)
+        val channelGroups = listOf(
+            NotificationChannelGroupCompat.Builder(GROUP_ID.group_errors.name).setName(c.getString(R.string.notification_group_errors)).build()
+            //            createGroupNews(context)
+        )
+        mNotificationManager.createNotificationChannelGroupsCompat(channelGroups)
+        val channels = listOf(createChannelUserAction(), createChannelFeedUpdate(), createChannelDownloading(),
+            //            createChannelPlaying(context),
+            createChannelError(), createChannelSyncError()
         //            createChannelEpisodeNotification(context)
-    )
-    mNotificationManager.createNotificationChannelsCompat(channels)
+        )
+        mNotificationManager.createNotificationChannelsCompat(channels)
 
-    mNotificationManager.deleteNotificationChannelGroup(GROUP_ID.group_news.name)
-    mNotificationManager.deleteNotificationChannel(CHANNEL_ID.episode_notifications.name)
+        mNotificationManager.deleteNotificationChannelGroup(GROUP_ID.group_news.name)
+        mNotificationManager.deleteNotificationChannel(CHANNEL_ID.episode_notifications.name)
+    }
 }
 
 //    private fun createChannelPlaying(): NotificationChannelCompat {

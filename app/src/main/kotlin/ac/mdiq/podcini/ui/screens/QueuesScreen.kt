@@ -51,6 +51,7 @@ import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.feedOperationText
 import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -129,6 +130,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -379,7 +381,7 @@ fun QueuesScreen(id: Long = -1L) {
         if (showAddQueueDialog) CommonPopupCard(onDismiss = { showAddQueueDialog = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 var newName by remember { mutableStateOf("") }
-                TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
+                TextField(value = newName, onValueChange = { newName = it }, modifier = Modifier.trackAsTextField(), label = { Text("Add queue (Unique name only)") })
                 Button(onClick = {
                     if (newName.isNotEmpty() && queueNames.indexOf(newName) < 0) {
                         val newQueue = PlayQueue()
@@ -565,7 +567,8 @@ fun QueuesScreen(id: Long = -1L) {
                 Spacer(Modifier.weight(0.2f))
                 var showIcon by remember { mutableStateOf(false) }
                 var newName by remember { mutableStateOf(curQueue.name) }
-                TextField(value = newName, label = { Text("Rename (Unique name only)") }, singleLine = true, modifier = Modifier.weight(1f),
+                val focusManager = LocalFocusManager.current
+                TextField(value = newName, label = { Text("Rename (Unique name only)") }, singleLine = true, modifier = Modifier.trackAsTextField().weight(1f),
                     onValueChange = {
                         newName = it
                         showIcon = true
@@ -578,6 +581,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     newName = curQueue.name
                                     Loge(TAG, "Please use a unique name.")
                                 }
+                                focusManager.clearFocus()
                                 showIcon = false
                         }))
                 })

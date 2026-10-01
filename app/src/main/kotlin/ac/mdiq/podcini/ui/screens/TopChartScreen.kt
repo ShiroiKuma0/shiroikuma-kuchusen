@@ -13,6 +13,7 @@ import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.borderColor
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.PODCINI_USER_AGENT
@@ -270,7 +271,7 @@ fun TopChartScreen() {
                 }
             }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                TextField(value = vm.textInput, modifier = Modifier.fillMaxWidth().padding(20.dp).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, false), readOnly = false,
+                TextField(value = vm.textInput, modifier = Modifier.fillMaxWidth().trackAsTextField().padding(20.dp).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, false), readOnly = false,
                     onValueChange = { input -> vm.textInput = input },
                     label = { Text(stringResource(id = R.string.select_country)) })
                 ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {

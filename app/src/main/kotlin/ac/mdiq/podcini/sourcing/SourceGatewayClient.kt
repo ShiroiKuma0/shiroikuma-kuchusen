@@ -2,7 +2,6 @@ package ac.mdiq.podcini.sourcing
 
 import ac.mdiq.podcini.PodciniApp
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.forcePlaybackReset
 import ac.mdiq.podcini.sourcing.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.shared.EpisodeIPC
 import ac.mdiq.podcini.shared.FeedSearchResult
@@ -37,6 +36,7 @@ import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -54,9 +54,43 @@ private const val TAG = "GatewayClient"
 
 const val EPISODE_BATCH_SIZE = 100
 
+private val sourceClientScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
 val sourceClients = mutableListOf<SourceGatewayClient>()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
+
+
+fun ensureSourceClients(loadExternalApp_: Boolean? = null) {
+    suspend fun clearSources() {
+        sourceClients.clear()
+        typeClientMap.clear()
+        val clients = sourceClients.toList()
+        clients.forEach { runCatching { it.disconnect() } }
+    }
+    val loadExternalApp = loadExternalApp_ ?: appPrefsFlow?.value?.loadExternalApp
+    if (loadExternalApp != true) {
+        if (sourceClients.isNotEmpty()) sourceClientScope.launch { clearSources() }
+        return
+    }
+
+    sourceClientScope.launch {
+        if (sourceClients.isEmpty()) AppGatewayRegistry.initialize()
+        else {
+            var isAlive = true
+            for (c in sourceClients) {
+                if (c.gateway?.asBinder()?.isBinderAlive != true) {
+                    isAlive = false
+                    break
+                }
+            }
+            if (!isAlive) {
+                clearSources()
+                AppGatewayRegistry.initialize()
+            }
+        }
+    }
+}
 
 fun clientByFeed(feed: Feed): SourceGatewayClient? {
     if (feed.type.isNullOrBlank()) return null
@@ -113,46 +147,46 @@ object AppGatewayRegistry {
     @Volatile
     private var readyDeferred = CompletableDeferred<List<SourceGatewayClient>>()
     private val mutex = Mutex()
-    private val reconnectMutex = Mutex()
+    private var gatewayCount = 0
     private var isInitializing = false
 
-    fun initialize(loadExternal: Boolean, scope: CoroutineScope) {
-        scope.launch {
-            Logd(TAG) { "initialize loadExternal: $loadExternal" }
-            val currentDeferred: CompletableDeferred<List<SourceGatewayClient>>
-            mutex.withLock {
-                if (isInitializing) {
-                    Logd(TAG) { "initialize skipped, already in progress" }
-                    return@launch
-                }
-                isInitializing = true
-                _state.value = GatewayState.Initializing
-                if (readyDeferred.isCompleted) readyDeferred = CompletableDeferred()
-                currentDeferred = readyDeferred
+    internal suspend fun initialize() {
+        Logd(TAG) { "AppGatewayRegistry initialize " }
+        val currentDeferred: CompletableDeferred<List<SourceGatewayClient>>
+        mutex.withLock {
+            if (isInitializing) {
+                Logd(TAG) { "initialize skipped, already in progress" }
+                return
             }
-            try {
-                sourceClients.forEach { runCatching { it.disconnect() } }
-                sourceClients.clear()
-                typeClientMap.clear()
-                if (loadExternal) {
-                    val cs = getSourceClients()
-                    if (cs.isNotEmpty()) sourceClients.addAll(cs)
-                }
-                withContext(Dispatchers.Main) { forcePlaybackReset = true }
-                if (sourceClients.isNotEmpty()) {
-                    _state.value = GatewayState.Ready(sourceClients)
-                    currentDeferred.complete(sourceClients)
-                } else {
-                    _state.value = GatewayState.Failed()
-                    currentDeferred.complete(emptyList())
-                }
-//            } catch (e: CancellationException) {
-//                throw e
-            } catch (e: Exception) {
-                _state.value = GatewayState.Failed(e)
-                currentDeferred.complete(emptyList())
-            } finally { mutex.withLock { isInitializing = false } }
+            isInitializing = true
+            _state.value = GatewayState.Initializing
+            if (readyDeferred.isCompleted) readyDeferred = CompletableDeferred()
+            currentDeferred = readyDeferred
         }
+        try {
+            sourceClients.forEach { runCatching { it.disconnect() } }
+            sourceClients.clear()
+            typeClientMap.clear()
+//            if (loadExternal) {
+            val cs = bindSourceClients()
+            if (cs.isNotEmpty()) sourceClients.addAll(cs)
+            if (sourceClients.size == gatewayCount) {
+                _state.value = GatewayState.Ready(sourceClients)
+                currentDeferred.complete(sourceClients)
+            } else {
+                _state.value = GatewayState.Failed()
+                currentDeferred.complete(emptyList())
+            }
+//            } else {
+//                _state.value = GatewayState.Ready(sourceClients)
+//                currentDeferred.complete(sourceClients)
+//            }
+            //            } catch (e: CancellationException) {
+            //                throw e
+        } catch (e: Exception) {
+            _state.value = GatewayState.Failed(e)
+            currentDeferred.complete(emptyList())
+        } finally { mutex.withLock { isInitializing = false } }
     }
 
     private fun PackageManager.queryIntentServicesCompat(intent: Intent, flags: Int): List<ResolveInfo> {
@@ -164,11 +198,12 @@ object AppGatewayRegistry {
         }
     }
 
-    private suspend fun getSourceClients(): List<SourceGatewayClient> {
+    private suspend fun bindSourceClients(): List<SourceGatewayClient> {
         val context = PodciniApp.getAppContext()
         PodcastSearcherRegistry.searcherInfos.clear()
         val intent = Intent("ac.mdiq.podcini.action.PODCINI_GATEWAY")
         val resolveInfos = context.packageManager.queryIntentServicesCompat(intent, PackageManager.MATCH_ALL)
+        gatewayCount = resolveInfos.size
         if (resolveInfos.isEmpty()) {
             Loge(TAG, "No external source provider is available. Setting '${context.getString(R.string.pref_use_external_apps)}' is turned off")
             upsert(appPrefsFlow!!.value) { p -> p.loadExternalApp = false }
@@ -206,7 +241,7 @@ object AppGatewayRegistry {
                     try {
                         val remote = IPodciniGateway.Stub.asInterface(service)
                         val attr = remote.attributes
-                        Logd(TAG) { "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} ${PROVIDER_API_VERSION}" }
+                        Logd(TAG) { "onServiceConnected name: ${attr.name} type: ${attr.feedType} api: ${attr.apiVersion} $PROVIDER_API_VERSION" }
                         PodcastSearcherRegistry.searcherInfos.clear()
                         val recognized = attr.feedType in FeedType.entries.map { it.name }
                         val versionMatched = attr.apiVersion == PROVIDER_API_VERSION
@@ -262,7 +297,6 @@ object AppGatewayRegistry {
             Logd(TAG) { "bindSingleClient after bind" }
 
             if (!success && continuation.isActive) continuation.resumeWith(Result.success(null))
-
             continuation.invokeOnCancellation { runCatching { context.unbindService(connection) } }
         }
 
@@ -298,7 +332,7 @@ object AppGatewayRegistry {
     }
 }
 
-class SourceGatewayClient() {
+class SourceGatewayClient {
     private val mutex = Mutex()
 
     var attributes: ProviderAttrs? = null
@@ -316,30 +350,16 @@ class SourceGatewayClient() {
     @Volatile
     private var bindDeferred: CompletableDeferred<IPodciniGateway>? = null
 
-    suspend fun <T> execute(block: suspend (IPodciniGateway) -> T): T? {
-        if (gateway == null) return null
-        return block(gateway!!)
-    }
-
-    fun <T> executeBlocking(block: (IPodciniGateway) -> T): T? {
-//        Logd(TAG) { "executeBlocking" }
-        return runBlocking(Dispatchers.IO) {
-            if (gateway == null) return@runBlocking null
-            withContext(Dispatchers.IO) { block(gateway!!) }
-        }
-    }
-
     suspend fun <T> withProvider(block: suspend (Provider) -> T): T? {
-        return execute { gateway ->
-            val provider = gateway.provider ?: throw IllegalStateException("Extension does not provide Provider support")
-            block(provider)
-        }
+        val gateway = gateway ?: return null
+        val provider = gateway.provider ?: throw IllegalStateException("SourceGatewayClient: Extension does not provide Provider support")
+        return block(provider)
     }
 
     fun <T> withProviderBlocking(block: (Provider) -> T): T? {
-//        Logs(TAG, "withProviderBlocking")
-        return executeBlocking { gateway ->
-            val provider = gateway.provider ?: throw IllegalStateException("Extension does not provide Provider support")
+        return runBlocking(Dispatchers.IO) {
+            val gateway = gateway ?: return@runBlocking null
+            val provider = gateway.provider ?: throw IllegalStateException("SourceGatewayClient: Extension does not provide Provider support")
             block(provider)
         }
     }
@@ -367,18 +387,10 @@ class GatewaySearcherAdapter(private val aidlProvider: IFeedSearchProvider) : Fe
         return try { aidlProvider.urlNeedsLookup(url) } catch (e: RemoteException) { false }
     }
     override suspend fun search(query: String): List<FeedSearchResult> = withContext(Dispatchers.IO) {
-        try {
-            aidlProvider.search(query) ?: emptyList()
-        } catch (e: RemoteException) {
-            emptyList()
-        }
+        try { aidlProvider.search(query) ?: emptyList() } catch (e: RemoteException) { emptyList() }
     }
     override suspend fun lookupUrl(url: String): String = withContext(Dispatchers.IO) {
-        try {
-            aidlProvider.lookupUrl(url) ?: url
-        } catch (e: RemoteException) {
-            url
-        }
+        try { aidlProvider.lookupUrl(url) ?: url } catch (e: RemoteException) { url }
     }
 }
 
@@ -387,24 +399,12 @@ class GatewayMediaSearcherAdapter(private val aidlProvider: IMediaSearchProvider
         get() = aidlProvider.name
 
     override suspend fun searchQuick(query: String): List<EpisodeIPC> = withContext(Dispatchers.IO) {
-        try {
-            aidlProvider.searchQuick(query) ?: emptyList()
-        } catch (e: RemoteException) {
-            emptyList()
-        }
+        try { aidlProvider.searchQuick(query) ?: emptyList() } catch (e: RemoteException) { emptyList() }
     }
     override suspend fun search(query: String, limit: Int): List<EpisodeIPC> = withContext(Dispatchers.IO) {
-        try {
-            aidlProvider.search(query, limit) ?: emptyList()
-        } catch (e: RemoteException) {
-            emptyList()
-        }
+        try { aidlProvider.search(query, limit) ?: emptyList() } catch (e: RemoteException) { emptyList() }
     }
     override suspend fun getMoreItems(): List<EpisodeIPC> = withContext(Dispatchers.IO) {
-        try {
-            aidlProvider.getMoreItems() ?: emptyList()
-        } catch (e: RemoteException) {
-            emptyList()
-        }
+        try { aidlProvider.getMoreItems() ?: emptyList() } catch (e: RemoteException) { emptyList() }
     }
 }

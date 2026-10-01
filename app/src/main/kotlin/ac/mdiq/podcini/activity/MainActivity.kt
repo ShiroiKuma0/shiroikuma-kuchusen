@@ -4,10 +4,12 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.config.AppConfig.isInitialized
+import ac.mdiq.podcini.config.AppConfig.startLiveMonitor
 import ac.mdiq.podcini.playback.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.ensureSourceClients
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.scheduleUpdateTaskOnce
@@ -47,6 +49,7 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.logProcess
 import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
 import android.annotation.SuppressLint
@@ -191,6 +194,10 @@ class MainActivity : BaseActivity() {
         window.decorView.postOnAnimation {
             lifecycleScope.launch(Dispatchers.IO) {
                 initialize()
+                ensureSourceClients()
+                startLiveMonitor()
+
+                logProcess(TAG, "onCreate")
 
                 withContext(Dispatchers.Main) {
                     handleNavIntent()
@@ -300,8 +307,8 @@ class MainActivity : BaseActivity() {
 
         autoBackup()
 
-        if (!firstStart && appPrefsFlow?.value?.loadExternalApp == true && sourceClients.isEmpty())
-            AppGatewayRegistry.initialize(true, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+//        if (!firstStart && appPrefsFlow?.value?.loadExternalApp == true && sourceClients.isEmpty())
+//            AppGatewayRegistry.initialize(true, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
 
         firstStart = false
         val curTime = nowInMillis()

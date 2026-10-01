@@ -966,7 +966,7 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismiss: () -> U
         else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message + ": ${selected.size}")
             Text(stringResource(R.string.reason_to_delete_msg))
-            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().trackAsTextField().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch { eraseEpisodes(selected, textState.text) }
                 onDismiss()
@@ -980,12 +980,12 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
     CommonDialogSurface(onDismiss = onDismiss) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var title by remember { mutableStateOf(TextFieldValue(todo?.title ?: "")) }
-            BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
+            BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().trackAsTextField().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
                 decorationBox = { innerTextField -> Box(contentAlignment = Alignment.CenterStart) { innerTextField() } })
             var note by remember { mutableStateOf(TextFieldValue(todo?.note ?: "")) }
             var showNote by remember { mutableStateOf(note.text.isNotBlank()) }
             Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 10.dp).clickable(onClick = { showNote = !showNote}))
-            if (showNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 14.sp, color = textColor), minLines = 2, maxLines = 8, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            if (showNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 14.sp, color = textColor), minLines = 2, maxLines = 8, modifier = Modifier.fillMaxWidth().trackAsTextField().padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             val sysTime = remember { nowInMillis() }
             var dueTime by remember { mutableLongStateOf(sysTime) }
             var editDueTime by remember { mutableStateOf((todo?.dueTime ?: 0) > 0) }
@@ -1008,7 +1008,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismiss: () -> Unit) {
             }
             var notify by remember { mutableStateOf(false) }
             if (editDueTime) {
-                TextField(value = ymdhm,  singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), label = { Text("${stringResource(R.string.year)}.${stringResource(R.string.month)}.${stringResource(R.string.date)}.${stringResource(R.string.hour)}.${stringResource(R.string.minute)}") },
+                TextField(value = ymdhm,  singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().trackAsTextField(), label = { Text("${stringResource(R.string.year)}.${stringResource(R.string.month)}.${stringResource(R.string.date)}.${stringResource(R.string.hour)}.${stringResource(R.string.minute)}") },
                     onValueChange = {
                         ymdhm = it
                         setDueTime = false
@@ -1098,7 +1098,7 @@ fun EditTimerDialog(timer: Timer? = null, episode: Episode? = null, cb: (Timer)-
         val zdt = remember(timer?.triggerTime) { Instant.fromEpochMilliseconds(timer?.triggerTime ?: nowInMillis()).toLocalDateTime(TimeZone.currentSystemDefault()) }
         var ymdhm by remember { mutableStateOf("${zdt.year}.${zdt.month.number}.${zdt.day}.${zdt.hour}.${zdt.minute}") }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(value = ymdhm,  onValueChange = { ymdhm = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), label = { Text("${stringResource(R.string.year)}.${stringResource(R.string.month)}.${stringResource(R.string.date)}.${stringResource(R.string.hour)}.${stringResource(R.string.minute)}") } )
+            TextField(value = ymdhm,  onValueChange = { ymdhm = it }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().trackAsTextField(), label = { Text("${stringResource(R.string.year)}.${stringResource(R.string.month)}.${stringResource(R.string.date)}.${stringResource(R.string.hour)}.${stringResource(R.string.minute)}") } )
             var isRepeat by remember { mutableStateOf(false) }
             if (episode != null) Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = isRepeat, onCheckedChange = { isChecked -> isRepeat = isChecked })
@@ -1149,7 +1149,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismiss: () -> Unit) {
             var textState by remember { mutableStateOf(TextFieldValue("")) }
             Text(message + ": ${selected.size}")
             Text(stringResource(R.string.reason_to_delete_msg))
-            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().trackAsTextField().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
@@ -1401,7 +1401,8 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                     if (expandRow) {
                                         var showIcon by remember { mutableStateOf(false) }
                                         var titleText by remember { mutableStateOf((filter.titleText)) }
-                                        TextField(value = titleText, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), label = { Text("Text in titles") }, singleLine = true,
+                                        val focusManager = LocalFocusManager.current
+                                        TextField(value = titleText, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text), label = { Text("Text in titles") }, singleLine = true, modifier = Modifier.trackAsTextField(),
                                             onValueChange = {
                                                 titleText = it
                                                 showIcon = true
@@ -1410,6 +1411,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                                 if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
                                                     modifier = Modifier.size(30.dp).clickable {
                                                         filter.titleText = titleText
+                                                        focusManager.clearFocus()
                                                         showIcon = false
                                                     })
                                             })
@@ -1529,7 +1531,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
                     if (isValid) onMonthYearChange(formattedInput)
                 },
                 isError = !isValidMonthYear(monthYear.text),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().trackAsTextField()
             )
             if (!isValid) Text(text = "Invalid format. Please use MM/YYYY.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
@@ -1631,11 +1633,11 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
         text = {
             Column {
                 Text(stringResource(R.string.send_to_device_sum))
-                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.trackAsTextField().padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (receiver in receivers) FilterChip(label = { Text(receiver.name) }, selected = false, onClick = {})
                 }
-                TextField(value = synthName, label = { Text("in " + stringResource(R.string.synthetic)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { synthName = it })
+                TextField(value = synthName, label = { Text("in " + stringResource(R.string.synthetic)) }, singleLine = true, modifier = Modifier.trackAsTextField().padding(end = 8.dp), onValueChange = { synthName = it })
             }
         },
         confirmButton = {

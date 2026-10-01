@@ -4,8 +4,26 @@ import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.settings.MediaFilesTransporter
+import ac.mdiq.podcini.shared.PodciniHttpClient
+import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
+import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
+import ac.mdiq.podcini.shared.ProxyConfig
+import ac.mdiq.podcini.shared.nowInMillis
+import ac.mdiq.podcini.sourcing.ensureSourceClients
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.checkAndScheduleUpdateTaskOnce
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.intervalInMillis
+import ac.mdiq.podcini.storage.database.appAttribsFlow
+import ac.mdiq.podcini.storage.database.appPrefsFlow
+import ac.mdiq.podcini.storage.database.proxyConfig
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
+import ac.mdiq.podcini.storage.utils.findRootForUri
+import ac.mdiq.podcini.storage.utils.mediaDir
+import ac.mdiq.podcini.storage.utils.persistedTrees
+import ac.mdiq.podcini.storage.utils.toAndroidUri
+import ac.mdiq.podcini.storage.utils.toSafeUri
+import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.sync.SyncService
 import ac.mdiq.podcini.sync.SynchronizationProviderViewData
 import ac.mdiq.podcini.sync.SynchronizationSettings
@@ -15,25 +33,6 @@ import ac.mdiq.podcini.sync.SynchronizationSettings.setWifiSyncEnabled
 import ac.mdiq.podcini.sync.nextcloud.NextcloudLoginFlow
 import ac.mdiq.podcini.sync.nextcloud.NextcloudLoginFlow.AuthenticationCallback
 import ac.mdiq.podcini.sync.wifi.WifiSyncService.Companion.startInstantSync
-import ac.mdiq.podcini.shared.PodciniHttpClient
-import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
-import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
-import ac.mdiq.podcini.shared.ProxyConfig
-import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sourcing.AppGatewayRegistry
-import ac.mdiq.podcini.storage.database.appAttribsFlow
-import ac.mdiq.podcini.storage.database.appPrefsFlow
-import ac.mdiq.podcini.storage.database.proxyConfig
-import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
-import ac.mdiq.podcini.storage.utils.findRootForUri
-import ac.mdiq.podcini.storage.utils.mediaDir
-import ac.mdiq.podcini.storage.utils.persistedTrees
-import ac.mdiq.podcini.storage.utils.toAndroidUri
-import ac.mdiq.podcini.storage.utils.toSafeUri
-import ac.mdiq.podcini.storage.utils.toUF
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.ConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -42,6 +41,7 @@ import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -99,6 +99,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -118,7 +119,6 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.isSuccess
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -255,13 +255,13 @@ fun NetworkStorageScreen() {
                     if (typePos > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.host_label))
-                            TextField(value = host, label = { Text("www.example.com") }, isError = !checkHost(), modifier = Modifier.fillMaxWidth(),
+                            TextField(value = host, label = { Text("www.example.com") }, isError = !checkHost(), modifier = Modifier.fillMaxWidth().trackAsTextField(),
                                 onValueChange = { host = it }
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.port_label))
-                            TextField(value = port, label = { Text("8080") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = !checkPort(), modifier = Modifier.fillMaxWidth(),
+                            TextField(value = port, label = { Text("8080") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = !checkPort(), modifier = Modifier.fillMaxWidth().trackAsTextField(),
                                 onValueChange = {
                                     port = it
                                     portValue = it.toIntOrNull() ?: -1
@@ -270,13 +270,13 @@ fun NetworkStorageScreen() {
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.username_label))
-                            TextField(value = username ?: "", label = { Text(stringResource(R.string.optional_hint)) }, modifier = Modifier.fillMaxWidth(),
+                            TextField(value = username ?: "", label = { Text(stringResource(R.string.optional_hint)) }, modifier = Modifier.fillMaxWidth().trackAsTextField(),
                                 onValueChange = { username = it }
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.password_label))
-                            TextField(value = password ?: "", label = { Text(stringResource(R.string.optional_hint)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
+                            TextField(value = password ?: "", label = { Text(stringResource(R.string.optional_hint)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth().trackAsTextField(),
                                 onValueChange = { password = it }
                             )
                         }
@@ -345,6 +345,7 @@ fun NetworkStorageScreen() {
     }
 
     var refreshInterval by remember { mutableStateOf(appPrefs.autoUpdateInterval.toString()) }
+    val focusManager = LocalFocusManager.current
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             val appAttribs by appAttribsFlow!!.collectAsStateWithLifecycle()
@@ -352,7 +353,7 @@ fun NetworkStorageScreen() {
                 Text(stringResource(R.string.identifier), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.wrapContentWidth())
                 var name by remember(appAttribs.name) { mutableStateOf(appAttribs.name) }
                 var showIcon by remember { mutableStateOf(false) }
-                TextField(value = name, modifier = Modifier.weight(1f).padding(start = 8.dp),
+                TextField(value = name, modifier = Modifier.trackAsTextField().weight(1f).padding(start = 8.dp),
                     onValueChange = {
                         name = it
                         showIcon = true
@@ -360,14 +361,16 @@ fun NetworkStorageScreen() {
                     trailingIcon = {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(30.dp).clickable {
                             runOnIOScope { upsert(appAttribs) { it.name = name } }
+                            focusManager.clearFocus()
                             showIcon =  false })
                 })
             }
             Text(stringResource(R.string.network_identifier_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
-            val appPrefs_ = upsertBlk(appPrefs) { p-> p.loadExternalApp = it}
-            AppGatewayRegistry.initialize(appPrefs_.loadExternalApp, CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate))
+            runOnIOScope { upsert(appPrefs) { p-> p.loadExternalApp = it} }
+            if (!it) Logt(TAG, "external apps are being disconnected")
+            ensureSourceClients(it)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -608,7 +611,7 @@ fun SynchronizationScreen() {
             text = {
                 Column {
                     Text(stringResource(R.string.synchronization_host_explanation))
-                    if (showUrlEdit) TextField(value = serverUrlText, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.synchronization_host_label)) },
+                    if (showUrlEdit) TextField(value = serverUrlText, modifier = Modifier.fillMaxWidth().trackAsTextField(), label = { Text(stringResource(R.string.synchronization_host_label)) },
                         onValueChange = {
                             serverUrlText = it
                             showChooseHost = serverUrlText.isNotBlank()
@@ -729,7 +732,7 @@ fun SynchronizationScreen() {
                         if (showHostAddress) TextField(value = hostAddress, modifier = Modifier.weight(0.6f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             onValueChange = { input -> hostAddress = input },
                             label = { Text(stringResource(id = R.string.synchronization_host_address_label)) })
-                        TextField(value = portString, modifier = Modifier.weight(0.4f).padding(start = 3.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        TextField(value = portString, modifier = Modifier.trackAsTextField().weight(0.4f).padding(start = 3.dp), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             onValueChange = { input ->
                                 portString = input
                                 portNum = input.toInt()

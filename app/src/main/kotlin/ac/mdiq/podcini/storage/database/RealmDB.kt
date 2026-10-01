@@ -26,6 +26,7 @@ import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.model.TranscriptMeta
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.model.FeedFunding
+import ac.mdiq.podcini.storage.specs.FeedType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.util.Log
@@ -78,7 +79,7 @@ val config: RealmConfiguration by lazy {
         FacetsPrefs::class,
         SleepPrefs::class,
         SyncPrefs::class,
-    )).name("Podcini.realm").schemaVersion(167)
+    )).name("Podcini.realm").schemaVersion(168)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -162,6 +163,20 @@ val config: RealmConfiguration by lazy {
                     migrationProg.value = "episodes $offset"
                 }
                 Log.d(TAG, "migrating DB below 163 complete")
+            }
+            if (oldRealm.schemaVersion() < 168) {
+                migrationStep.value = "migrating for 168"
+                Log.d(TAG, "migrating DB from below 168")
+                val feeds = oldRealm.query("Feed").query("type == 'YOUTUBE'").find().toList()
+                var count = 0
+                migrationProg.value = "feeds $count/${feeds.size}"
+                for (f in feeds) {
+                    val id = f.getValue<Long>("id")
+                    Log.d(TAG, "migrating feed: $id")
+                    val fNew = newRealm.query("Feed", "id == $id").first().find()
+                    fNew?.set("type", FeedType.YouTube.name)
+                    migrationProg.value = "feeds ${++count}/${feeds.size}"
+                }
             }
         })
         .compactOnLaunch()

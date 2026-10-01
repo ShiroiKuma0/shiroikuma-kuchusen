@@ -67,7 +67,6 @@ fun cancelMonitorFeeds() {
 
 fun monitorFeeds() {
     if (feedMonitorJob != null) return
-
     feedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
         realm.query(Feed::class).asFlow().collect { changes: ResultsChange<Feed> ->
             allFeeds = changes.list

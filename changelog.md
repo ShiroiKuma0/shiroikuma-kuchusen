@@ -1,3 +1,20 @@
+# 12.14.1
+
+* DB migration is performed to change feed type from "YOUTUBE" to "YouTube", affecting only YT feeds subscribed from older versions
+* further tuned keyboard behavior
+* in Player, fixed skip intro
+* amended the large widget
+	* playing in widget is audio only
+	* ensure episodes list stay stable
+	* fixed opening EpisodeInfo and PlayerUI
+* on topbar of Logs screen, added count of logs
+* in feed updater, ensure all errors are logged to the feed
+* feed Origin filter is now case sensitive
+* amended app initialization
+	* external service clients are only built when needed
+	* DB monitoring is only set up when needed
+	* creating notifications channels is moved to background
+
 # 12.14.0
 
 * in OnlineFeed, improved routine for checking existing feed

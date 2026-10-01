@@ -1,0 +1,10 @@
+* further tuned keyboard behavior
+* in Player, fixed skip intro
+* amended the large widget
+	* playing in widget is audio only
+	* ensure episodes list stay stable
+	* fixed opening EpisodeInfo and PlayerUI
+* on topbar of Logs screen, added count of logs
+* in feed updater, ensure all errors are logged to the feed
+* feed Origin filter is now case sensitive
+* amended app initialization

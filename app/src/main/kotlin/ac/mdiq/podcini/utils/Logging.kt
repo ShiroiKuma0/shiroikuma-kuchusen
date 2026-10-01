@@ -3,6 +3,7 @@
 package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.PodciniApp
 import ac.mdiq.podcini.PodciniApp.Companion.appMainScope
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.download.DownloadError
@@ -11,11 +12,12 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.DownloadResult.Companion.logDownloadResult
 import ac.mdiq.podcini.storage.model.Feed
+import android.app.Application
+import android.os.Build
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.code
 
 val toastMessagesFlow = MutableStateFlow<List<ToastMessage>>(emptyList())
 data class ToastMessage(
@@ -162,4 +164,8 @@ fun timeIt(msg: String) {
         Logd("TimeIt") { "$msg $time delta: $dTime from Start: $dsTime" }
         nanoTime = time
     }
+}
+
+fun logProcess(tag: String, where: String) {
+    Logd(tag) { "Process $where: pid=${android.os.Process.myPid()} process=${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) Application.getProcessName() else ""} app=${System.identityHashCode(PodciniApp.getApp())}" }
 }

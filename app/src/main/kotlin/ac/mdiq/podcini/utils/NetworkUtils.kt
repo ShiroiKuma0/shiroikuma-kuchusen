@@ -1,14 +1,11 @@
 package ac.mdiq.podcini.utils
 
-import ac.mdiq.podcini.PodciniApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.shared.PodciniHttpClient
 import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
@@ -25,11 +22,15 @@ import io.ktor.http.Url
 import io.ktor.http.isSuccess
 import io.ktor.http.toURI
 import io.ktor.http.userAgent
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.net.Inet4Address
@@ -152,7 +153,7 @@ object NetworkUtils {
 
     fun getFinalRedirectedUrl(url: String): String {
         return try {
-            val response = runBlocking { PodciniHttpClient.getKtorClient().get(url) { userAgent(PODCINI_USER_AGENT) } }
+            val response = runBlocking { getKtorClient().get(url) { userAgent(PODCINI_USER_AGENT) } }
             if (response.status.isSuccess()) response.call.request.url.toString() else url
         } catch (e: Exception) { url }
     }
@@ -215,8 +216,21 @@ object NetworkUtils {
 
     val networkMonitor: NetworkMonitor by lazy { NetworkMonitor() }
 
+    private var nmJob: Job? = null
+
+    fun monitorNetwork() {
+        if (nmJob == null) nmJob = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate).launch {
+            networkMonitor.networkFlow.collect { isConnected -> networkChangedDetected(isConnected) }
+        }
+    }
+
+    fun cancelMonitorNetwork() {
+        nmJob?.cancel()
+        nmJob = null
+    }
+
     class NetworkMonitor {
-        private val connectivityManager = PodciniApp.getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        private val connectivityManager = getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         var isConnected: Boolean = true
             private set
@@ -236,13 +250,11 @@ object NetworkUtils {
                     isConnected = true
                     trySend(true)
                 }
-
                 override fun onLost(network: Network) {
                     isConnected = false
                     isNetworkRestricted = false
                     trySend(false)
                 }
-
                 override fun onCapabilitiesChanged(n: Network, nc: NetworkCapabilities) {
                     val connected = nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
                     val isMetered = connectivityManager.isActiveNetworkMetered

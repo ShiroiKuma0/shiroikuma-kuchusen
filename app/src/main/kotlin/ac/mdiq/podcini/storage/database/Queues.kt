@@ -29,18 +29,16 @@ const val QUEUE_POSITION_DELTA = 10000L
 const val VIRTUAL_QUEUE_SIZE = 50
 
 val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
-var queuesLive = listOf<PlayQueue>()
+var queuesLive = realm.query(PlayQueue::class).sort("name").find()
     private set
 private var virQueue = PlayQueue()
-
-var queuesJob: Job? = null
+var queuesMonitorJob: Job? = null
 
 fun initQueues() {
     Logd(TAG) { "initQueues called " }
     timeIt("$TAG start of initQueues")
-    queuesLive = realm.query(PlayQueue::class).sort("name").find()
 
-    if (queuesJob == null) queuesJob = runOnIOScope {
+    runOnIOScope {
         Logd(TAG) { "starting queues queuesLive: ${queuesLive.size}" }
         if (queuesLive.isEmpty()) {
             realm.write {
@@ -60,9 +58,15 @@ fun initQueues() {
             val vq = PlayQueue()
             vq.id = VIRTUAL_QUEUE_ID
             vq.name = "Virtual"
-            upsertBlk(vq) {}
+            upsert(vq) {}
         }
+    }
+    timeIt("$TAG start of initQueues")
+}
 
+fun monitorQueues() {
+    if (queuesMonitorJob != null) return
+    queuesMonitorJob = runOnIOScope {
         queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
             queuesLive = changes.list
             queuesLive.find { it.id == actQueueFlow.value.id }?.let { actQueueFlow.value = it }
@@ -80,11 +84,10 @@ fun initQueues() {
             }
         }
     }
-    timeIt("$TAG start of initQueues")
 }
 
-fun cancelQueuesJob() {
-    queuesJob?.cancel()
+fun cancelQueuesMonitor() {
+    queuesMonitorJob?.cancel()
 }
 
 var curIndexInActQueue = -1

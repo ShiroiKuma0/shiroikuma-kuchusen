@@ -19,16 +19,30 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -102,17 +116,43 @@ var appTheme: AppThemes
         runOnIOScope { upsert(appPrefsFlow!!.value) { it.theme = t } }
     }
 
+class FieldBoundsTracker {
+    val bounds = mutableMapOf<Any, Rect>()
+    fun contains(p: Offset) = bounds.values.any { it.contains(p) }
+}
+
+val LocalFieldTracker = staticCompositionLocalOf { FieldBoundsTracker() }
+
+fun Modifier.trackAsTextField(): Modifier = composed {
+    val tracker = LocalFieldTracker.current
+    val key = remember { Any() }
+    DisposableEffect(key) { onDispose { tracker.bounds.remove(key) } }
+    onGloballyPositioned { tracker.bounds[key] = it.boundsInRoot() }
+}
+
 @Composable
 fun FocusClearingLayout(content: @Composable () -> Unit) {
     val focusManager = LocalFocusManager.current
-    Box(modifier = Modifier.fillMaxSize().pointerInput(Unit) {
-        awaitPointerEventScope {
-            while (true) {
-                val event = awaitPointerEvent(pass = PointerEventPass.Initial)
-                if (event.changes.any { it.pressed }) focusManager.clearFocus()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val tracker = remember { FieldBoundsTracker() }
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    CompositionLocalProvider(LocalFieldTracker provides tracker) {
+        Box(Modifier.fillMaxSize()
+            .onGloballyPositioned { origin = it.positionInRoot() }
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val down = event.changes.firstOrNull { it.changedToDown() }
+                        if (down != null && !tracker.contains(down.position + origin)) {
+                            focusManager.clearFocus()
+                            keyboard?.hide()
+                        }
+                    }
+                }
             }
-        }
-    }) { content() }
+        ) { content() }
+    }
 }
 
 @Composable

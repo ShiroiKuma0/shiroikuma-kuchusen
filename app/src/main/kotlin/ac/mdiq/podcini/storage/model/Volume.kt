@@ -111,12 +111,36 @@ fun cancelMonitorVolumes() {
     volumeMonitorJob = null
 }
 
+fun createVolumes() {
+    CoroutineScope(Dispatchers.IO).launch {
+        val archived = realm.query(Volume::class).query("id == $ARCHIVED_VOLUME_ID").first().find() ?: run {
+            val v = Volume()
+            v.id = ARCHIVED_VOLUME_ID
+            v.name = "Archived"
+            v.parentId = -1L
+            upsertBlk(v) {}
+        }
+        val frozen = realm.query(Volume::class).query("id == $FROZEN_VOLUME_ID").first().find() ?: run {
+            val v = Volume()
+            v.id = FROZEN_VOLUME_ID
+            v.name = "Frozen"
+            v.parentId = -1L
+            upsertBlk(v) {}
+        }
+        val catalog = realm.query(Volume::class).query("id == $CATALOG_VOLUME_ID_START").first().find() ?: run {
+            val v = Volume()
+            v.id = CATALOG_VOLUME_ID_START
+            v.name = "Catelogs"
+            v.parentId = -1L
+            upsertBlk(v) {}
+        }
+    }
+}
+
 fun monitorVolumes() {
     if (volumeMonitorJob != null) return
-
-    val volumeQuery = realm.query(Volume::class)
     volumeMonitorJob = CoroutineScope(Dispatchers.IO).launch {
-        volumeQuery.asFlow().collect { changes: ResultsChange<Volume> ->
+        realm.query(Volume::class).asFlow().collect { changes: ResultsChange<Volume> ->
             allVolumes = changes.list
             Logd(TAG) { "monitorVolumes volumes size: ${allVolumes.size}" }
             when (changes) {
@@ -133,27 +157,6 @@ fun monitorVolumes() {
                 }
             }
         }
-    }
-    val archived = realm.query(Volume::class).query("id == $ARCHIVED_VOLUME_ID").first().find() ?: run {
-        val v = Volume()
-        v.id = ARCHIVED_VOLUME_ID
-        v.name = "Archived"
-        v.parentId = -1L
-        upsertBlk(v) {}
-    }
-    val frozen = realm.query(Volume::class).query("id == $FROZEN_VOLUME_ID").first().find() ?: run {
-        val v = Volume()
-        v.id = FROZEN_VOLUME_ID
-        v.name = "Frozen"
-        v.parentId = -1L
-        upsertBlk(v) {}
-    }
-    val catalog = realm.query(Volume::class).query("id == $CATALOG_VOLUME_ID_START").first().find() ?: run {
-        val v = Volume()
-        v.id = CATALOG_VOLUME_ID_START
-        v.name = "Catelogs"
-        v.parentId = -1L
-        upsertBlk(v) {}
     }
 }
 

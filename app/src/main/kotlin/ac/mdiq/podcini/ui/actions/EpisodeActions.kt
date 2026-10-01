@@ -32,6 +32,7 @@ import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.TodoDialog
 import ac.mdiq.podcini.ui.compose.commonConfirms
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.ui.screens.Search
 import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.ui.screens.setSearchTerms
@@ -458,7 +459,7 @@ class SearchSelected : EpisodeAction() {
                 } }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showSearchDialog = false },
                 title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
-                text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
+                text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().trackAsTextField().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
                 confirmButton = {
                     if (selectedText.isNotEmpty()) {
                         Button(modifier = Modifier.padding(top = 8.dp), onClick = {

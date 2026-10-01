@@ -273,11 +273,9 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
 
     fun start() {
         timeIt("$TAG start of init vm $playerId")
-
         curIdJob = viewModelScope.launch {
             theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.curMediaFlow?.map { media -> player to media } ?: flowOf(null) }
-                .distinctUntilChanged { old, new -> old?.second?.id == new?.second?.id }
-                .collect { playerAndMedia ->
+                .distinctUntilChanged { old, new -> old?.second?.id == new?.second?.id }.collect { playerAndMedia ->
                     val (player, media) = playerAndMedia ?: (null to null)
                     episodeFeed = media?.feed
                     volumeAdaption = VolumeAdaptionSetting.OFF
@@ -286,11 +284,10 @@ class AVPlayerVM(val playerId: Int): ViewModel() {
                 }
         }
         curStateJob = viewModelScope.launch {
-            theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.playWhenReadyFlow ?: flowOf(false) }
-                .collect { playWhenReady ->
-                    showPlayButton = !playWhenReady
-                    Logd(TAG) { "playerId: $playerId playing=$playWhenReady showPlayButton=$showPlayButton" }
-                }
+            theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.playWhenReadyFlow ?: flowOf(false) }.collect { playWhenReady ->
+                showPlayButton = !playWhenReady
+                Logd(TAG) { "playerId: $playerId playing=$playWhenReady showPlayButton=$showPlayButton" }
+            }
         }
         curSpeedJob = viewModelScope.launch { theatres[playerId].mPlayerFlow.flatMapLatest { player -> player?.curPlayerSpeedFlow ?: flowOf(1f) }.distinctUntilChanged().collect { speed ->
             curPlaybackSpeed = speed

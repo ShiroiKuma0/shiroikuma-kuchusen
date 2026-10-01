@@ -22,6 +22,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.Logd
 import android.app.Activity
 import android.content.Intent
@@ -63,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -131,7 +133,8 @@ fun PlaybackScreen() {
                 Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 var showIcon by remember { mutableStateOf(false) }
                 var newName by remember { mutableStateOf(appAttribs.langsPreferred.joinToString(", ")) }
-                TextField(value = newName, singleLine = true, label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) },
+                val focusManager = LocalFocusManager.current
+                TextField(value = newName, singleLine = true, modifier = Modifier.trackAsTextField(), label = { Text("Case sensitive. Separate with ,", style = MaterialTheme.typography.bodySmall) },
                     onValueChange = {
                         newName = it
                         showIcon =  true
@@ -146,6 +149,7 @@ fun PlaybackScreen() {
                                     }
                                     withContext(Dispatchers.Main) { forcePlaybackReset = true }
                                 }
+                                focusManager.clearFocus()
                                 showIcon =  false
                             }))
                     })

@@ -3,6 +3,9 @@ package ac.mdiq.podcini.playback
 import ac.mdiq.podcini.PodciniApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.AppConfig
+import ac.mdiq.podcini.config.AppConfig.startLiveMonitor
+import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -21,6 +24,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.LogeFor
 import ac.mdiq.podcini.utils.LogsFor
 import ac.mdiq.podcini.utils.LogtFor
+import ac.mdiq.podcini.utils.logProcess
 import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
 import android.annotation.SuppressLint
@@ -351,6 +355,9 @@ class PlaybackService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         AppConfig.initialize()
+        ensureSourceClients()
+        startLiveMonitor()
+        logProcess(TAG, "onCreate")
 
         Logd(TAG) { "onCreate Service created." }
         timeIt("$TAG onCreate Service")

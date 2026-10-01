@@ -63,6 +63,7 @@ import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.complementaryColorOf
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -1269,75 +1270,120 @@ fun LibraryScreen() {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
-                    Column(Modifier.fillMaxSize()) {
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            Logd(TAG) { "appAttribs.langSet: ${appAttribs.langSet.size}" }
-                            if (appAttribs.langSet.isNotEmpty()) {
-                                val langs = remember(appAttribs.langSet.size) { appAttribs.langSet.toList().sorted().toMutableStateList() }
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(langs.size) { mutableStateOf(false) } }
-                                    LaunchedEffect(reset) {
-                                        Logd(TAG) { "LaunchedEffect(reset) lang" }
-                                        for (index in selectedList.indices) {
-                                            if (langs[index] in subPrefs.langsSel) selectedList[index].value = true
-                                            langFull = selectedList.count { it.value } == selectedList.size
-                                        }
-                                    }
-                                    var expandRow by remember { mutableStateOf(false) }
-                                    Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                        Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (langFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                        if (expandRow) {
-                                            val cb = {
-                                                runOnIOScope {
-                                                    val langsSel = mutableSetOf<String>()
-                                                    for (i in langs.indices) if (selectedList[i].value) langsSel.add(langs[i])
-                                                    upsert(subPrefs) {
-                                                        it.langsSel = langsSel.toRealmSet()
-                                                        it.feedsFilteredInc()
-                                                    }
-                                                }
-                                                Logd(TAG) { "langsSel: ${subPrefs.langsSel.size} ${langs.size}" }
-                                            }
-                                            SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
-                                        }
-                                    }
-                                    if (expandRow) ScrollRowGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
-                                            onClick = {
-                                                selectedList[index].value = !selectedList[index].value
-                                                runOnIOScope {
-                                                    val langsSel = subPrefs.langsSel.toMutableSet()
-                                                    if (selectedList[index].value) langsSel.add(langs[index])
-                                                    else langsSel.remove(langs[index])
-                                                    upsert(subPrefs) {
-                                                        it.langsSel = langsSel.toRealmSet()
-                                                        it.feedsFilteredInc()
-                                                    }
-                                                }
-                                            },
-                                        ) { Text(text = langs[index], maxLines = 1, color = textColor) }
-                                    }
-                                }
-                            }
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                        Logd(TAG) { "appAttribs.langSet: ${appAttribs.langSet.size}" }
+                        if (appAttribs.langSet.isNotEmpty()) {
+                            val langs = remember(appAttribs.langSet.size) { appAttribs.langSet.toList().sorted().toMutableStateList() }
                             Column(modifier = Modifier.fillMaxWidth()) {
-                                val selectedList = remember { MutableList(vm.queueNames.size) { mutableStateOf(false) } }
+                                val selectedList = remember { MutableList(langs.size) { mutableStateOf(false) } }
                                 LaunchedEffect(reset) {
-                                    Logd(TAG) { "LaunchedEffect(reset) queue" }
+                                    Logd(TAG) { "LaunchedEffect(reset) lang" }
                                     for (index in selectedList.indices) {
-                                        if (vm.queueIds[index] in subPrefs.queueSelIds) selectedList[index].value = true
-                                        queuesFull = selectedList.count { it.value } == selectedList.size
+                                        if (langs[index] in subPrefs.langsSel) selectedList[index].value = true
+                                        langFull = selectedList.count { it.value } == selectedList.size
                                     }
                                 }
                                 var expandRow by remember { mutableStateOf(false) }
                                 Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                    Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queuesFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (langFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         val cb = {
                                             runOnIOScope {
-                                                val qSelIds = mutableSetOf<Long>()
-                                                for (i in vm.queueNames.indices) if (selectedList[i].value) qSelIds.add(vm.queueIds[i])
+                                                val langsSel = mutableSetOf<String>()
+                                                for (i in langs.indices) if (selectedList[i].value) langsSel.add(langs[i])
                                                 upsert(subPrefs) {
-                                                    it.queueSelIds = qSelIds.toRealmSet()
+                                                    it.langsSel = langsSel.toRealmSet()
+                                                    it.feedsFilteredInc()
+                                                }
+                                            }
+                                            Logd(TAG) { "langsSel: ${subPrefs.langsSel.size} ${langs.size}" }
+                                        }
+                                        SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                                    }
+                                }
+                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
+                                        onClick = {
+                                            selectedList[index].value = !selectedList[index].value
+                                            runOnIOScope {
+                                                val langsSel = subPrefs.langsSel.toMutableSet()
+                                                if (selectedList[index].value) langsSel.add(langs[index])
+                                                else langsSel.remove(langs[index])
+                                                upsert(subPrefs) {
+                                                    it.langsSel = langsSel.toRealmSet()
+                                                    it.feedsFilteredInc()
+                                                }
+                                            }
+                                        },
+                                    ) { Text(text = langs[index], maxLines = 1, color = textColor) }
+                                }
+                            }
+                        }
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            val selectedList = remember { MutableList(vm.queueNames.size) { mutableStateOf(false) } }
+                            LaunchedEffect(reset) {
+                                Logd(TAG) { "LaunchedEffect(reset) queue" }
+                                for (index in selectedList.indices) {
+                                    if (vm.queueIds[index] in subPrefs.queueSelIds) selectedList[index].value = true
+                                    queuesFull = selectedList.count { it.value } == selectedList.size
+                                }
+                            }
+                            var expandRow by remember { mutableStateOf(false) }
+                            Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queuesFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                if (expandRow) {
+                                    val cb = {
+                                        runOnIOScope {
+                                            val qSelIds = mutableSetOf<Long>()
+                                            for (i in vm.queueNames.indices) if (selectedList[i].value) qSelIds.add(vm.queueIds[i])
+                                            upsert(subPrefs) {
+                                                it.queueSelIds = qSelIds.toRealmSet()
+                                                it.feedsFilteredInc()
+                                            }
+                                        }
+                                        Unit
+                                    }
+                                    SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                                }
+                            }
+                            if (expandRow) ScrollRowGrid(columns = 3, itemCount = vm.queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
+                                    onClick = {
+                                        selectedList[index].value = !selectedList[index].value
+                                        runOnIOScope {
+                                            val qSelIds = subPrefs.queueSelIds.toMutableSet()
+                                            if (selectedList[index].value) qSelIds.add(vm.queueIds[index])
+                                            else qSelIds.remove(vm.queueIds[index])
+                                            upsert(subPrefs) {
+                                                it.queueSelIds = qSelIds.toRealmSet()
+                                                it.feedsFilteredInc()
+                                            }
+                                        }
+                                    },
+                                ) { Text(text = vm.queueNames[index], maxLines = 1, color = textColor) }
+                            }
+                        }
+                        if (appAttribs.feedTagSet.isNotEmpty()) {
+                            val tagList = remember(appAttribs.feedTagSet.size) { appAttribs.feedTagSet.toList().sorted().toMutableStateList() }
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
+                                LaunchedEffect(reset) {
+                                    Logd(TAG) { "LaunchedEffect(reset) tag" }
+                                    for (index in selectedList.indices) {
+                                        if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
+                                        tagsFull = selectedList.count { it.value } == selectedList.size
+                                    }
+                                }
+                                var expandRow by remember { mutableStateOf(false) }
+                                Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                    Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    if (expandRow) {
+                                        val cb = {
+                                            runOnIOScope {
+                                                val tagsSel = mutableSetOf<String>()
+                                                for (i in tagList.indices) if (selectedList[i].value) tagsSel.add(tagList[i])
+                                                upsert(subPrefs) {
+                                                    it.tagsSel = tagsSel.toRealmSet()
                                                     it.feedsFilteredInc()
                                                 }
                                             }
@@ -1346,183 +1392,136 @@ fun LibraryScreen() {
                                         SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                     }
                                 }
-                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = vm.queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
                                             runOnIOScope {
-                                                val qSelIds = subPrefs.queueSelIds.toMutableSet()
-                                                if (selectedList[index].value) qSelIds.add(vm.queueIds[index])
-                                                else qSelIds.remove(vm.queueIds[index])
+                                                val tagsSel = subPrefs.tagsSel.toMutableSet()
+                                                if (selectedList[index].value) tagsSel.add(tagList[index])
+                                                else tagsSel.remove(tagList[index])
                                                 upsert(subPrefs) {
-                                                    it.queueSelIds = qSelIds.toRealmSet()
+                                                    it.tagsSel = tagsSel.toRealmSet()
                                                     it.feedsFilteredInc()
                                                 }
                                             }
                                         },
-                                    ) { Text(text = vm.queueNames[index], maxLines = 1, color = textColor) }
+                                    ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
                                 }
                             }
-                            if (appAttribs.feedTagSet.isNotEmpty()) {
-                                val tagList = remember(appAttribs.feedTagSet.size) { appAttribs.feedTagSet.toList().sorted().toMutableStateList() }
+                        }
+                        var selectNone by remember { mutableStateOf(false) }
+                        for (item in FeedFilter.FeedFilterGroup.entries) {
+                            if (item.values.size == 2) {
+                                Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
+                                    var selectedIndex by remember(selectNone) { mutableIntStateOf(
+                                        if (selectNone) -1
+                                        else if (filter != null) {
+                                            if (item.values[0].filterId in filter.properties) 0
+                                            else if (item.values[1].filterId in filter.properties) 1
+                                            else -1
+                                        } else -1
+                                    ) }
+                                    Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
+                                    Spacer(Modifier.width(30.dp))
+                                    OutlinedButton(
+                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) borderColor else buttonAltColor),
+                                        onClick = {
+                                            if (selectedIndex != 0) {
+                                                selectNone = false
+                                                selectedIndex = 0
+                                                filterValues.add(item.values[0].filterId)
+                                                filterValues.remove(item.values[1].filterId)
+                                            } else {
+                                                selectedIndex = -1
+                                                filterValues.remove(item.values[0].filterId)
+                                            }
+                                            onFilterChanged(filterValues)
+                                        },
+                                    ) { Text(text = if (item.values[0].displayName > 0) stringResource(item.values[0].displayName) else item.values[0].filterId, color = textColor) }
+                                    Spacer(Modifier.width(20.dp))
+                                    OutlinedButton(
+                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) borderColor else buttonAltColor),
+                                        onClick = {
+                                            if (selectedIndex != 1) {
+                                                selectNone = false
+                                                selectedIndex = 1
+                                                filterValues.add(item.values[1].filterId)
+                                                filterValues.remove(item.values[0].filterId)
+                                            } else {
+                                                selectedIndex = -1
+                                                filterValues.remove(item.values[1].filterId)
+                                            }
+                                            onFilterChanged(filterValues)
+                                        },
+                                    ) { Text(text = if (item.values[1].displayName > 0) stringResource(item.values[1].displayName) else item.values[1].filterId, color = textColor) } //                                    Spacer(Modifier.weight(0.5f))
+                                }
+                            } else {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
+                                    val selectedList = remember { MutableList(item.values.size) { mutableStateOf(false) } }
+                                    var allOrNone by remember { mutableStateOf(false) }
                                     LaunchedEffect(reset) {
-                                        Logd(TAG) { "LaunchedEffect(reset) tag" }
-                                        for (index in selectedList.indices) {
-                                            if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
-                                            tagsFull = selectedList.count { it.value } == selectedList.size
-                                        }
+                                        Logd(TAG) { "LaunchedEffect(reset) filter" }
+                                        if (filter != null) {
+                                            for (index in selectedList.indices) {
+                                                if (item.values[index].filterId in filter.properties) selectedList[index].value = true
+                                            }
+                                            val c = selectedList.count { it.value }
+                                            allOrNone = c == 0 || c == item.values.size
+                                        } else allOrNone = true
                                     }
                                     var expandRow by remember { mutableStateOf(false) }
                                     Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                        Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                        Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
                                             val cb = {
-                                                runOnIOScope {
-                                                    val tagsSel = mutableSetOf<String>()
-                                                    for (i in tagList.indices) if (selectedList[i].value) tagsSel.add(tagList[i])
-                                                    upsert(subPrefs) {
-                                                        it.tagsSel = tagsSel.toRealmSet()
-                                                        it.feedsFilteredInc()
-                                                    }
+                                                for (i in item.values.indices) {
+                                                    if (selectedList[i].value) filterValues.add(item.values[i].filterId)
+                                                    else filterValues.remove(item.values[i].filterId)
                                                 }
-                                                Unit
+                                                val c = selectedList.count { it.value }
+                                                allOrNone = c == 0 || c == item.values.size
+                                                onFilterChanged(filterValues)
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
+                                    if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                        if (selectNone) selectedList[index].value = false
+                                        OutlinedButton(
+                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
                                             onClick = {
+                                                selectNone = false
                                                 selectedList[index].value = !selectedList[index].value
-                                                runOnIOScope {
-                                                    val tagsSel = subPrefs.tagsSel.toMutableSet()
-                                                    if (selectedList[index].value) tagsSel.add(tagList[index])
-                                                    else tagsSel.remove(tagList[index])
-                                                    upsert(subPrefs) {
-                                                        it.tagsSel = tagsSel.toRealmSet()
-                                                        it.feedsFilteredInc()
-                                                    }
-                                                }
-                                            },
-                                        ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
-                                    }
-                                }
-                            }
-                            var selectNone by remember { mutableStateOf(false) }
-                            for (item in FeedFilter.FeedFilterGroup.entries) {
-                                if (item.values.size == 2) {
-                                    Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
-                                        var selectedIndex by remember(selectNone) { mutableIntStateOf(
-                                            if (selectNone) -1
-                                            else if (filter != null) {
-                                                if (item.values[0].filterId in filter.properties) 0
-                                                else if (item.values[1].filterId in filter.properties) 1
-                                                else -1
-                                            } else -1
-                                        ) }
-                                        Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
-                                        Spacer(Modifier.width(30.dp))
-                                        OutlinedButton(
-                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) borderColor else buttonAltColor),
-                                            onClick = {
-                                                if (selectedIndex != 0) {
-                                                    selectNone = false
-                                                    selectedIndex = 0
-                                                    filterValues.add(item.values[0].filterId)
-                                                    filterValues.remove(item.values[1].filterId)
-                                                } else {
-                                                    selectedIndex = -1
-                                                    filterValues.remove(item.values[0].filterId)
-                                                }
-                                                onFilterChanged(filterValues)
-                                            },
-                                        ) { Text(text = if (item.values[0].displayName > 0) stringResource(item.values[0].displayName) else item.values[0].filterId, color = textColor) }
-                                        Spacer(Modifier.width(20.dp))
-                                        OutlinedButton(
-                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) borderColor else buttonAltColor),
-                                            onClick = {
-                                                if (selectedIndex != 1) {
-                                                    selectNone = false
-                                                    selectedIndex = 1
-                                                    filterValues.add(item.values[1].filterId)
-                                                    filterValues.remove(item.values[0].filterId)
-                                                } else {
-                                                    selectedIndex = -1
-                                                    filterValues.remove(item.values[1].filterId)
-                                                }
-                                                onFilterChanged(filterValues)
-                                            },
-                                        ) { Text(text = if (item.values[1].displayName > 0) stringResource(item.values[1].displayName) else item.values[1].filterId, color = textColor) } //                                    Spacer(Modifier.weight(0.5f))
-                                    }
-                                } else {
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        val selectedList = remember { MutableList(item.values.size) { mutableStateOf(false) } }
-                                        var allOrNone by remember { mutableStateOf(false) }
-                                        LaunchedEffect(reset) {
-                                            Logd(TAG) { "LaunchedEffect(reset) filter" }
-                                            if (filter != null) {
-                                                for (index in selectedList.indices) {
-                                                    if (item.values[index].filterId in filter.properties) selectedList[index].value = true
-                                                }
+                                                if (selectedList[index].value) filterValues.add(item.values[index].filterId)
+                                                else filterValues.remove(item.values[index].filterId)
                                                 val c = selectedList.count { it.value }
                                                 allOrNone = c == 0 || c == item.values.size
-                                            } else allOrNone = true
-                                        }
-                                        var expandRow by remember { mutableStateOf(false) }
-                                        Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                            Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                            if (expandRow) {
-                                                val cb = {
-                                                    for (i in item.values.indices) {
-                                                        if (selectedList[i].value) filterValues.add(item.values[i].filterId)
-                                                        else filterValues.remove(item.values[i].filterId)
-                                                    }
-                                                    val c = selectedList.count { it.value }
-                                                    allOrNone = c == 0 || c == item.values.size
-                                                    onFilterChanged(filterValues)
-                                                }
-                                                SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
-                                            }
-                                        }
-                                        if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                            if (selectNone) selectedList[index].value = false
-                                            OutlinedButton(
-                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else borderColor),
-                                                onClick = {
-                                                    selectNone = false
-                                                    selectedList[index].value = !selectedList[index].value
-                                                    if (selectedList[index].value) filterValues.add(item.values[index].filterId)
-                                                    else filterValues.remove(item.values[index].filterId)
-                                                    val c = selectedList.count { it.value }
-                                                    allOrNone = c == 0 || c == item.values.size
-                                                    onFilterChanged(filterValues)
-                                                },
-                                            ) { Text(text = if (item.values[index].displayName > 0) stringResource(item.values[index].displayName) else item.values[index].filterId, maxLines = 1, color = textColor) }
-                                        }
+                                                onFilterChanged(filterValues)
+                                            },
+                                        ) { Text(text = if (item.values[index].displayName > 0) stringResource(item.values[index].displayName) else item.values[index].filterId, maxLines = 1, color = textColor) }
                                     }
                                 }
                             }
-                            Row(modifier = Modifier.fillMaxWidth()) {
-                                Spacer(Modifier.weight(0.3f))
-                                Button(onClick = {
-                                    runOnIOScope {
-                                        upsert(subPrefs) {
-                                            it.tagsSel = appAttribs.feedTagSet.toRealmSet()
-                                            it.queueSelIds = vm.queueIds.toRealmSet()
-                                            it.langsSel = appAttribs.langSet.toRealmSet()
-                                            it.feedsFilteredInc()
-                                        }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Spacer(Modifier.weight(0.3f))
+                            Button(onClick = {
+                                runOnIOScope {
+                                    upsert(subPrefs) {
+                                        it.tagsSel = appAttribs.feedTagSet.toRealmSet()
+                                        it.queueSelIds = vm.queueIds.toRealmSet()
+                                        it.langsSel = appAttribs.langSet.toRealmSet()
+                                        it.feedsFilteredInc()
                                     }
-                                    selectNone = true
-                                    reset++
-                                    onFilterChanged(setOf(""))
-                                }) { Text(stringResource(R.string.reset)) }
-                                Spacer(Modifier.weight(0.4f))
-                                Button(onClick = { onDismiss() }) { Text(stringResource(R.string.close)) }
-                                Spacer(Modifier.weight(0.3f))
-                            }
+                                }
+                                selectNone = true
+                                reset++
+                                onFilterChanged(setOf(""))
+                            }) { Text(stringResource(R.string.reset)) }
+                            Spacer(Modifier.weight(0.4f))
+                            Button(onClick = { onDismiss() }) { Text(stringResource(R.string.close)) }
+                            Spacer(Modifier.weight(0.3f))
                         }
                     }
                 }
@@ -1535,7 +1534,7 @@ fun LibraryScreen() {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf("") }
-                    TextField(value = name, singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+                    TextField(value = name, singleLine = true, onValueChange = { name = it }, modifier = Modifier.trackAsTextField(), label = { Text(stringResource(R.string.new_namee)) })
                     Row {
                         Button({ onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                         Spacer(Modifier.weight(1f))
@@ -1579,8 +1578,8 @@ fun LibraryScreen() {
                         Text(appAttribs.name + " at: " + (ip ?: "address unknown"))
                         Text(stringResource(R.string.ports_sum), style = MaterialTheme.typography.bodySmall)
                         if (receiveJob == null) Row(modifier = Modifier.fillMaxWidth().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
-                            TextField(value = tcpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { tcpPort = it.toIntOrNull() ?: 0 })
+                            TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.trackAsTextField().weight(1f), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                            TextField(value = tcpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.trackAsTextField().weight(1f), onValueChange = { tcpPort = it.toIntOrNull() ?: 0 })
                         } else Text("Receiving at port $tcpPort")
                         if (receiveJob == null) Row {
                             Text(stringResource(R.string.content_type), modifier = Modifier.padding(end = 5.dp))
@@ -1790,7 +1789,7 @@ fun LibraryScreen() {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
                     var name by remember { mutableStateOf(volume.name) }
-                    TextField(value = name, singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
+                    TextField(value = name, singleLine = true, onValueChange = { name = it }, modifier = Modifier.trackAsTextField(), label = { Text(stringResource(R.string.rename)) })
                     var parent by remember { mutableStateOf<Volume?>(null) }
                     val custom = "Custom"
                     val none = "None"

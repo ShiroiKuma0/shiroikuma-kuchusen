@@ -87,6 +87,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -324,7 +325,8 @@ fun PlaybackSpeedFullDialog(playerId: Int, indexDefault: Int, maxSpeed: Float, o
                     var showSet by remember { mutableStateOf(false) }
                     var unit by remember { mutableStateOf("Ratio") }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextField(value = pitchStr, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("float", style = MaterialTheme.typography.bodySmall) }, singleLine = true, modifier = Modifier.width(100.dp),
+                        val focusManager = LocalFocusManager.current
+                        TextField(value = pitchStr, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("float", style = MaterialTheme.typography.bodySmall) }, singleLine = true, modifier = Modifier.trackAsTextField().width(100.dp),
                             onValueChange = {
                                 val value = it.toFloatOrNull()
                                 if (it.isEmpty() || value != null) pitchStr = it
@@ -343,6 +345,7 @@ fun PlaybackSpeedFullDialog(playerId: Int, indexDefault: Int, maxSpeed: Float, o
                                     if (feedPitch) upsert(player.curMediaFlow.value!!.feed!!) { it.playPitch = pitch }
                                     if (glPitch) upsert(appPrefsFlow!!.value) { it.playbackPitch = pitch }
                                 }
+                                focusManager.clearFocus()
                             }) }
                         )
                         Checkbox(checked = unit == "Hz", onCheckedChange = { unit = "Hz" })
@@ -470,7 +473,7 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                         Checkbox(checked = toEnd, onCheckedChange = { toEnd = it })
                         Text(stringResource(R.string.end_episode), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                     }
-                    if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
+                    if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true, modifier = Modifier.trackAsTextField(),
                         onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
                     if (curMedia0 != null) Button(modifier = Modifier.fillMaxWidth(), onClick = {
                         if (!PlaybackService.isRunning) {
@@ -527,9 +530,9 @@ fun SleepTimerDialog(onDismiss: () -> Unit) {
                     var to by remember { mutableStateOf(autoEnableTo.toString()) }
                     Text(stringResource(R.string.auto_enable_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 10.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp).fillMaxWidth()) {
-                        TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.trackAsTextField().weight(1f).padding(end = 8.dp),
                             onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) from = it })
-                        TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.trackAsTextField().weight(1f).padding(end = 8.dp),
                             onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) to = it })
                         IconButton(onClick = {
                             runOnIOScope {

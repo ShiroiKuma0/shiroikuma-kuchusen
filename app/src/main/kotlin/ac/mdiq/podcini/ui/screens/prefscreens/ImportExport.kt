@@ -45,6 +45,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.textColor
+import ac.mdiq.podcini.ui.compose.trackAsTextField
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -92,6 +93,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -482,8 +484,9 @@ fun ImportExportScreen() {
                 Text(stringResource(R.string.pref_auto_backup_limit), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 var count by remember { mutableStateOf(appPrefs.autoBackupLimit.toString()) }
                 var showIcon by remember { mutableStateOf(false) }
+                val focusManager = LocalFocusManager.current
                 TextField(value = count, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true, modifier = Modifier.weight(0.4f),  label = { Text("1:9", style = MaterialTheme.typography.bodySmall) },
+                    singleLine = true, modifier = Modifier.trackAsTextField().weight(0.4f),  label = { Text("1:9", style = MaterialTheme.typography.bodySmall) },
                     onValueChange = {
                         val intVal = it.toIntOrNull()
                         if (it.isEmpty() || (intVal != null && intVal>0 && intVal<10)) {
@@ -496,6 +499,7 @@ fun ImportExportScreen() {
                             modifier = Modifier.size(30.dp).clickable {
                                 if (count.isEmpty()) count = "0"
                                 runOnIOScope { upsert(appPrefs) { p-> p.autoBackupLimit = count.toIntOrNull()?:0 } }
+                                focusManager.clearFocus()
                                 showIcon = false
                             })
                     })

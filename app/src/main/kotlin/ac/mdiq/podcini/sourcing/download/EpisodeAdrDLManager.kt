@@ -9,6 +9,8 @@ import ac.mdiq.podcini.playback.actQueueFlow
 import ac.mdiq.podcini.sourcing.download.DownloadRequest.Companion.requestFor
 import ac.mdiq.podcini.sourcing.download.EpisodeAdrDLManager.Companion.WORK_DATA_PROGRESS
 import ac.mdiq.podcini.sourcing.download.EpisodeDLManager.Companion.updateDB
+import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.appAttribsFlow
 import ac.mdiq.podcini.storage.database.appPrefsFlow
@@ -146,6 +148,7 @@ class EpisodesDownloadWorker(context: Context, params: WorkerParameters) : Corou
 
     override suspend fun doWork(): Result = coroutineScope {
         initialize()
+        ensureSourceClients()
         getForegroundInfo()
 
         Logd(TAG) { "starting doWork" }

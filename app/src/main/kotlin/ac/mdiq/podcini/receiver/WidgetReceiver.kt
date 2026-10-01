@@ -9,9 +9,10 @@ import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.ensureAController
 import ac.mdiq.podcini.playback.theatres
-import ac.mdiq.podcini.playback.PlaybackService.Companion.isCasting
-import ac.mdiq.podcini.playback.PlaybackService.Companion.isRunning
-import ac.mdiq.podcini.playback.PlaybackService.Companion.playbackService
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
 import ac.mdiq.podcini.storage.database.realm
@@ -22,15 +23,17 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.WidgetEpisode
 import ac.mdiq.podcini.storage.model.toWidget
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.specs.VideoMode
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.logProcess
 import android.content.Context
 import android.content.Intent
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +79,9 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
@@ -85,8 +91,7 @@ class WidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = PodciniWidget()
 }
 
-val episodesJson = stringPreferencesKey("episodes_json")
-
+//val episodesJson = stringPreferencesKey("episodes_json")
 
 class PodciniWidget : GlanceAppWidget() {
     override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
@@ -97,40 +102,21 @@ class PodciniWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         initialize()
-
-        //        Logd(TAG) { "provideGlance id: $id actQueue ${actQueue.name}" }
-
-        var episodes: List<WidgetEpisode> = listOf()
+        ensureSourceClients()
+        logProcess(TAG, "provideGlance")
 
         provideContent { GlanceTheme {
             Logd(TAG) { "provideGlance in provideContent id: $id" }
 
             val prefs = currentState<Preferences>()
-
-            // these unfortunately have to be reset every time
-            var markedId = prefs[MARKED_EPISODE_KEY]
-            var queueName = prefs [stringPreferencesKey("queue_name")] ?: "Default"
-            var queueId = prefs[longPreferencesKey("queue_id")] ?: 0L
-            var queueSize = prefs[intPreferencesKey("queue_size")] ?: 0
-
+            val json = prefs[stringPreferencesKey("episodes")] ?: "[]"
+            val episodes = Json.decodeFromString<List<WidgetEpisode>>(json)
+            val markedId = prefs[MARKED_EPISODE_KEY]
+            val queueName = prefs [stringPreferencesKey("queue_name")] ?: "Default"
+            val queueId = prefs[longPreferencesKey("queue_id")] ?: 0L
+            val queueSize = prefs[intPreferencesKey("queue_size")] ?: 0
             val updateYpe = prefs[stringPreferencesKey("update_type")] ?: ""
             Logd(TAG) { "provideGlance updateYpe: $updateYpe" }
-
-            when (updateYpe) {
-                "update" -> {
-                    val json = prefs[stringPreferencesKey("episodes")] ?: "[]"
-                    episodes = Json.decodeFromString<List<WidgetEpisode>>(json)
-                }
-                "episode" -> markedId = prefs[MARKED_EPISODE_KEY]
-                "queue" -> {
-                    queueId = prefs[longPreferencesKey("queue_id")] ?: 0L
-                    queueName = prefs [stringPreferencesKey("queue_name")] ?: "Default"
-                    queueSize = prefs[intPreferencesKey("queue_size")] ?: 0
-                    val json = prefs[stringPreferencesKey("episodes")] ?: "[]"
-                    episodes = Json.decodeFromString<List<WidgetEpisode>>(json)
-                    Logd(TAG) { "provideGlance episodes: ${episodes.size}" }
-                }
-            }
 
             Column(modifier = GlanceModifier.fillMaxSize().background(brColorProvider).padding(2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -143,12 +129,14 @@ class PodciniWidget : GlanceAppWidget() {
                     Spacer(GlanceModifier.width(10.dp))
                     Image(provider = ImageProvider(R.drawable.ic_refresh), contentDescription = "Refresh", colorFilter = ColorFilter.tint(textColorProvider), modifier = GlanceModifier.size(48.dp).clickable(actionRunCallback<RefreshAction>(parameters = actionParametersOf(QUEUE_ID_KEY to queueId)), rippleOverride = R.drawable.widget_ripple).background(ImageProvider(R.drawable.widget_ripple)))
                 }
+                val curIdFlow = remember { theatres[0].mPlayerFlow.flatMapLatest { it?.curMediaFlow ?: flowOf(null) }.map { it?.id } }
+                val curId by curIdFlow.collectAsState(initial = null)
                 LazyColumn(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
                     items(episodes) { episode ->
                         Row(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Image(provider = ImageProvider(R.drawable.ic_close_white), contentDescription = "remove", colorFilter = ColorFilter.tint(buttonColorProvider),
                                 modifier = GlanceModifier.size(36.dp).clickable(actionRunCallback<RemoveAction>(parameters = actionParametersOf(EPISODE_ID_KEY to episode.id, QUEUE_ID_KEY to queueId)), rippleOverride = R.drawable.widget_ripple).background(ImageProvider(R.drawable.widget_ripple)))
-                            val isMarked = episode.id == markedId || episode.id == theatres[0].mPlayerFlow.value?.curMediaFlow?.value?.id
+                            val isMarked = episode.id == markedId || episode.id == curId
                             Column(modifier = GlanceModifier.defaultWeight().clickable(actionStartActivity<EpisodeInfoActivity>(parameters = actionParametersOf(EPISODE_INFO_ID_KEY to episode.id)), rippleOverride = R.drawable.widget_ripple).background(ImageProvider(R.drawable.widget_ripple))) {
                                 Text(episode.t ?: "", style = TextStyle(color = textColorProvider, fontSize = 13.sp, fontWeight = if (isMarked) FontWeight.Bold else FontWeight.Normal), maxLines = 1)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -249,8 +237,11 @@ class RemoveAction : ActionCallback {
 
 class PlayAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        Logd(TAG) { "onReceive" }
+        initialize()
+        ensureSourceClients()
+        logProcess(TAG, "PlayAction")
         ensureAController()
+        if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
         updateAppWidgetState(context, glanceId) { prefs ->
             val id = parameters[EPISODE_ID_KEY]
             if (id == null) {
@@ -265,7 +256,8 @@ class PlayAction : ActionCallback {
             prefs[MARKED_EPISODE_KEY] = id
             prefs[stringPreferencesKey("update_type")] = "episode"
             Logd(TAG) { "PlayAction onAction episode: ${episode.title}" }
-            withContext(Dispatchers.Main) { PlaybackStarter(episode).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start() }
+
+            withContext(Dispatchers.Main) { PlaybackStarter(episode).setWidgetId(glanceId.toString()).setAudioOnly().shouldStreamThisTime(null).start() }
         }
         PodciniWidget().update(context, glanceId)
     }
@@ -273,8 +265,11 @@ class PlayAction : ActionCallback {
 
 class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        Logd(TAG) { "onReceive" }
+        initialize()
+        ensureSourceClients()
+        logProcess(TAG, "ToggleAction")
         ensureAController()
+        if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
         val player = theatres[0].mPlayerFlow.value
         val episode = player?.curMediaFlow?.value
         Logd(TAG) { "ToggleAction onAction isPlaying: $theatres[0].isPlaying" }
@@ -285,20 +280,7 @@ class ToggleAction : ActionCallback {
                 if (e != null) player?.setAsCurMedia(e)
             }
         } else {
-            withContext(Dispatchers.Main) {
-                if (episode.mediaType == MediaType.VIDEO && !player.isPlaying && (episode.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                    player.playPause()
-                    val mediaType = episode.mediaType
-                    val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else player.curState.curIsVideo
-                    player.playingVideoFlow.value = showVideoPlayer
-                    val intent = Intent("ac.mdiq.podcini.intents.MAIN_ACTIVITY")
-                    intent.putExtra(MainActivity.Extras.open_player.name, true)
-                    context.startActivity(intent)
-                } else {
-                    Logd(TAG) { "Play button clicked: playing: ${player.playWhenReadyFlow.value} is ready: ${playbackService?.isServiceReady()}" }
-                    PlaybackStarter(episode).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
-                }
-            }
+            withContext(Dispatchers.Main) { PlaybackStarter(episode).setWidgetId(glanceId.toString()).setAudioOnly().shouldStreamThisTime(null).start() }
             PodciniWidget().update(context, glanceId)
         }
     }

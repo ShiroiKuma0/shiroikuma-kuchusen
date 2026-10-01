@@ -7,7 +7,9 @@ import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.config.NotificationIds
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+import ac.mdiq.podcini.sourcing.ensureSourceClients
 import ac.mdiq.podcini.sourcing.feed.FeedUpdater.Companion.createNotification
+import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appAttribsFlow
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.realm
@@ -187,6 +189,7 @@ object FeedUpdateManager {
         @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
         override suspend fun doWork(): Result {
             initialize()
+            ensureSourceClients()
             setForegroundAsync(getForegroundInfo())
 
             if (appPrefsFlow!!.value.loadExternalApp) {

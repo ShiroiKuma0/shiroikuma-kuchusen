@@ -6,6 +6,7 @@ import ac.mdiq.podcini.activity.MainActivity.Extras
 import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
 import ac.mdiq.podcini.sourcing.SourceGatewayClient
+import ac.mdiq.podcini.sourcing.ensureSourceClients
 import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.appPrefsFlow
@@ -60,6 +61,7 @@ class ShareReceiverActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initialize()
+        ensureSourceClients()
 
         Logd(TAG) { "intent: $intent" }
         when (intent.action) {

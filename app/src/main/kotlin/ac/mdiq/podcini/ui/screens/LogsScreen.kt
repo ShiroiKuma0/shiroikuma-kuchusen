@@ -80,6 +80,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -127,6 +128,8 @@ class LogsVM: ViewModel() {
     internal var downloadLogs by mutableStateOf<List<DownloadResult>>(listOf())
     internal var mode by mutableStateOf(LogsModes.Session )
 
+    var count by mutableIntStateOf(0)
+
     var showSuccessLogs by mutableStateOf(false)
 
     init {
@@ -140,6 +143,7 @@ class LogsVM: ViewModel() {
                 when (m) {
                     LogsModes.Shares -> realm.query(ShareLog::class).sort("id", Sort.DESCENDING).asFlow().distinctUntilChanged().map { it.list }.collect { v->
                         val logs = withContext(Dispatchers.Default) { v.toList().distinctBy { it.url }.toList() }
+                        count = logs.size
                         if (logs.isNotEmpty()) shareLogs = logs
                         else {
                             Logt(TAG, "Share log is empty")
@@ -148,6 +152,7 @@ class LogsVM: ViewModel() {
                     }
                     LogsModes.Downloads -> realm.query(DownloadResult::class).sort("completionTime",  Sort.DESCENDING).asFlow().distinctUntilChanged().map { it.list }.collect { v->
                         val logs = withContext(Dispatchers.Default) { v.toList().distinctBy { it.feedfileId } }
+                        count = logs.size
                         if (logs.isNotEmpty()) downloadLogs = logs
                         else {
                             Logt(TAG, "Download log is empty")
@@ -155,6 +160,7 @@ class LogsVM: ViewModel() {
                         }
                     }
                     LogsModes.Deletions -> realm.query(SubscriptionLog::class).sort("cancelDate", Sort.DESCENDING).asFlow().distinctUntilChanged().map { it.list }.collect { v->
+                        count = v.size
                         if (v.isNotEmpty()) deletionLogs = v
                         else {
                             Logt(TAG, "Deletion log is empty")
@@ -268,6 +274,7 @@ fun LogsScreen() {
         }
 
         val logs = remember(vm.shareLogs, vm.showSuccessLogs) { vm.shareLogs.filter { vm.showSuccessLogs == (it.status == ShareLog.Status.SUCCESS.code) } }
+        vm.count = logs.size
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(logs) { log ->
                 Column(modifier = Modifier.fillMaxWidth().clickable {
@@ -381,6 +388,7 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val sessionLogs by sessionLogsFlow.collectAsStateWithLifecycle()
         val logs = remember(sessionLogs, vm.showSuccessLogs) { sessionLogs.reversed().filter { vm.showSuccessLogs == !it.contains("Error", ignoreCase = true) } }
+        vm.count = logs.size
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(logs) { log -> Text(log, color = if (log.contains("Error", ignoreCase = true)) Color.Red else textColor, modifier = Modifier.clickable {
                 ContextCompat.getSystemService(context, ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Podcini", log))
@@ -451,6 +459,7 @@ fun LogsScreen() {
         if (showDialog) DownlaodDetailDialog(status = dialogParam, onDismiss = { showDialog = false })
 
         val logs = remember(vm.downloadLogs, vm.showSuccessLogs) { vm.downloadLogs.filter { vm.showSuccessLogs == it.isSuccessful } }
+        vm.count = logs.size
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(logs) { status ->
                 Column(modifier = Modifier.fillMaxWidth().clickable {
@@ -480,7 +489,7 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = {  }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(vm.mode.res), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
+            TopAppBar(title = { Text(vm.count.toString() ) }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(vm.mode.res), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable { drawerController?.open() }) },
                 actions = {
                     if (vm.mode in listOf(LogsModes.Session, LogsModes.Downloads, LogsModes.Shares)) Switch(checked = vm.showSuccessLogs, onCheckedChange = { vm.showSuccessLogs = !vm.showSuccessLogs },
                         thumbContent = { Icon(imageVector = if (vm.showSuccessLogs) Icons.Filled.Info else Icons.Filled.Warning, contentDescription = null, tint = if (vm.showSuccessLogs) Color.Green else Color.Yellow , modifier = Modifier.size(SwitchDefaults.IconSize)) })

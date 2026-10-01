@@ -1,14 +1,17 @@
 package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.config.AppConfig.initialize
+import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonToast
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.commonConfirms
 import ac.mdiq.podcini.ui.compose.commonMessage
-import ac.mdiq.podcini.ui.screens.EpisodeInfo
-import ac.mdiq.podcini.ui.screens.navTo
 import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
 import android.os.Bundle
@@ -20,9 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.xilinjia.krdb.ext.query
 import kotlinx.coroutines.flow.MutableStateFlow
 
 private const val TAG = "EpisodeInfoActivity"
@@ -35,6 +40,7 @@ class EpisodeInfoActivity : ComponentActivity() {
         window.setBackgroundDrawableResource(android.R.color.transparent)
 
         initialize()
+        ensureSourceClients()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -49,7 +55,11 @@ class EpisodeInfoActivity : ComponentActivity() {
                     CommonToast(onDismiss = { })
                     if (commonConfirms.isNotEmpty()) CommonConfirmDialog(commonConfirms[0])
                     if (commonMessage != null) LargePoster(commonMessage!!)
-                    episodeId?.let { navTo(EpisodeInfo(episodeId = episodeId!!)) }
+                    episodeId?.let {
+                        val episode = remember(it) { realm.query<Episode>("id == $0", it).first().find() }
+                        if (episode != null) EpisodeScreen(episode, allowOpenFeed = true, showClose = false)
+                    }
+
                 }
             }
         }

@@ -16,6 +16,7 @@ import ac.mdiq.podcini.ui.screens.curVideoMode
 import ac.mdiq.podcini.ui.screens.psState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -76,15 +77,7 @@ class PlaybackStarter(private val media: Episode) {
                 withContext(Dispatchers.IO) { media_ = checkAndMarkDuplicates(media) }
             //            player.setAsCurEpisode(media_)   // seems redundant
             }
-
-            fun playVideoIfNeeded() {
-                Logd("ActionButton") { "playVideoIfNeeded got item ${media_.id}" }
-                if (!isAutoController && (media_.forceVideo || (media_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefsFlow!!.value.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && media_.mediaType == MediaType.VIDEO))) {
-                    player?.playingVideoFlow?.value = true
-                    psState = PSState.Expanded
-                } else player?.playingVideoFlow?.value = false
-            }
-
+            
             fun processTask() {
                 if (player == null) {
                     Loge(TAG, "processTask mPlayerFlow.value == null")
@@ -116,8 +109,10 @@ class PlaybackStarter(private val media: Episode) {
                         //                    ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
                         player.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = startImmediately, prepareImmediately = true, audioOnly = audioOnly, forceReset = forcePlaybackReset)
                         sleepManager?.restart()
-                    } // TODO: test
+                    }
+                    // TODO: test
                     player.isInitialized -> {
+                        Logt(TAG, "processTask player.isInitialized")
                         player.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = startImmediately, prepareImmediately = true, audioOnly = audioOnly, forceReset = forcePlaybackReset)
                         sleepManager?.restart()
                     }
@@ -130,7 +125,10 @@ class PlaybackStarter(private val media: Episode) {
                 }
                 forcePlaybackReset = false
 
-                playVideoIfNeeded()
+                if (!isAutoController && (media_.forceVideo || (media_.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && appPrefsFlow!!.value.videoPlaybackMode != VideoMode.AUDIO_ONLY.code && curVideoMode != VideoMode.AUDIO_ONLY && media_.mediaType == MediaType.VIDEO))) {
+                    player?.playingVideoFlow?.value = true
+                    psState = PSState.Expanded
+                } else player?.playingVideoFlow?.value = false
             }
 
             aCtrlFuture?.let { future ->

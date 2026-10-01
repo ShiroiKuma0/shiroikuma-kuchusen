@@ -12,7 +12,6 @@ import ac.mdiq.podcini.shared.AudioSpec
 import ac.mdiq.podcini.shared.VideoSpec
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.SourceGatewayClient
-import ac.mdiq.podcini.sourcing.clientByEpisode
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribsFlow
@@ -230,7 +229,7 @@ abstract class BasePlayer {
                 bitrateFlow.value = 0
                 resolutionFlow.value = ""
                 curMediaFlow.value = episode_
-                curClient = clientByEpisode(episode_)
+//                curClient = clientByEpisode(episode_)
                 setAudioStream()
                 useVCodex = null
                 useResolution = null
@@ -399,7 +398,7 @@ abstract class BasePlayer {
     open fun createNativePlayer() {}
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    protected abstract fun prepareDataSource(audioOnly: Boolean = false)
+    protected abstract suspend fun prepareDataSource(audioOnly: Boolean = false)
 
     protected abstract fun prepareDataSource(mediaUrl: String, user: String?, password: String?)
 
@@ -432,7 +431,6 @@ abstract class BasePlayer {
             if (doPostPlayback) {
                 Logd(TAG) { "prepareMedia: curMediaFlow.value exist statusFlow=${status}" }
                 Logd(TAG) { "prepareMedia starts new playable:${playable.id} curMediaFlow.value:${curMediaFlow.value!!.id} prevMedia:${prevMedia?.id}" }
-//                onPlaybackPause(curMediaFlow.value, curMediaFlow.value?.position ?: -1)   // TODO: test
                 onPostPlayback(curMediaFlow.value!!, ended = false, skipped = true, true)
             }
         }
@@ -444,7 +442,7 @@ abstract class BasePlayer {
         setAsCurMedia(playable)
         if (forceReset) {
             curMediaFlow.value = playable
-            if (sameMedia) curClient = clientByEpisode(curMediaFlow.value!!)
+//            if (sameMedia) curClient = clientByEpisode(curMediaFlow.value!!)
         }
         Logd(TAG) { "prepareMedia media.forceVideo: ${curMediaFlow.value?.forceVideo}" }
         this.isStreaming = streaming
@@ -489,19 +487,6 @@ abstract class BasePlayer {
 
     open fun shouldSetSource(): Boolean = true
 
-    fun playPause() {
-        Logd(TAG) { "playPause statusFlow: $status" }
-        when {
-            isPlaying -> pause(reprepare = false)
-            isPaused || isPrepared -> play()
-            isInitialized -> {
-                isStartWhenPrepared = true
-                prepareInitialized()
-            }
-            else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
-        }
-    }
-
     fun play() {
         Logd(TAG) { "play(): statusFlow: $status playbackState: ${castPlayer?.playbackState}" }
         if (isPaused || isPrepared) {
@@ -512,24 +497,17 @@ abstract class BasePlayer {
             setVolume(1.0f, 1.0f, volAdpFac)
             Logd(TAG) { "play(): position: ${curMediaFlow.value?.position}" }
             castPlayer?.play()
-//            setPlaybackParams()
-//            handlePlayerStatus(PlayerStatus.PLAYING, curMediaFlow.value)
             SleepManager.sleepManager?.restart()
         } else Logd(TAG) { "Call to play() was ignored because current state of PSMP object is $status" }
     }
 
     fun pause(reprepare: Boolean) {
-//        if (isPlaying || isError) {
-            Logd(TAG) { "Pausing playback $reprepare" }
-            playWhenReadyFlow.value = false
-            castPlayer?.pause()
-//            handlePlayerStatus(PlayerStatus.PAUSED, curMediaFlow.value)
-            if (isStreaming && reprepare) reprepareMedia()
-//            cancelPositionSaver()
-            isSpeedForward = false
-            isFallbackSpeed = false
-//            if (curMediaFlow.value != null) upsertBlk(curMediaFlow.value!!) { it.forceVideo = false }
-//        } else Logd(TAG) { "Ignoring call to pause: Player is in $status state" }
+        Logd(TAG) { "Pausing playback $reprepare" }
+        playWhenReadyFlow.value = false
+        castPlayer?.pause()
+        if (isStreaming && reprepare) reprepareMedia()
+        isSpeedForward = false
+        isFallbackSpeed = false
     }
 
     abstract suspend fun clearFromCache(key: String?)
@@ -539,7 +517,6 @@ abstract class BasePlayer {
     internal fun prepareInitialized() {
         Logd(TAG) { "prepare Preparing media player: statusFlow: $status isStartWhenPrepared: $isStartWhenPrepared" }
         if (isInitialized) {
-            // TODO: test
             setSourceToPlayer()
 //            if (mediaType == MediaType.VIDEO) videoSize = Pair(videoWidth, videoHeight)
             handlePlayerStatus(PlayerStatus.PREPARED, curMediaFlow.value)
@@ -690,7 +667,7 @@ abstract class BasePlayer {
             }
             isPlaying -> {
                 // TODO: likely not reached?
-                Logd(TAG) { "endPlayback isPlaying" }
+                Loge(TAG,  "endPlayback isPlaying: it shouldn't happen")
 //                onPlaybackPause(currentMedia, currentMedia.position)  // TODO: test
             }
             else -> {
@@ -729,7 +706,7 @@ abstract class BasePlayer {
     protected fun onPlaybackStart(playable: Episode, position: Int) {
         Logd(TAG) { "onPlaybackStart ${playable.title}" }
         Logd(TAG) { "onPlaybackStart position: $position delayInterval: $positionSaverInterval" }
-        if (position != Episode.INVALID_TIME) {
+        if (position > 0) {
             runOnIOScope {
                 upsert(playable) {
                     it.position = position
@@ -737,7 +714,6 @@ abstract class BasePlayer {
                 }
             }
         } else {
-            // skip intro
             val skipIntro = playable.feed?.introSkip ?: 0
             val skipIntroMS = skipIntro * 1000
             if (skipIntro > 0 && playable.position < skipIntroMS) {

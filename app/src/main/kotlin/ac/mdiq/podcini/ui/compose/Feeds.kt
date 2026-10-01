@@ -144,7 +144,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismiss: () -> Unit, callback: ()->Uni
                 Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
             }
             Text(stringResource(R.string.reason_to_delete_msg))
-            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().trackAsTextField().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             val reasonText = stringResource(R.string.reason_to_remove)
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
@@ -250,7 +250,7 @@ fun AmendSyntheticFeed(feed_: Feed? = null, name_: String? = null, volume: Volum
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
             var name by remember { mutableStateOf(feed_?.title ?: name_ ?: "") }
-            TextField(value = name,  singleLine = true, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+            TextField(value = name,  singleLine = true, onValueChange = { name = it }, modifier = Modifier.trackAsTextField(), label = { Text(stringResource(R.string.new_namee)) })
             var hasVideo by remember { mutableStateOf(true) }
             var feedType by remember { mutableStateOf(FeedType.fromName(feed_?.type)) }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -436,7 +436,7 @@ fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
         text = {
             Column {
                 Text(stringResource(R.string.send_to_device_sum))
-                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.trackAsTextField().padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
                 Text(stringResource(R.string.receiver_tag, "$name:$host:$port"))
             }
         },
