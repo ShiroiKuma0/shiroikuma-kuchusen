@@ -2,6 +2,75 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.14.2+001 (versionCode 1330001) — 2026-10-02
+
+Rebased onto upstream **v12.14.2** (versionCode 133), released 2026-10-02 — **five upstream releases
+in one jump** (12.13.2, 12.13.3, 12.14.0, 12.14.1, 12.14.2; five commits, 106 files, 1833
+insertions, 1405 deletions). A tracking release: **no new fork features**, the custom layer — all
+four `+003` fixes included — replayed onto the new base and the build counter reset to `+001`.
+
+> **⏳ A short database migration on first start.** The Realm schema moves **166 → 168**. The step
+> for 168 retypes your **YouTube feeds only** (`YOUTUBE` → `YouTube`), so it walks feeds, not
+> episodes — seconds, not the minutes the 163 step took. It shows on our startup screen as
+> `migrating for 168` with a `feeds <n>/<total>` counter in the accent colour.
+
+> **📸 Take a fresh backup after installing — and keep the old one.** A backup written by this build
+> carries schema 168 and **will not restore into a 12.13.1 install**; a backup taken with
+> 12.13.1+003 (schema 166) still restores here, the migration bringing it forward.
+
+> **Size**: 37.04 MiB (38,843,697 bytes), 235.9 KiB larger than 12.13.1+003.
+
+### Fork layer
+
+- **Nothing removed, nothing changed in what the fork does.** Live theming, the one-file category
+  backup with the database snapshot, the self-verifying export, the token-gated headless export, the
+  data door, the startup screen in the house colours, the working launcher shortcuts and the
+  black-yellow identity all carry over.
+- **Our theme now wraps upstream's tap-to-dismiss-keyboard layer.** 12.14.x adds
+  `FocusClearingLayout` to `PodciniTheme`: a tap anywhere outside a text field clears focus and hides
+  the soft keyboard (text fields register their bounds via `trackAsTextField()`). That landed on the
+  exact line where the fork hands `MaterialTheme` its live colours, typography and corner shapes;
+  both are kept, so the themed `MaterialTheme` passes its content through upstream's layer. You get
+  upstream's keyboard behaviour inside our theming, with nothing lost on either side.
+- **The other 52 fork commits replayed without a conflict**, and the free release compiled with no
+  porting change. `.gitignore` keeps upstream's new `*.hprof` beside our `keystore.properties`.
+
+### What upstream brings
+
+**Captions.** The captions popup gains a Help icon explaining caption mismatch, shown instead of the
+captions rather than over them; long-pressing the Focus button sets the caption start; the popup has
+three height levels, and when expanded a **search bar that finds a caption and jumps to it**. Feed
+settings gain a **transcript start** offset, used when the episode has none of its own, and seeking
+from captions now factors the offset in. The caption start position updates live, and YouTube
+caption lists show each track's kind (auto / manual, translated).
+
+**Playback.** On an HTTP **403 Access denied** the player offers to try again. **Skip intro is
+fixed.** Stream and play buttons react promptly. Changing the cache size in Settings → Playback asks
+to restart the app, since it only takes effect then.
+
+**Swipe actions.** New **Reset played position**; the Download action is filtered properly and the
+availability conditions of several others are tightened.
+
+**Statistics.** Daily and monthly episodes open in the Facets screen's full Custom mode, and the feed
+dialog can open a feed's episodes there too.
+
+**Shared media and logs.** Handling of media shared into the app is streamlined — likely fixing
+errors when adding external media — and the share receiver is a floating window. If the first
+external client is not ready, a second attempt follows after a delay. The Logs screen shows its log
+count in the top bar, its Shared view can delete individual logs, and the existing-media popup there
+is dismissable. The feed updater logs every error to the feed it came from.
+
+**Widget.** The large widget plays audio only, keeps its episode list stable, and opens EpisodeInfo
+and the player correctly.
+
+**Smaller items.** Checking whether an online feed is already subscribed is improved; the keyboard
+closes on complete or cancel and is tuned further (see the fork layer above); the feed Origin filter
+is now case-sensitive; app initialization is amended, with the Archived / Frozen / Catalogs volumes
+created on the IO dispatcher.
+
+**Dependencies.** `cronet-embedded` 500.0.2 → 500.1.0; for the `play` flavour only, `media3-cast`
+1.11.0 → 1.11.1 and `play-services-base` 18.10.1 → 18.11.0. Toolchain unchanged.
+
 ## 12.13.1+003 (versionCode 1280003) — 2026-09-27
 
 Same upstream base as `12.13.1+001` (**v12.13.1**, versionCode 128) — **no rebase, no upstream
