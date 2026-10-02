@@ -187,7 +187,7 @@
     <string name="ignored">Ignorat</string>
     <string name="visit_website_label">Vizitează website-ul</string>
     <string name="delete_local_feed_warning_body">Ștergerea episoadelor înseamnă înlăturarea acestora din Podcini și eliminarea fișierelor media din memoria dispozitivului dumneavoastră. Aceste episoade nu vor putea fi descărcate din nou folosind Podcini.</string>
-    <string name="share_existing">existent</string>
+    <string name="existing">existent</string>
     <!-- Download messages and labels -->
     <string name="download_successful">de succes</string>
     <string name="download_pending">Descărcare în așteptare</string>

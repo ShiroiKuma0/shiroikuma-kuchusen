@@ -188,7 +188,7 @@
     <string name="ignored">Ігнорується</string>
     <string name="visit_website_label">Відвідати сайт</string>
     <string name="delete_local_feed_warning_body">Видалення видаляє епізод з Podcini і видаляє медіафайл зі сховища вашого пристрою. Його не можна буде знову завантажити через Podcini.</string>
-    <string name="share_existing">наявний</string>
+    <string name="existing">наявний</string>
     <!-- Download messages and labels -->
     <string name="download_successful">успішно</string>
     <string name="download_pending">Потрібно завантажити</string>

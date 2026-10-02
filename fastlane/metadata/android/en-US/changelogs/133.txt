@@ -1,0 +1,5 @@
+* streamlined handling of shared media, likely fixed error adding external media
+* ShareReceiverActivity UI is floating
+* in Shared view of Logs screen,
+	* enabled delete individual log
+	* tuned existing media popup, dismissable

@@ -189,7 +189,7 @@
     <string name="ignored">Ignorato</string>
     <string name="visit_website_label">Visita il sito</string>
     <string name="delete_local_feed_warning_body">Eliminare rimuove l\'episodio da Podcini ed elimina il file multimediale dallo spazio di archiviazione del tuo dispositivo. Non potrà essere scaricato di nuovo attraverso Podcini.</string>
-    <string name="share_existing">esistente</string>
+    <string name="existing">esistente</string>
     <!-- Download messages and labels -->
     <string name="download_successful">successo</string>
     <string name="download_pending">Download in attesa</string>

@@ -186,7 +186,7 @@
     <string name="ignored">Ohitettu</string>
     <string name="visit_website_label">Vieraile verkkosivustolla</string>
     <string name="delete_local_feed_warning_body">Varoitus: poistat paikallisia jaksoja. Se poistaa mediatiedostoja laitteestasi. Sitä ei voi ladata uudelleen Podsinin kautta. Jatketaanko?</string>
-    <string name="share_existing">olemassa</string>
+    <string name="existing">olemassa</string>
     <!-- Download messages and labels -->
     <string name="download_successful">onnistui</string>
     <string name="download_pending">Lataus odottamassa</string>

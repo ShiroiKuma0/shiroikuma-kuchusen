@@ -188,7 +188,7 @@
     <string name="ignored">Ignorado</string>
     <string name="visit_website_label">Aceder ao sítio web</string>
     <string name="delete_local_feed_warning_body">A eliminação remove o episódio da aplicação e do dispositivo. Contudo, poderá descarregar os ficheiros novamente.</string>
-    <string name="share_existing">existente</string>
+    <string name="existing">existente</string>
     <!-- Download messages and labels -->
     <string name="download_successful">sucesso</string>
     <string name="download_pending">Descarga pendente</string>

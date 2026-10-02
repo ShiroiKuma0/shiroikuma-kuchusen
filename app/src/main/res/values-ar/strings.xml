@@ -191,7 +191,7 @@
     <string name="ignored">تجاهل</string>
     <string name="visit_website_label">زيارة الموقع</string>
     <string name="delete_local_feed_warning_body">تحذير: أنت تقوم بحذف الحلقات المحلية. سيتم حذف ملفات الوسائط من وحدة تخزين جهازك. لا يمكن تنزيلها مرة أخرى من خلال Podcini. هل تريد المتابعة؟</string>
-    <string name="share_existing">موجود</string>
+    <string name="existing">موجود</string>
     <!-- Download messages and labels -->
     <string name="download_successful">نجحت العملية</string>
     <string name="download_pending">التنزيل فى الانتظار</string>

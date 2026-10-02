@@ -189,7 +189,7 @@
     <string name="ignored">Ignoriert</string>
     <string name="visit_website_label">Webseite besuchen</string>
     <string name="delete_local_feed_warning_body">Durch das Löschen wird die Episode aus Podcini entfernt und die Mediendatei aus dem Gerätespeicher gelöscht. Sie kann nicht erneut über Podcini heruntergeladen werden.</string>
-    <string name="share_existing">vorhanden</string>
+    <string name="existing">vorhanden</string>
     <!-- Download messages and labels -->
     <string name="download_successful">erfolgreich</string>
     <string name="download_pending">Download anstehend</string>

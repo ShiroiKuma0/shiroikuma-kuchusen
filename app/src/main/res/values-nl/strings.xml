@@ -186,7 +186,7 @@
     <string name="ignored">Genegeerd</string>
     <string name="visit_website_label">Website bezoeken</string>
     <string name="delete_local_feed_warning_body">Waarschuwing: u verwijdert lokale afleveringen. Dit zal de mediabestanden verwijderen uit de opslag van uw apparaat. Het kan niet opnieuw via Podcini worden gedownload. Doorgaan?</string>
-    <string name="share_existing">bestaande</string>
+    <string name="existing">bestaande</string>
     <!-- Download messages and labels -->
     <string name="download_successful">voltooid</string>
     <string name="download_pending">In afwachting van downloaden</string>

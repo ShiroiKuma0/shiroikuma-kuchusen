@@ -1,22 +1,16 @@
 package ac.mdiq.podcini.activity
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.activity.MainActivity.Extras
 import ac.mdiq.podcini.config.AppConfig.initialize
-import ac.mdiq.podcini.sourcing.AppGatewayRegistry
-import ac.mdiq.podcini.sourcing.SourceGatewayClient
 import ac.mdiq.podcini.sourcing.ensureSourceClients
-import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.sourcing.handleShared
 import ac.mdiq.podcini.storage.database.addToFeed
-import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
-import ac.mdiq.podcini.storage.model.toEpisode
 import ac.mdiq.podcini.storage.utils.toSafeUri
 import ac.mdiq.podcini.ui.compose.ConfirmAddToFeed
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -37,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -52,8 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.ktor.http.decodeURLQueryComponent
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.seconds
 
 class ShareReceiverActivity : ComponentActivity() {
     private var sharedText: String? = null
@@ -79,42 +72,47 @@ class ShareReceiverActivity : ComponentActivity() {
 
         var addAsNew by mutableStateOf(false)
         var failed by mutableStateOf(false)
-        var client by mutableStateOf<SourceGatewayClient?>(null)
+        var episode by mutableStateOf<Episode?>(null)
         var existing by mutableStateOf<List<Episode>?>(null)
+        var log = ShareLog(text)
         setContent { PodciniTheme {
-            when {
-                failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
-                    title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) },
-                    confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
-                addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(client!!, text, toFeed) }
-                existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = {  },
-                    title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
-                existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed -> addEpisode(client!!, text, toFeed) }
-                existing!!.size > 1 -> {
-                    Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
-                                EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
-                            }
-                            Button(modifier = Modifier.align(Alignment.BottomEnd), onClick = { addAsNew =  true }) { Text(stringResource(R.string.add_as_new)) }
-                        }
-                        episodeForInfo?.let { EpisodeScreen(it) }
+            Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
+                when {
+                    failed -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = { }, title = { Text(stringResource(R.string.failed_processing_shared), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Red) }, confirmButton = { Button(onClick = { finish() }) { Text(stringResource(R.string.OK)) } })
+                    addAsNew -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed ->
+                        if (episode != null) addToFeed(episode!!, toFeed, log)
+                        else Loge(TAG, "Failed adding episode: null")
                     }
-                }
-                else -> {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        EpisodeScreen(existing!![0])
-                        Button(modifier = Modifier.padding(bottom = 24.dp, end = 24.dp).align(Alignment.BottomEnd) , onClick = { addAsNew =  true }) { Text(stringResource(R.string.add_as_new)) }
+                    existing == null -> AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.small), onDismissRequest = { }, title = { Text(stringResource(R.string.search_existing_media), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) }, confirmButton = {})
+                    existing!!.isEmpty() -> ConfirmAddToFeed(onDismiss = { finish() }) { toFeed ->
+                        if (episode != null) addToFeed(episode!!, toFeed, log)
+                        else Loge(TAG, "Failed adding episode: null")
+                    }
+                    existing!!.size > 1 -> {
+                        Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
+                                    EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
+                                }
+                                Button(modifier = Modifier.align(Alignment.BottomEnd), onClick = { addAsNew = true }) { Text(stringResource(R.string.add_as_new)) }
+                            }
+                            episodeForInfo?.let { EpisodeScreen(it) }
+                        }
+                    }
+                    else -> {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            EpisodeScreen(existing!![0], showClose = false)
+                            Button(modifier = Modifier.padding(bottom = 24.dp, end = 24.dp).align(Alignment.BottomEnd), onClick = { addAsNew = true }) { Text(stringResource(R.string.add_as_new)) }
+                        }
                     }
                 }
             }
         } }
 
         runOnIOScope {
-            var log = ShareLog(text)
             log = upsert(log) {}
-            handleShared(text, this, true, log) { c, ex ->
-                client = c
+            handleShared(text, this, true, log) { e, ex ->
+                episode = e
                 existing = ex
             }
         }
@@ -122,78 +120,5 @@ class ShareReceiverActivity : ComponentActivity() {
 
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
-
-        suspend fun addEpisode(client:  SourceGatewayClient, url: String, toFeed: Feed, onSuccess: ()->Unit = {}) {
-            val log = realm.query(ShareLog::class).query("url == $0", url).first().find()
-            val episode = client.withProvider { it.buildEpisode(url)?.toEpisode() }
-            if (episode != null) {
-                addToFeed(episode, toFeed, log)
-                onSuccess()
-            } else {
-                Loge(TAG, "Failed adding episode: client can't handle. url=$url")
-                if (log != null) upsert(log) {
-                    it.details = "Can not build episode"
-                    it.status = ShareLog.Status.ERROR.code
-                }
-            }
-        }
-
-        suspend fun handleShared(sharedText: String, activity: ComponentActivity, finish: Boolean, log: ShareLog? = null, extMediaCB: (SourceGatewayClient, List<Episode>)->Unit) {
-            Logd(TAG) { "receiveShared sharedText: $sharedText" }
-            when {
-//            plain text
-                sharedText.matches(Regex("^[^<>/]+$")) -> {
-                    log?.let { l-> runOnIOScope { upsert(l) {it.type = ShareLog.ShareType.Text.name } } }
-                    Logd(TAG) { "receiveShared Activity is started with text $sharedText" }
-                    val intent = Intent(getAppContext(), MainActivity::class.java).apply {
-                        putExtra(Extras.search_string.name, sharedText)
-                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    }
-                    activity.startActivity(intent)
-                    if (finish) activity.finish()
-                }
-                else -> {
-                    fun openAsFeed(source: String?) {
-                        log?.let { l-> runOnIOScope { upsert(l) { it.type = ShareLog.ShareType.Feed.name } } }
-                        Logd(TAG) { "openAsFeed Activity is started with url $sharedText" }
-                        val intent = Intent(getAppContext(), MainActivity::class.java).apply {
-                            putExtra(Extras.feed_url.name, sharedText)
-                            putExtra(Extras.isShared.name, true)
-                            if (!source.isNullOrBlank()) putExtra(Extras.source.name, source)
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        }
-                        activity.startActivity(intent)
-                        if (finish) activity.finish()
-                    }
-                    if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
-                    var client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
-                    if (client == null) {
-                        delay(2.seconds)
-                        client = sourceClients.find { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 1 } == true }
-                    }
-                    Logd(TAG) { "receiveShared canHandleUrl==1 client: ${client!= null}" }
-                    if (client != null) {
-                        val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() }
-                        if (episode == null) openAsFeed(client.feedSearcher?.name)
-                        else {
-                            val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
-                            log?.let { l-> runOnIOScope { upsert(l) { it.type = ShareLog.ShareType.Media.name } } }
-                            extMediaCB(client, existing)
-                        }
-                        return
-                    }
-                    val clients = sourceClients.filter { it.withProviderBlocking { p-> p.canHandleUrl(sharedText) == 0 } == true }
-                    Logd(TAG) { "receiveShared canHandleUrl==0 clients: ${clients.size}" }
-                    for (client in clients) {
-                        val episode = client.withProviderBlocking { it.buildEpisode(sharedText)?.toEpisode() } ?: continue
-                        val existing = realm.query(Episode::class).query("title == $0", episode.title).find()
-                        log?.let { l-> runOnIOScope { upsert(l) { it.type = ShareLog.ShareType.Media.name } } }
-                        extMediaCB(client, existing)
-                        return
-                    }
-                    openAsFeed(null)
-                }
-            }
-        }
     }
 }

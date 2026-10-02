@@ -186,7 +186,7 @@
     <string name="ignored">Ignoreret</string>
     <string name="visit_website_label">Besøg hjemmeside</string>
     <string name="delete_local_feed_warning_body">Sletning fjerner afsnittet fra Podcini og sletter mediefilen fra din enheds lager. Det kan ikke hentes igen via Podcini.</string>
-    <string name="share_existing">eksisterende</string>
+    <string name="existing">eksisterende</string>
     <!-- Download messages and labels -->
     <string name="download_successful">lykkedes</string>
     <string name="download_pending">Afventer overførsel</string>

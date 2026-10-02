@@ -186,7 +186,7 @@
     <string name="ignored">Ignorerad</string>
     <string name="visit_website_label">Besök webbsidan</string>
     <string name="delete_local_feed_warning_body">Radering tar bort avsnittet från Podcini och raderar mediafilen från din enhets lagring. Den kan inte laddas ner igen via Podcini.</string>
-    <string name="share_existing">befintlig</string>
+    <string name="existing">befintlig</string>
     <!-- Download messages and labels -->
     <string name="download_successful">lyckades</string>
     <string name="download_pending">Avvaktar nedladdning</string>

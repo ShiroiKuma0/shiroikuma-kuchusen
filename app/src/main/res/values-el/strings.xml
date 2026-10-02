@@ -186,7 +186,7 @@
     <string name="ignored">Αγνοήθηκε</string>
     <string name="visit_website_label">Επισκεφθείτε την ιστοσελίδα</string>
     <string name="delete_local_feed_warning_body">Προειδοποίηση: διαγράφετε τοπικά επεισόδια. Θα διαγράψει τα αρχεία πολυμέσων από τον αποθηκευτικό χώρο της συσκευής σας. Δεν μπορεί να γίνει ξανά λήψη μέσω του Podcini. Συνέχεια?</string>
-    <string name="share_existing">υπάρχον</string>
+    <string name="existing">υπάρχον</string>
     <!-- Download messages and labels -->
     <string name="download_successful">επιτυχής</string>
     <string name="download_pending">Λήψη σε αναμονή</string>

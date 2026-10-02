@@ -188,7 +188,7 @@
     <string name="ignored">Ignorováno</string>
     <string name="visit_website_label">Navštívit stránku</string>
     <string name="delete_local_feed_warning_body">Smazání odstraní epizodu z aplikace Podcini a zároveň odstraní mediální soubor z úložiště vašeho zařízení. Nebude možné jej znovu stáhnout prostřednictvím Podciniu.</string>
-    <string name="share_existing">existující</string>
+    <string name="existing">existující</string>
     <!-- Download messages and labels -->
     <string name="download_successful">úspěšné</string>
     <string name="download_pending">Čeká na stažení</string>

@@ -31,8 +31,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 37
 
-        versionCode = 132
-        versionName = "12.14.1"
+        versionCode = 133
+        versionName = "12.14.2"
 
         ndkVersion = "30.0.16248370"
 
@@ -255,7 +255,7 @@ dependencies {
         exclude(group = "com.google.android.gms", module = "play-services-cronet")
     }
 
-    implementation("org.chromium.net:cronet-embedded:500.0.2")
+    implementation("org.chromium.net:cronet-embedded:500.1.0")
 
     implementation("com.google.android.material:material:1.14.0")
 
@@ -291,9 +291,9 @@ dependencies {
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.7.0")
 
-    "playImplementation"("androidx.media3:media3-cast:1.11.0")
+    "playImplementation"("androidx.media3:media3-cast:1.11.1")
     "playImplementation"("androidx.mediarouter:mediarouter:1.8.1")
-    "playImplementation"("com.google.android.gms:play-services-base:18.10.1")
+    "playImplementation"("com.google.android.gms:play-services-base:18.11.0")
     "playImplementation"("com.google.android.gms:play-services-cast-framework:22.3.1")
 }
 

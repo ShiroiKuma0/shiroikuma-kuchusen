@@ -188,7 +188,7 @@
     <string name="ignored">Игнорировать</string>
     <string name="visit_website_label">Посетить сайт</string>
     <string name="delete_local_feed_warning_body">Предупреждение: вы удаляете локальные эпизоды. Это удалит медиа файлы из хранилища вашего устройства. Он не может быть загружен снова через Podcini. Продолжить?</string>
-    <string name="share_existing">существующий</string>
+    <string name="existing">существующий</string>
     <!-- Download messages and labels -->
     <string name="download_successful">успешно</string>
     <string name="download_pending">Загрузка в ожидании</string>

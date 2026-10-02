@@ -260,7 +260,7 @@
     <string name="delete_local_feed_warning_body">Uyarı: Yerel bölümleri siliyorsunuz. Bu işlem, cihaz depolama alanınızdaki medya dosyalarını silecektir. Podcini üzerinden tekrar indirilemez. Devam etmek istiyor musunuz?</string>
     <string name="delete_repeat_warning_msg">Tekrar için ayarlanmış bölümleri gerçekten silmek istiyor musunuz?</string>
 
-    <string name="share_existing">mevcut</string>
+    <string name="existing">mevcut</string>
 
     <!-- Download messages and labels -->
     <string name="download_successful">başarılı</string>

@@ -381,7 +381,7 @@
     <string name="delete_local_feed_warning_body">Warning: you are deleting local episodes. It will delete the media files from your device storage. It cannot be downloaded again through Podcini. Continue?</string>
     <string name="delete_repeat_warning_msg">Do you really want to delete episodes set for repeats?</string>
 
-    <string name="share_existing">existing</string>
+    <string name="existing">existing</string>
 
     <!-- Download messages and labels -->
     <string name="download_successful">successful</string>

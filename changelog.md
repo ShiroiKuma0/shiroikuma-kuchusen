@@ -1,3 +1,11 @@
+# 12.14.2
+
+* streamlined handling of shared media, likely fixed error adding external media
+* ShareReceiverActivity UI is floating
+* in Shared view of Logs screen, 
+	* enabled delete individual log
+	* tuned existing media popup, dismissable
+
 # 12.14.1
 
 * DB migration is performed to change feed type from "YOUTUBE" to "YouTube", affecting only YT feeds subscribed from older versions

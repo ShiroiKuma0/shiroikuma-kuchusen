@@ -253,7 +253,7 @@
     <string name="visit_website_label">访问网站</string>
     <string name="delete_local_feed_warning_body">警告: 您正在删除本地剧集。它将从您的设备存储设备中删除媒体文件。它不能再次通过 Podcini下载。是否继续？</string>
     <string name="delete_repeat_warning_msg">您真的想要删除设置为重复的剧集吗？</string>
-    <string name="share_existing">已存在</string>
+    <string name="existing">已存在</string>
     <!-- Download messages and labels -->
     <string name="download_successful">成功</string>
     <string name="download_pending">下载等待中</string>

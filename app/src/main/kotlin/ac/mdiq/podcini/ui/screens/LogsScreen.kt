@@ -2,12 +2,11 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.activity.MainActivity
-import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.addEpisode
-import ac.mdiq.podcini.activity.ShareReceiverActivity.Companion.handleShared
 import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sourcing.SourceGatewayClient
 import ac.mdiq.podcini.sourcing.download.RequestType
 import ac.mdiq.podcini.sourcing.feed.FeedUpdater
+import ac.mdiq.podcini.sourcing.handleShared
+import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -34,6 +33,7 @@ import ac.mdiq.podcini.ui.compose.textColor
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.sessionLogsFlow
@@ -216,7 +216,7 @@ fun LogsScreen() {
         val message = when (status.status) {
             ShareLog.Status.ERROR.code -> status.details
             ShareLog.Status.SUCCESS.code -> stringResource(R.string.download_successful)
-            ShareLog.Status.EXISTING.code -> stringResource(R.string.share_existing)
+            ShareLog.Status.EXISTING.code -> stringResource(R.string.existing)
             else -> ""
         }
         CommonPopupCard(onDismiss = { onDismiss() }) {
@@ -242,21 +242,30 @@ fun LogsScreen() {
         if (showSharedDialog.value) SharedDetailDialog(status = sharedlogState.value, onDismiss = { showSharedDialog.value = false })
 
         var addAsNew by remember { mutableStateOf(false) }
-        var client by remember { mutableStateOf<SourceGatewayClient?>(null) }
+        var episode by remember { mutableStateOf<Episode?>(null) }
         var existing by remember { mutableStateOf<List<Episode>?>(null) }
         var sharedUrl by remember { mutableStateOf("") }
         var theLog by remember { mutableStateOf<ShareLog?>(null) }
-        if (client != null && sharedUrl.isNotBlank()) {
+        if (sharedUrl.isNotBlank()) {
             when {
-                addAsNew -> ConfirmAddToFeed(onDismiss = {  }) { toFeed -> addEpisode(client!!, sharedUrl, toFeed) { sharedUrl = "" } }
-                existing.isNullOrEmpty() -> ConfirmAddToFeed(onDismiss = { }) { toFeed -> addEpisode(client!!, sharedUrl, toFeed) { sharedUrl = "" } }
-                else -> CommonDialogSurface(onDismiss = { }) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
+                addAsNew -> ConfirmAddToFeed(onDismiss = {  }) { toFeed ->
+                    if (episode != null) addToFeed(episode!!, toFeed, theLog)
+                    else Loge(TAG, "Failed adding episode: null")
+                    sharedUrl = ""
+                }
+                existing.isNullOrEmpty() -> ConfirmAddToFeed(onDismiss = { }) { toFeed ->
+                    if (episode != null) addToFeed(episode!!, toFeed, theLog)
+                    else Loge(TAG, "Failed adding episode: null")
+                    sharedUrl = ""
+                }
+                else -> CommonDialogSurface(onDismiss = { sharedUrl = "" }) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.existing), style = MaterialTheme.typography.titleMedium)
+                        Box(modifier = Modifier.fillMaxWidth().height(300.dp).padding(vertical = 5.dp)) {
                             EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
                         }
-                        Row(modifier = Modifier.align(Alignment.BottomEnd)) {
-                            Button(modifier = Modifier.padding(end = 20.dp), onClick = {
+                        Row {
+                            Button(modifier = Modifier.padding(horizontal = 20.dp), onClick = {
                                 if (theLog != null) runOnIOScope {
                                     upsert(theLog!!) {
                                         it.details = "share log cleared"
@@ -281,13 +290,12 @@ fun LogsScreen() {
                     Logd(TAG) { "shared log url: ${log.url}" }
                     if (log.status in listOf(ShareLog.Status.ERROR.code, ShareLog.Status.MISSING.code)) {
                         addAsNew = false
-                        client = null
                         existing = null
                         theLog = log
                         Logt(TAG, "Handling shared url...")
                         runOnIOScope {
-                            handleShared(log.url!!, context as MainActivity, false, log) { cl, ex ->
-                                client = cl
+                            handleShared(log.url!!, context as MainActivity, false, log) { e, ex ->
+                                episode = e
                                 sharedUrl = log.url!!
                                 existing = ex
                             }
@@ -320,11 +328,23 @@ fun LogsScreen() {
                         }
                     }
                 }) {
+                    val deleteLogDialog = remember { mutableStateOf(false) }
+                    var toDelete by remember { mutableStateOf(ShareLog()) }
+                    ConfirmDialog(R.string.confirm_delete_logs_label, "Deleting log ${formatDateTimeFlex(log.id)} ${log.title}", deleteLogDialog) {
+                        runOnIOScope { realm.write { query(ShareLog::class).query("id == ${toDelete.id}").first().find()?.let {
+                            Logd(TAG) { "deleting ${formatDateTimeFlex(log.id)} ${log.title}"}
+                            delete(it)
+                        } } }
+                        deleteLogDialog.value = false
+                    }
                     Row {
                         Icon(if (log.status == ShareLog.Status.SUCCESS.code) Icons.Filled.Info else Icons.Filled.Warning, "Info", tint = if (log.status == ShareLog.Status.SUCCESS.code) Color.Green else Color.Yellow, modifier = Modifier.padding(end = 2.dp))
                         Text(formatDateTimeFlex(log.id), color = textColor)
                         Spacer(Modifier.weight(1f))
-                        if (log.status < ShareLog.Status.SUCCESS.code) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null, modifier = Modifier.width(25.dp).height(25.dp).clickable {})
+                        if (log.status < ShareLog.Status.SUCCESS.code) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), tint = textColor, contentDescription = null, modifier = Modifier.width(25.dp).height(25.dp).clickable {
+                            toDelete = log
+                            deleteLogDialog.value = true
+                        })
                     }
                     Text(log.title ?: "unknown title", color = textColor)
                     Text(log.url ?: "unknown url", color = textColor)

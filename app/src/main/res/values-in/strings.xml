@@ -185,7 +185,7 @@
     <string name="ignored">Ignored</string>
     <string name="visit_website_label">Lihat situs</string>
     <string name="delete_local_feed_warning_body">Dengan menghapus episode dari Podcini, berkas episode akan dihapus dari Podcini dan dari penyimpanan perangkat Anda. Episode tersebut tidak dapat diunduh lagi melalui Podcini.</string>
-    <string name="share_existing">existing</string>
+    <string name="existing">existing</string>
     <!-- Download messages and labels -->
     <string name="download_successful">berhasil</string>
     <string name="download_pending">Unduhan terunda</string>

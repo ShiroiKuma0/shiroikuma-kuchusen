@@ -146,12 +146,12 @@
 
         <activity
             android:name=".activity.ShareReceiverActivity"
-            android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.Material3.DayNight.NoActionBar"
+            android:theme="@style/Theme.Podcini.PlayerUI"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
             android:label="@string/add_feed_label"
             android:exported="true"
-            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
-
+            >
             <!-- Files with mimeType rss/xml/atom -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
@@ -234,8 +234,7 @@
             android:name=".QueueAlias"
             android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/queue"
-            android:exported="true"
-            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
@@ -246,7 +245,7 @@
             android:targetActivity=".activity.ShortcutsActivity"
             android:label="@string/facet"
             android:exported="true"
-            android:parentActivityName="ac.mdiq.podcini.activity.MainActivity">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>

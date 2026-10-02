@@ -188,7 +188,7 @@
     <string name="ignored">Ignored</string>
     <string name="visit_website_label">Navštíviť webovú stránku</string>
     <string name="delete_local_feed_warning_body">Mazanie odstráni epizódu z Podcini a zmaže mediálny súbor z úložiska vášho zariadenia. Nedá sa znova stiahnuť cez Podcini.</string>
-    <string name="share_existing">existing</string>
+    <string name="existing">existing</string>
     <!-- Download messages and labels -->
     <string name="download_successful">dokončené</string>
     <string name="download_pending">Čakajúce sťahovania</string>

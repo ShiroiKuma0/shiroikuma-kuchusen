@@ -190,7 +190,7 @@
     <string name="ignored">Ignorowane</string>
     <string name="visit_website_label">Odwiedź stronę internetową</string>
     <string name="delete_local_feed_warning_body">Ostrzeżenie: usuwasz lokalne odcinki. Usunie pliki multimedialne z pamięci urządzenia. Nie można ich pobrać ponownie przez Podcini. Kontynuować?</string>
-    <string name="share_existing">istniejący</string>
+    <string name="existing">istniejący</string>
     <!-- Download messages and labels -->
     <string name="download_successful">Operacja zakończona sukcesem</string>
     <string name="download_pending">Pobieranie w toku</string>
