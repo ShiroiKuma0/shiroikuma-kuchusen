@@ -53,6 +53,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -250,27 +251,22 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         episodeForInfo = null
     }
 
-    var refreshing by remember { mutableStateOf(false)}
-    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
-        refreshing = true
-        refreshCB?.invoke()
-        refreshing = false
-    }) {
-//        val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-        val lifecycleOwner = LocalLifecycleOwner.current
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                Logd(TAG) { "LifecycleEventObserver: $event" }
-                when (event) {
-                    Lifecycle.Event.ON_START -> {}
-                    Lifecycle.Event.ON_STOP -> {}
-                    else -> {}
-                }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG) { "LifecycleEventObserver: $event" }
+            when (event) {
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                else -> {}
             }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
+    @Composable
+    fun BoxScope.TheLazyList() {
         LaunchedEffect(episodes.size, scrollToOnStart) {
             val lifecycleState = lifecycleOwner.lifecycle.currentState
             Logd(TAG) { "LaunchedEffect(scrollToOnStart) ${episodes.size} $scrollToOnStart ${lazyListState.firstVisibleItemIndex} $lifecycleState" }
@@ -282,7 +278,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val useFeedImage = remember(feed?.useEpisodeImage) { feed?.useFeedImage() == true }
 
         val titleMaxLines = if (layoutMode == LayoutMode.Normal.code) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
-//        val density = LocalDensity.current
+        //        val density = LocalDensity.current
         val imageWidth = if (layoutMode == LayoutMode.WideImage.code) 150.dp else 56.dp
         val imageHeight = if (layoutMode == LayoutMode.WideImage.code) 100.dp else 56.dp
 
@@ -295,7 +291,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         val curMedia1 by player1?.curMediaFlow?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(null) }
 
         //        Logd(TAG) { "outside of LazyColumn" }
-        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(horizontal = 5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
                 val actionButton by remember(episode.id, preferSingleAction) { mutableStateOf(when {
@@ -318,18 +314,18 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                     detectHorizontalDragGestures(
                         onDragStart = { velocityTracker.resetTracking() },
                         onHorizontalDrag = { change, dragAmount ->
-//                            Logd(TAG) { "detectHorizontalDragGestures onHorizontalDrag $dragAmount" }
+                            //                            Logd(TAG) { "detectHorizontalDragGestures onHorizontalDrag $dragAmount" }
                             if (abs(dragAmount) > 4) {
                                 velocityTracker.addPosition(change.uptimeMillis, change.position)
                                 scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                             }
                         },
                         onDragEnd = {
-//                            Logd(TAG) { "detectHorizontalDragGestures onDragEnd" }
+                            //                            Logd(TAG) { "detectHorizontalDragGestures onDragEnd" }
                             scope.launch {
                                 val velocity = velocityTracker.calculateVelocity().x
                                 val distance = offsetX.value
-//                                Logd(TAG) { "detectHorizontalDragGestures velocity: $velocity distance: $distance" }
+                                //                                Logd(TAG) { "detectHorizontalDragGestures velocity: $velocity distance: $distance" }
                                 val shouldSwipe = abs(distance) > swipeDistanceThreshold && abs(velocity) > swipeVelocityThreshold
                                 if (shouldSwipe) {
                                     if (distance > 0) rightSwipeCB?.invoke(episode)
@@ -495,11 +491,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                                 if (showActionButtons) {
                                     val dlStats = downloadStates[episode.downloadUrl]
                                     if (dlStats != null) {
-//                                        Logd(TAG) { "${episode.id} dlStats: ${dlStats.progress} ${dlStats.state}" }
+                                        //                                        Logd(TAG) { "${episode.id} dlStats: ${dlStats.progress} ${dlStats.state}" }
                                         actionButton.processing.intValue = dlStats.progress
                                         when (dlStats.state) {
                                             DownloadStatus.State.COMPLETED.code -> {
-//                                                actionButton.update(episode)
+                                                //                                                actionButton.update(episode)
                                             }
                                             DownloadStatus.State.INCOMPLETE.code -> actionButton.type = ButtonTypes.DOWNLOAD
                                             else -> {}
@@ -591,11 +587,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }
                         Logd(TAG) { "selectedIds: ${selected.size}" }
                     })
-//                data class MenuOption(
-//                    @DrawableRes val iconRes: Int,
-//                    @StringRes val labelRes: Int,
-//                    val onClick: () -> Unit
-//                )
+                //                data class MenuOption(
+                //                    @DrawableRes val iconRes: Int,
+                //                    @StringRes val labelRes: Int,
+                //                    val onClick: () -> Unit
+                //                )
                 @Composable
                 fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
                     var isExpanded by remember { mutableStateOf(false) }
@@ -780,4 +776,13 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
             }
         }
     }
+
+    if (refreshCB != null) {
+        var refreshing by remember { mutableStateOf(false) }
+        PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+            refreshing = true
+            refreshCB.invoke()
+            refreshing = false
+        }) { TheLazyList() }
+    } else Box { TheLazyList() }
 }

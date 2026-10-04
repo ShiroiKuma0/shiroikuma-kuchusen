@@ -105,6 +105,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -705,11 +706,24 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
         }
         //        Logd(TAG) { "episode.related: ${episode.related.size}" }
         if (episode.related.isNotEmpty()) {
-            var showTodayStats by remember { mutableStateOf(false) }
-            if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
-            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable {
-                showTodayStats = true
-            })
+            var showRelated by remember { mutableStateOf(false) }
+            if (showRelated) CommonDialogSurface(onDismiss = { showRelated = false }) {
+                val related = remember(episode.related.size) { episode.related.toList() }
+                Box(modifier = Modifier.fillMaxWidth().requiredHeightIn(max = 300.dp)) {
+                    EpisodeLazyColumn(related, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false, actionButtonCB = { e1, _ ->
+                        runOnIOScope {
+                            realm.write {
+                                val es = query(Episode::class, "id IN $0", listOf(episode.id, e1.id)).find()
+                                if (es.size == 2) {
+                                    es[0].related.remove(es[1])
+                                    es[1].related.remove(es[0])
+                                }
+                            }
+                        }
+                    })
+                }
+            }
+            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable { showRelated = true })
         }
 
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
@@ -781,27 +795,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true, fetchChapters
             }
         }
     }
-}
-
-@Composable
-fun RelatedEpisodesDialog(episode: Episode, onDismiss: () -> Unit) {
-    // TODO: somehow, episode is not updated after unrelate
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismiss() },  confirmButton = {},
-        text = {
-            Logd(TAG) { "episode.related: ${episode.related.size}" }
-            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false,
-                actionButtonCB = {e1, _ ->
-                    runOnIOScope {
-                        realm.write {
-                            val es = query(Episode::class, "id IN $0", listOf(episode.id, e1.id)).find()
-                            if (es.size == 2) {
-                                es[0].related.remove(es[1])
-                                es[1].related.remove(es[0])
-                            }
-                        }
-                    }
-                } ) },
-        dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } } )
 }
 
 @Composable

@@ -705,8 +705,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             }
                         }
                     }
-                    EpisodeLazyColumn(
-                        episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.code else LayoutMode.Normal.code,
+                    EpisodeLazyColumn(episodes, feed = feed, layoutMode = if (feed?.useWideLayout == true) LayoutMode.WideImage.code else LayoutMode.Normal.code,
                         swipeActions = swipeActions, lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                         refreshCB = {
                             when {

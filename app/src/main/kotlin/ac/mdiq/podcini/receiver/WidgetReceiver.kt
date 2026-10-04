@@ -10,8 +10,6 @@ import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.ensureAController
 import ac.mdiq.podcini.playback.theatres
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
-import ac.mdiq.podcini.sourcing.ensureSourceClients
-import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -102,7 +100,7 @@ class PodciniWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
         logProcess(TAG, "provideGlance")
 
         provideContent { GlanceTheme {
@@ -238,7 +236,7 @@ class RemoveAction : ActionCallback {
 class PlayAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
         logProcess(TAG, "PlayAction")
         ensureAController()
         if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()
@@ -266,7 +264,7 @@ class PlayAction : ActionCallback {
 class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
         logProcess(TAG, "ToggleAction")
         ensureAController()
         if (appPrefsFlow!!.value.loadExternalApp) AppGatewayRegistry.awaitReady()

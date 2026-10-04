@@ -36,6 +36,7 @@ import android.os.RemoteException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -59,38 +60,6 @@ private val sourceClientScope = CoroutineScope(SupervisorJob() + Dispatchers.Mai
 val sourceClients = mutableListOf<SourceGatewayClient>()
 
 val typeClientMap = mutableMapOf<String, SourceGatewayClient>()
-
-
-fun ensureSourceClients(loadExternalApp_: Boolean? = null) {
-    suspend fun clearSources() {
-        sourceClients.clear()
-        typeClientMap.clear()
-        val clients = sourceClients.toList()
-        clients.forEach { runCatching { it.disconnect() } }
-    }
-    val loadExternalApp = loadExternalApp_ ?: appPrefsFlow?.value?.loadExternalApp
-    if (loadExternalApp != true) {
-        if (sourceClients.isNotEmpty()) sourceClientScope.launch { clearSources() }
-        return
-    }
-
-    sourceClientScope.launch {
-        if (sourceClients.isEmpty()) AppGatewayRegistry.initialize()
-        else {
-            var isAlive = true
-            for (c in sourceClients) {
-                if (c.gateway?.asBinder()?.isBinderAlive != true) {
-                    isAlive = false
-                    break
-                }
-            }
-            if (!isAlive) {
-                clearSources()
-                AppGatewayRegistry.initialize()
-            }
-        }
-    }
-}
 
 fun clientByFeed(feed: Feed): SourceGatewayClient? {
     if (feed.type.isNullOrBlank()) return null
@@ -150,8 +119,31 @@ object AppGatewayRegistry {
     private var gatewayCount = 0
     private var isInitializing = false
 
+    fun ensureSourceClients(loadExternalApp_: Boolean? = null) {
+        suspend fun clearSources() {
+            sourceClients.clear()
+            typeClientMap.clear()
+            val clients = sourceClients.toList()
+            clients.forEach { runCatching { it.disconnect() } }
+        }
+        val loadExternalApp = loadExternalApp_ ?: appPrefsFlow?.value?.loadExternalApp
+        if (loadExternalApp != true) {
+            sourceClientScope.launch { clearSources() }
+            return
+        }
+        sourceClientScope.launch {
+            val needsInitialization = mutex.withLock {
+                if (isInitializing) false
+                else {
+                    val alive = sourceClients.all { it.gateway?.asBinder()?.isBinderAlive == true }
+                    sourceClients.isEmpty() || !alive
+                }
+            }
+            if (needsInitialization) initialize()
+        }
+    }
+
     internal suspend fun initialize() {
-        Logd(TAG) { "AppGatewayRegistry initialize " }
         val currentDeferred: CompletableDeferred<List<SourceGatewayClient>>
         mutex.withLock {
             if (isInitializing) {
@@ -163,11 +155,11 @@ object AppGatewayRegistry {
             if (readyDeferred.isCompleted) readyDeferred = CompletableDeferred()
             currentDeferred = readyDeferred
         }
+
         try {
             sourceClients.forEach { runCatching { it.disconnect() } }
             sourceClients.clear()
             typeClientMap.clear()
-//            if (loadExternal) {
             val cs = bindSourceClients()
             if (cs.isNotEmpty()) sourceClients.addAll(cs)
             if (sourceClients.size == gatewayCount) {
@@ -177,12 +169,6 @@ object AppGatewayRegistry {
                 _state.value = GatewayState.Failed()
                 currentDeferred.complete(emptyList())
             }
-//            } else {
-//                _state.value = GatewayState.Ready(sourceClients)
-//                currentDeferred.complete(sourceClients)
-//            }
-            //            } catch (e: CancellationException) {
-            //                throw e
         } catch (e: Exception) {
             _state.value = GatewayState.Failed(e)
             currentDeferred.complete(emptyList())
@@ -197,6 +183,8 @@ object AppGatewayRegistry {
             queryIntentServices(intent, flags)
         }
     }
+
+    val reconnectJobs = mutableMapOf<ComponentName, Job>()
 
     private suspend fun bindSourceClients(): List<SourceGatewayClient> {
         val context = PodciniApp.getAppContext()
@@ -220,19 +208,38 @@ object AppGatewayRegistry {
                 clients.remove(client_)
                 PodciniApp.appIOScope.launch { client_.disconnect() }
             }
-            fun reconnectClient(intent: Intent) {
-                PodciniApp.appIOScope.launch {
-                    var delayMs = 1_000L
-                    repeat(5) {
-                        val newClient = bindSingleClient(intent)
-                        if (newClient != null) {
-                            clients.add(newClient)
-                            return@launch
-                        }
-                        delay(delayMs.milliseconds)
-                        delayMs = (delayMs * 2).coerceAtMost(30_000L)
+            fun reconnectClient(client: SourceGatewayClient, intent: Intent) {
+                val component = intent.component ?: return
+                synchronized(reconnectJobs) {
+                    if (reconnectJobs[component]?.isActive == true) {
+                        Logd(TAG) { "Reconnect already in progress for $component" }
+                        return
                     }
-                    Logd(TAG) { "reconnectClient Unable to reconnect gateway" }
+                    reconnectJobs[component] = PodciniApp.appIOScope.launch {
+                        try {
+                            mutex.withLock {
+                                if (!sourceClients.remove(client)) {
+                                    Logd(TAG) { "Client already removed: $component" }
+                                    return@withLock
+                                }
+                                typeClientMap.values.remove(client)
+                                PodcastSearcherRegistry.searcherInfos.clear()
+                            }
+                            runCatching { client.disconnect() }
+                            var delayMs = 1_000L
+                            repeat(5) { attempt ->
+                                Logd(TAG) { "Trying to reconnect $component, attempt ${attempt + 1}" }
+                                val newClient = bindSingleClient(intent)
+                                if (newClient != null) {
+                                    mutex.withLock { clients.add(newClient) }
+                                    return@launch
+                                }
+                                delay(delayMs)
+                                delayMs = (delayMs * 2).coerceAtMost(30_000L)
+                            }
+                            Logd(TAG) { "Unable to reconnect gateway $component" }
+                        } finally { synchronized(reconnectJobs) { reconnectJobs.remove(component) } }
+                    }
                 }
             }
             val client = SourceGatewayClient()
@@ -270,15 +277,15 @@ object AppGatewayRegistry {
                 }
                 override fun onServiceDisconnected(name: ComponentName?) {
                     Logt(TAG, "${formatDateTimeFlex(nowInMillis())}: Service ${client.attributes?.name} disconnected")
-                    removeClient(client)
-                    reconnectClient(explicitIntent)
+//                    removeClient(client)
+                    reconnectClient(client, explicitIntent)
                 }
                 override fun onBindingDied(name: ComponentName?) {
                     Logt(TAG, "${client.attributes?.name} binding died, trying to rebind service")
-                    removeClient(client)
+//                    removeClient(client)
                     if (continuation.isActive) continuation.resumeWith(Result.success(null))
                     runCatching { context.unbindService(this) }
-                    reconnectClient(explicitIntent)
+                    reconnectClient(client, explicitIntent)
                 }
                 override fun onNullBinding(name: ComponentName?) {
                     Logt(TAG, "${formatDateTimeFlex(nowInMillis())}: Service ${client.attributes?.name} not bond: null binding, trying to rebind")

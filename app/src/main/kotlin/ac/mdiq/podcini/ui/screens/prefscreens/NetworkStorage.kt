@@ -9,7 +9,8 @@ import ac.mdiq.podcini.shared.PodciniHttpClient.getKtorClient
 import ac.mdiq.podcini.shared.PodciniHttpClient.resetClient
 import ac.mdiq.podcini.shared.ProxyConfig
 import ac.mdiq.podcini.shared.nowInMillis
-import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.checkAndScheduleUpdateTaskOnce
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.intervalInMillis
 import ac.mdiq.podcini.storage.database.appAttribsFlow
@@ -370,7 +371,7 @@ fun NetworkStorageScreen() {
         TitleSummarySwitchRow(R.string.pref_use_external_apps, R.string.pref_use_external_app_sum, appPrefs.loadExternalApp) {
             runOnIOScope { upsert(appPrefs) { p-> p.loadExternalApp = it} }
             if (!it) Logt(TAG, "external apps are being disconnected")
-            ensureSourceClients(it)
+            AppGatewayRegistry.ensureSourceClients(it)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

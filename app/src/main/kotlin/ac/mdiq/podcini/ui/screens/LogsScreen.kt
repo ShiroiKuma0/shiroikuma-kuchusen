@@ -52,7 +52,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -261,7 +263,7 @@ fun LogsScreen() {
                 else -> CommonDialogSurface(onDismiss = { sharedUrl = "" }) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.existing), style = MaterialTheme.typography.titleMedium)
-                        Box(modifier = Modifier.fillMaxWidth().height(300.dp).padding(vertical = 5.dp)) {
+                        Box(modifier = Modifier.fillMaxWidth().requiredHeightIn(max = 300.dp).padding(vertical = 5.dp)) {
                             EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
                         }
                         Row {

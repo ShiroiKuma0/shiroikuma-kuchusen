@@ -9,11 +9,10 @@ import ac.mdiq.podcini.playback.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.shared.nowInMillis
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
-import ac.mdiq.podcini.sourcing.ensureSourceClients
+
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.sourcing.feed.FeedUpdateManager.scheduleUpdateTaskOnce
-import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.migrationProg
 import ac.mdiq.podcini.storage.database.migrationStep
@@ -194,7 +193,7 @@ class MainActivity : BaseActivity() {
         window.decorView.postOnAnimation {
             lifecycleScope.launch(Dispatchers.IO) {
                 initialize()
-                ensureSourceClients()
+                AppGatewayRegistry.ensureSourceClients()
                 startLiveMonitor()
 
                 logProcess(TAG, "onCreate")

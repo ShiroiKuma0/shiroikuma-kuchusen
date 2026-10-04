@@ -5,7 +5,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.config.settings.developerEmail
 import ac.mdiq.podcini.config.settings.githubAddress
-import ac.mdiq.podcini.sourcing.sourceClients
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.utils.div
 import ac.mdiq.podcini.storage.utils.internalDir

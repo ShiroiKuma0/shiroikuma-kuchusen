@@ -2,7 +2,8 @@ package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.AppConfig.initialize
-import ac.mdiq.podcini.sourcing.ensureSourceClients
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+
 import ac.mdiq.podcini.sourcing.handleShared
 import ac.mdiq.podcini.storage.database.addToFeed
 import ac.mdiq.podcini.storage.database.realm
@@ -29,7 +30,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -54,7 +57,7 @@ class ShareReceiverActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
 
         Logd(TAG) { "intent: $intent" }
         when (intent.action) {
@@ -91,7 +94,7 @@ class ShareReceiverActivity : ComponentActivity() {
                     existing!!.size > 1 -> {
                         Surface(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
                             Box(modifier = Modifier.fillMaxWidth()) {
-                                Box(modifier = Modifier.fillMaxWidth().height(400.dp).padding(bottom = 50.dp)) {
+                                Box(modifier = Modifier.fillMaxWidth().requiredHeightIn(max = 400.dp).padding(bottom = 50.dp)) {
                                     EpisodeLazyColumn(existing!!, layoutMode = LayoutMode.FeedTitle.code, forceFeedImage = true, showActionButtons = false)
                                 }
                                 Button(modifier = Modifier.align(Alignment.BottomEnd), onClick = { addAsNew = true }) { Text(stringResource(R.string.add_as_new)) }

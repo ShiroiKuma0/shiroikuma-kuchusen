@@ -2,8 +2,7 @@ package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.playback.theatres
-import ac.mdiq.podcini.sourcing.ensureSourceClients
-import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
 import ac.mdiq.podcini.ui.compose.AppThemes
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.textColor
@@ -11,40 +10,28 @@ import ac.mdiq.podcini.ui.screens.AVPlayerVM
 import ac.mdiq.podcini.ui.screens.ControlUI
 import ac.mdiq.podcini.ui.screens.ProgressBar
 import ac.mdiq.podcini.utils.Logd
-import android.graphics.Rect
 import android.os.Bundle
-import android.view.Gravity
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import kotlinx.coroutines.launch
 
 private const val TAG = "PlayerUIActivity"
 class PlayerUIActivity : ComponentActivity() {
@@ -53,7 +40,7 @@ class PlayerUIActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
 
         setContent {
             PodciniTheme(AppThemes.BLACK) {

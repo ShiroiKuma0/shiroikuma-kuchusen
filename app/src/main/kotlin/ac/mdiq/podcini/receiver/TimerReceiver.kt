@@ -5,7 +5,7 @@ import ac.mdiq.podcini.automation.AlarmTypes
 import ac.mdiq.podcini.config.AppConfig.initialize
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.sourcing.AppGatewayRegistry
-import ac.mdiq.podcini.sourcing.ensureSourceClients
+
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.utils.Logd
@@ -25,7 +25,7 @@ class TimerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null) return
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
 
         val message = intent?.getStringExtra(ALARM_TYPE) ?: "Timer Fired!"
 

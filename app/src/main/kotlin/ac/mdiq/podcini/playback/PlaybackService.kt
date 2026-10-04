@@ -4,8 +4,7 @@ import ac.mdiq.podcini.PodciniApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.AppConfig
 import ac.mdiq.podcini.config.AppConfig.startLiveMonitor
-import ac.mdiq.podcini.sourcing.ensureSourceClients
-import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
 import ac.mdiq.podcini.storage.database.appPrefsFlow
 import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.fastForwardSecs
@@ -355,7 +354,7 @@ class PlaybackService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         AppConfig.initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
         startLiveMonitor()
         logProcess(TAG, "onCreate")
 

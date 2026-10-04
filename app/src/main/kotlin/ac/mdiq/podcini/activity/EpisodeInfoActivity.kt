@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.activity
 
 import ac.mdiq.podcini.config.AppConfig.initialize
-import ac.mdiq.podcini.sourcing.ensureSourceClients
-import ac.mdiq.podcini.sourcing.sourceClients
+import ac.mdiq.podcini.sourcing.AppGatewayRegistry
+
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
@@ -40,7 +40,7 @@ class EpisodeInfoActivity : ComponentActivity() {
         window.setBackgroundDrawableResource(android.R.color.transparent)
 
         initialize()
-        ensureSourceClients()
+        AppGatewayRegistry.ensureSourceClients()
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {

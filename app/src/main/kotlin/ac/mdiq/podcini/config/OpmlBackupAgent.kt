@@ -34,6 +34,7 @@ import java.security.MessageDigest
 class OpmlBackupAgent : BackupAgentHelper() {
 
     override fun onCreate() {
+        AppConfig.initialize()
         val isAutoBackupOPML = appPrefsFlow!!.value.OPMLBackup
         if (isAutoBackupOPML) {
             Logd(TAG) { "Backup of OPML enabled in preferences" }

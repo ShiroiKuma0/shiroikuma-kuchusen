@@ -1,0 +1,4 @@
+* amended external clients connections/reconnections, avoid race conditions
+* popups with list of episodes assigned with a max height
+* enhanced efficiency for episodes lazy lists by separating out from PullToRefresh when not needed
+* ensure proper initialization in OpmlBackupAgent

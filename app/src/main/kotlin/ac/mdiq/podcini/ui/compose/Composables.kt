@@ -102,8 +102,8 @@ import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun CommonDialogSurface(onDismiss: () -> Unit, content: @Composable (() -> Unit)) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor), modifier = Modifier.fillMaxWidth(0.9f)) {
             content()
         }
     }
@@ -111,7 +111,7 @@ fun CommonDialogSurface(onDismiss: () -> Unit, content: @Composable (() -> Unit)
 
 @Composable
 fun CommonPopupCard(onDismiss: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
-    Popup(onDismissRequest = { onDismiss() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
+    Popup(onDismissRequest = { onDismiss() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true, usePlatformDefaultWidth = false)) {
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
             modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, borderColor)) {
             content()
