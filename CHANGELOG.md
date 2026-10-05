@@ -2,6 +2,50 @@
 
 Everything built on top of stock [Podcini.A](https://github.com/XilinJia/Podcini.A).
 
+## 12.14.3+001 (versionCode 1340001) — 2026-10-05
+
+Rebased onto upstream **v12.14.3** (versionCode 134), released 2026-10-04 — one upstream commit, 22
+files, 166 insertions, 165 deletions. A tracking release: **no new fork features**, the custom layer
+replayed onto the new base and the build counter reset to `+001`.
+
+> **✅ No database migration.** The Realm schema stays at **168**, so the app opens straight away,
+> and backups move freely between this build and 12.14.2+001 in either direction.
+
+> **Size**: 37.04 MiB (38,843,715 bytes), 18 bytes larger than 12.14.2+001.
+
+### Fork layer
+
+- **Nothing removed, nothing changed in what the fork does.** Live theming, the one-file category
+  backup with the database snapshot, the self-verifying export, the token-gated headless export, the
+  data door, the startup screen in the house colours, the working launcher shortcuts and the
+  black-yellow identity all carry over.
+- **Only the usual version conflict.** In `app/build.gradle.kts` our derived
+  `forkVersionCode` / `forkVersionName` stand over upstream's hardcoded `134` / `"12.14.3"`. The
+  other 55 fork commits replayed without a conflict, and the free release compiled with no porting
+  change.
+
+### What upstream brings
+
+**External source clients.** Connecting and reconnecting to external client apps is reworked to
+avoid race conditions: the client check moves into `AppGatewayRegistry` and runs under a lock,
+skipping a second initialization while one is already in progress. A dropped client is removed and
+rebound with exponential back-off (1 s doubling to 30 s, five attempts), and only one reconnect runs
+per client at a time instead of several piling up.
+
+**Popups and dialogs.** Popups that list episodes are capped at a maximum height rather than a fixed
+one, so a short list no longer leaves an empty block — this covers the share receiver's
+existing-media list and the episode's **Related** list, which is now a shared dialog surface
+(at most 300 dp tall) where tapping an episode's action button still un-relates it. The common
+dialog surface spans 90 % of the screen width instead of the platform default.
+
+**Episode lists.** Lazy episode lists are separated from `PullToRefresh` when no refresh is wired
+up, so they no longer carry the pull-to-refresh wrapper for nothing.
+
+**Backup agent.** `OpmlBackupAgent` initializes the app config before it runs, so an Android
+system backup no longer works from an uninitialized state.
+
+**Toolchain.** Gradle wrapper 9.7.1 → 9.8.0. No library versions change.
+
 ## 12.14.2+001 (versionCode 1330001) — 2026-10-02
 
 Rebased onto upstream **v12.14.2** (versionCode 133), released 2026-10-02 — **five upstream releases
